@@ -1,0 +1,57 @@
+# Normalize text files and store them with LF in Git
+* text=auto eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ps1 text eol=lf
+
+# Windows command scripts require CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Explicitly diffable text formats
+*.js text
+*.cjs text
+*.mjs text
+*.jsx text
+*.ts text
+*.cts text
+*.mts text
+*.tsx text
+*.json text
+*.jsonc text
+*.yml text
+*.yaml text
+*.md text
+*.css text
+*.scss text
+*.html text
+*.sql text
+*.prisma text
+*.graphql text
+*.gql text
+*.svg text
+*.env.example text
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+
+# Fonts
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+
+# Documents and archives
+*.pdf binary
+*.zip binary
+*.gz binary
+*.7z binary
