@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 docs/pull-requests/
 docs/adr/
 docs/migration-ledger.md
+
+# Turborepo
+.turbo/
