@@ -11,6 +11,7 @@ MealMind — програмна система, яка допомагає дом
 - [Бачення продукту](./docs/product/vision.md)
 - [Межі MVP](./docs/product/mvp-scope.md)
 - [Архітектура](./docs/architecture/README.md)
+- [Стратегія тестування](./docs/testing-strategy.md)
 - [Внесення змін](./CONTRIBUTING.md)
 - [Security Policy](./SECURITY.md)
 
@@ -218,30 +219,30 @@ mealmind/
 
 ## Технологічний стек
 
-| Компонент | Технологія |
-|---|---|
-| Мова програмування | TypeScript |
-| Користувацький інтерфейс | React, Next.js |
-| Адміністративний інтерфейс | React, Next.js |
-| Серверна частина | Node.js, Express |
-| API | REST |
-| ORM | Prisma |
-| База даних | PostgreSQL на Supabase |
-| Автентифікація | Supabase Auth |
-| Зберігання медіа | Supabase Storage |
-| Валідація | Zod |
-| Серверний стан frontend | TanStack React Query |
-| Форми | React Hook Form |
-| Локальний стан | Zustand |
-| Стилізація | Tailwind CSS |
-| Monorepo | npm workspaces, Turborepo |
-| Unit та integration tests | Vitest |
-| Frontend behavior tests | Testing Library |
-| E2E smoke tests | Playwright |
-| CI | GitHub Actions |
-| Error tracking | Sentry |
-| Розгортання frontend | Vercel |
-| Розгортання API | Render |
+| Компонент                  | Технологія                |
+| -------------------------- | ------------------------- |
+| Мова програмування         | TypeScript                |
+| Користувацький інтерфейс   | React, Next.js            |
+| Адміністративний інтерфейс | React, Next.js            |
+| Серверна частина           | Node.js, Express          |
+| API                        | REST                      |
+| ORM                        | Prisma                    |
+| База даних                 | PostgreSQL на Supabase    |
+| Автентифікація             | Supabase Auth             |
+| Зберігання медіа           | Supabase Storage          |
+| Валідація                  | Zod                       |
+| Серверний стан frontend    | TanStack React Query      |
+| Форми                      | React Hook Form           |
+| Локальний стан             | Zustand                   |
+| Стилізація                 | Tailwind CSS              |
+| Monorepo                   | npm workspaces, Turborepo |
+| Unit та integration tests  | Vitest                    |
+| Frontend behavior tests    | Testing Library           |
+| E2E smoke tests            | Playwright                |
+| CI                         | GitHub Actions            |
+| Error tracking             | Sentry                    |
+| Розгортання frontend       | Vercel                    |
+| Розгортання API            | Render                    |
 
 ## Інженерні принципи
 
