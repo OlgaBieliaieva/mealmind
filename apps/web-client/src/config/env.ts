@@ -5,9 +5,13 @@ const publicUrlSchema = z
   .trim()
   .url()
   .refine((value) => {
-    const protocol = new URL(value).protocol;
+    try {
+      const protocol = new URL(value).protocol;
 
-    return protocol === "http:" || protocol === "https:";
+      return protocol === "http:" || protocol === "https:";
+    } catch {
+      return false;
+    }
   }, "Must use the HTTP or HTTPS protocol");
 
 const environmentSchema = z.object({
