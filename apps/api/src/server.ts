@@ -1,10 +1,9 @@
 import { createApp } from "./app.js";
+import { parseApiEnv } from "./config/env.js";
 
-const DEFAULT_PORT = 3002;
-
-const port = Number(process.env.PORT ?? DEFAULT_PORT);
+const config = parseApiEnv(process.env);
 const app = createApp();
 
-app.listen(port, () => {
-  console.log(`MealMind API is running at http://localhost:${port}`);
+app.listen(config.port, () => {
+  console.log(`MealMind API is running at http://localhost:${config.port}`);
 });

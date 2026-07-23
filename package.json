@@ -27,7 +27,12 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run build",
-    "audit": "npm audit --audit-level=moderate"
+    "audit": "npm audit --audit-level=moderate",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage",
+    "supabase:start": "supabase start",
+    "supabase:status": "supabase status",
+    "supabase:stop": "supabase stop",
+    "db:ready": "supabase status"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
@@ -36,6 +41,7 @@
     "eslint-config-next": "16.2.11",
     "globals": "17.7.0",
     "prettier": "3.9.6",
+    "supabase": "2.109.1",
     "turbo": "2.10.5",
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { readWebEnv } from "@/config/env";
+
 import "./globals.css";
+
+readWebEnv();
 
 export const metadata: Metadata = {
   title: "MealMind Admin",
