@@ -154,7 +154,7 @@ Supabase використовується як керована платформ
 - authentication;
 - object storage.
 
-Local, test, staging і production використовують ізольовані databases, buckets, projects і credentials. Production service-role credentials ніколи не передаються до браузера та не зберігаються в Git.
+Local, test, staging і production використовують ізольовані databases, buckets, projects і credentials. Production secret credentials ніколи не передаються до браузера та не зберігаються в Git.
 
 ### Sentry
 
@@ -430,7 +430,7 @@ MealMind може обробляти харчові вподобання, але
 
 - збираються лише дані, необхідні для функцій системи;
 - доступ до сімейних даних перевіряється через membership і роль;
-- service-role key не потрапляє до browser bundle;
+- Supabase secret key не потрапляє до browser bundle;
 - секрети не зберігаються в Git;
 - production, staging, test і local мають різні credentials;
 - чутливі дані не потрапляють до logs або Sentry;
