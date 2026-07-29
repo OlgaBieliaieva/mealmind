@@ -1551,7 +1551,7 @@ model ShoppingListItem {
   productCategory          ProductCategory?         @relation(fields: [productCategoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   derivedMeasurementUnit   MeasurementUnit?         @relation("ShoppingListItemDerivedUnit", fields: [derivedMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   requestedMeasurementUnit MeasurementUnit?         @relation("ShoppingListItemRequestedUnit", fields: [requestedMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdBy                User?                    @relation("ShoppingListItemCreator", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdBy                User?                    @relation("ShoppingListItemCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   sources                  ShoppingListItemSource[]
 
   @@index([shoppingListId, status])
