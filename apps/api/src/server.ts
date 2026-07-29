@@ -1,9 +1,9 @@
-import { createApp } from "./app.js";
+import { createApiRuntime } from "./composition-root.js";
 import { parseApiEnv } from "./config/env.js";
 
 const config = parseApiEnv(process.env);
-const app = createApp();
+const runtime = createApiRuntime(config);
 
-app.listen(config.port, () => {
-  console.log(`MealMind API is running at http://localhost:${config.port}`);
+runtime.app.listen(config.port, () => {
+  console.log(`MealMind API is running at ${config.apiOrigin}`);
 });
