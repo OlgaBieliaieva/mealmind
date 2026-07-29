@@ -2,7 +2,14 @@ import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createApp, type AppDependencies } from "./app.js";
+import type { AuthenticationService } from "./application/authentication/authentication-service.js";
 import { createHealthService } from "./application/health.js";
+
+const unusedAuthenticationService: AuthenticationService = {
+  async authenticateAccessToken() {
+    throw new Error("Authentication was not expected in this test");
+  },
+};
 
 describe("MealMind API application", () => {
   let dependencies: AppDependencies;
@@ -10,6 +17,7 @@ describe("MealMind API application", () => {
   beforeEach(() => {
     dependencies = {
       healthService: createHealthService(),
+      authenticationService: unusedAuthenticationService,
     };
   });
 
