@@ -11,7 +11,7 @@
 | Середовище | Призначення                                              | Дані та credentials                                                      | Поточний стан                                                |
 | ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
 | Local      | Розроблення й ручна перевірка на робочій станції         | Локальні PostgreSQL, Auth, Storage і ключі Supabase CLI                  | Реалізовано                                                  |
-| Test       | Автоматизовані unit та integration tests                 | Ізольована test database/schema і синтетичні fixtures                    | Контракт визначено; database setup додається у PR-005        |
+| Test       | Автоматизовані unit та integration tests                 | Окрема локальна `mealmind_test` і синтетичні fixtures                    | Clean migration і reference seed verification реалізовано    |
 | Staging    | Preview, acceptance і перевірка migrations перед release | Окремий Supabase project і окремі deployment credentials                 | Цільова конфігурація; deployment виконується пізніше         |
 | Production | Робоче середовище стабільного release                    | Окремий Supabase project, мінімально необхідні secrets і production data | Цільова конфігурація; deployment виконується у release phase |
 
@@ -38,7 +38,7 @@ Local, test, staging і production не використовують спіль�
 | `CORS_ALLOWED_ORIGINS`                 | API security boundary          | `apps/api`                  | Local, Test, Staging, Production | Non-secret runtime policy | Список дозволених web origins                      |
 | `DATABASE_URL`                         | Database connectivity          | API, Prisma runtime         | Local, Staging, Production       | Secret                    | Pooled або application PostgreSQL connection       |
 | `DIRECT_URL`                           | Database migrations            | Prisma tooling              | Local, Staging, Production       | Secret                    | Пряме з'єднання для migrations, якщо потрібне      |
-| `TEST_DATABASE_URL`                    | Test infrastructure            | Prisma та integration tests | Test                             | Secret                    | Окрема test database/schema                        |
+| `TEST_DATABASE_URL`                    | Test infrastructure            | Prisma та integration tests | Test                             | Secret                    | Окрема локальна database `mealmind_test`           |
 | `SUPABASE_URL`                         | Supabase platform              | `apps/api`                  | Local, Staging, Production       | Public metadata           | Server-side endpoint Supabase API                  |
 | `SUPABASE_PUBLISHABLE_KEY`             | Supabase platform              | `apps/api`                  | Local, Staging, Production       | Public                    | Низькопривілейований application key               |
 | `SUPABASE_SECRET_KEY`                  | Supabase platform              | Тільки `apps/api`           | Local, Staging, Production       | Secret                    | Привілейований server key; не передається браузеру |
@@ -46,7 +46,7 @@ Local, test, staging і production не використовують спіль�
 | `NEXT_PUBLIC_SUPABASE_URL`             | Supabase platform              | `web-admin`, `web-client`   | Local, Staging, Production       | Public build-time         | Browser endpoint Supabase                          |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase platform              | `web-admin`, `web-client`   | Local, Staging, Production       | Public build-time         | Низькопривілейований browser key                   |
 
-`DIRECT_URL` і `TEST_DATABASE_URL` уже зарезервовані root-контрактом. Їх фактичне використання та автоматизоване створення test schema належать database foundation у PR-005.
+`DIRECT_URL` використовується Prisma tooling для контрольованих migrations. `TEST_DATABASE_URL` приймається лише database test utilities і має вказувати на окрему локальну database `mealmind_test`.
 
 ## Валідація
 
@@ -113,15 +113,24 @@ npm run supabase:stop
 
 Unit і component tests не читають локальні `.env` та отримують контрольовані in-memory fixtures.
 
-Database integration tests повинні використовувати тільки `TEST_DATABASE_URL`. У PR-005 буде додано:
+Database integration tests використовують тільки `TEST_DATABASE_URL`. Реалізований test helper:
 
-- окрему test database або PostgreSQL schema;
-- Prisma baseline migration;
-- reference seed;
-- deterministic test fixtures;
-- clean-database migration/seed/smoke verification.
+- перевіряє local host, порт локального Supabase PostgreSQL і точну назву `mealmind_test`;
+- не дозволяє використовувати development, staging або production database;
+- відтворює test database з `template0` та UTF-8;
+- застосовує reviewed Prisma baseline migration;
+- запускає reference seed двічі;
+- перевіряє 181 reference record, унікальність UUID/code та незмінність `updatedAt` під час повторного запуску.
 
 Integration tests не підключаються до development, staging або production database. Довідникові дані відтворюються контрольованим reference seed, а scenario data створюються fixtures/factories і очищаються між тестами.
+
+Основні команди:
+
+```bash
+npm run db:test:migrations
+npm run db:test:seed
+npm run db:test
+```
 
 ## Supabase і Prisma ownership
 
