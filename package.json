@@ -27,12 +27,22 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run build",
-    "audit": "npm audit --audit-level=moderate",
+    "audit": "npm audit --omit=dev --audit-level=moderate",
+    "audit:all": "npm audit --audit-level=moderate",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage",
     "supabase:start": "supabase start",
     "supabase:status": "supabase status",
     "supabase:stop": "supabase stop",
-    "db:ready": "supabase status"
+    "db:ready": "supabase status",
+    "db:generate": "npm run generate -w @mealmind/db",
+    "db:format": "npm run db:format -w @mealmind/db",
+    "db:validate": "npm run db:validate -w @mealmind/db",
+    "db:migrate:deploy": "npm run db:migrate:deploy -w @mealmind/db",
+    "db:migrate:status": "npm run db:migrate:status -w @mealmind/db",
+    "db:seed:reference": "npm run db:seed:reference -w @mealmind/db",
+    "db:test:migrations": "npm run db:test:migrations -w @mealmind/db",
+    "db:test:seed": "npm run db:test:seed -w @mealmind/db",
+    "db:test": "npm run db:test -w @mealmind/db"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
@@ -51,6 +61,8 @@
   "allowScripts": {
     "esbuild@0.28.1": true,
     "sharp@0.35.3": true,
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "prisma@7.9.1": true,
+    "@prisma/engines@7.9.1": true
   }
 }

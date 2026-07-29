@@ -4,7 +4,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  globalIgnores(["dist/**", "coverage/**", ".turbo/**"]),
+  globalIgnores(["dist/**", "coverage/**", ".turbo/**", "src/generated/prisma/**"]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

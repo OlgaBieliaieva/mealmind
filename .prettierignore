@@ -19,3 +19,5 @@ package-lock.json
 docs/adr/
 docs/migration-ledger.md
 docs/pull-requests/
+
+packages/db/src/generated/prisma/

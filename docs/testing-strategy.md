@@ -43,7 +43,19 @@ E2E-інфраструктура додається окремо після по
 - **Supertest** — перевірка HTTP-маршрутів Express без запуску окремого порту;
 - **V8 coverage** — формування текстового, HTML- та LCOV-звітів про покриття.
 
-Поточний базовий набір містить integration-тест `GET /health` для API та по одному component smoke test для Web Admin і Web Client. Тести бази даних та E2E-тести будуть додані разом із відповідною функціональністю.
+Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, а також database smoke tests для baseline migration та reference seed. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
+
+### Перевірки бази даних
+
+Database foundation перевіряється в окремій локальній базі `mealmind_test`, а не в development database `postgres`. Тестовий helper:
+
+- дозволяє роботу лише з локальним PostgreSQL на порту Supabase CLI `54322` і базою з точною назвою `mealmind_test`;
+- відтворює чисту тестову базу перед кожним сценарієм;
+- застосовує baseline migration і перевіряє таблицю `_prisma_migrations`;
+- запускає reference seed двічі та підтверджує його ідемпотентність;
+- перевіряє точні кількості восьми довідників, унікальність UUID і кодів та незмінність службових часових міток під час повторного запуску.
+
+Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Розташування і назви
 
@@ -76,11 +88,17 @@ Coverage використовується як діагностичний пок
 ```bash
 npm run test
 npm run test:coverage
+npm run db:test:migrations
+npm run db:test:seed
+npm run db:test
 npm run check
 ```
 
 - `npm run test` запускає всі наявні тести;
 - `npm run test:coverage` запускає тести та формує coverage-звіти;
+- `npm run db:test:migrations` відтворює `mealmind_test` і перевіряє застосування baseline migration до чистої бази;
+- `npm run db:test:seed` відтворює `mealmind_test`, застосовує migration і перевіряє reference seed двома послідовними запусками;
+- `npm run db:test` послідовно виконує обидві database-перевірки;
 - `npm run check` послідовно перевіряє форматування, lint, типи, тести з coverage та production build.
 
 Згенеровані директорії `coverage/` не додаються до Git. У CI вони можуть публікуватися як тимчасовий artifact для аналізу результатів.
