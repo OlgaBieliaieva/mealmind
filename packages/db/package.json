@@ -12,13 +12,15 @@
   "scripts": {
     "generate": "prisma generate",
     "build": "npm run generate && tsc",
-    "typecheck": "npm run generate && tsc --noEmit",
+    "typecheck": "npm run generate && tsc --noEmit && tsc -p tsconfig.seed.json --noEmit",
+    "typecheck:seeds": "npm run generate && tsc -p tsconfig.seed.json --noEmit",
     "lint": "eslint . --max-warnings=0",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:migrate:status": "prisma migrate status"
+    "db:migrate:status": "prisma migrate status",
+    "db:seed:reference": "npm run generate && prisma db seed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",

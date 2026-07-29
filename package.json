@@ -37,7 +37,8 @@
     "db:format": "npm run db:format -w @mealmind/db",
     "db:validate": "npm run db:validate -w @mealmind/db",
     "db:migrate:deploy": "npm run db:migrate:deploy -w @mealmind/db",
-    "db:migrate:status": "npm run db:migrate:status -w @mealmind/db"
+    "db:migrate:status": "npm run db:migrate:status -w @mealmind/db",
+    "db:seed:reference": "npm run db:seed:reference -w @mealmind/db"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -10,13 +10,13 @@ loadEnvironment({
   path: resolve(repositoryRoot, ".env"),
 });
 
-const schemaOnlyDatabaseUrl =
-  "postgresql://unavailable:unavailable@127.0.0.1:1/unavailable";
+const schemaOnlyDatabaseUrl = "postgresql://unavailable:unavailable@127.0.0.1:1/unavailable";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx prisma/seeds/reference/seed.ts",
   },
   datasource: {
     url: process.env.DIRECT_URL ?? schemaOnlyDatabaseUrl,
