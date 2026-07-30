@@ -3,12 +3,17 @@ import type { ReactNode } from "react";
 
 import { readWebEnv } from "@/config/env";
 
+import { AppProviders } from "./providers";
+
 import "./globals.css";
 
 readWebEnv();
 
 export const metadata: Metadata = {
-  title: "MealMind",
+  title: {
+    default: "MealMind",
+    template: "%s | MealMind",
+  },
   description: "Система планування сімейного харчування",
 };
 
@@ -19,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk">
-      <body>{children}</body>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

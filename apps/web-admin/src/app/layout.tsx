@@ -3,12 +3,17 @@ import type { ReactNode } from "react";
 
 import { readWebEnv } from "@/config/env";
 
+import { AppProviders } from "./providers";
+
 import "./globals.css";
 
 readWebEnv();
 
 export const metadata: Metadata = {
-  title: "MealMind Admin",
+  title: {
+    default: "MealMind Admin",
+    template: "%s | MealMind Admin",
+  },
   description: "Адміністративний застосунок системи MealMind",
 };
 
@@ -19,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk">
-      <body>{children}</body>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
