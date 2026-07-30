@@ -11,6 +11,7 @@ MealMind — програмна система, яка допомагає дом
 - [Бачення продукту](./docs/product/vision.md)
 - [Межі MVP](./docs/product/mvp-scope.md)
 - [Архітектура](./docs/architecture/README.md)
+- [Контракти REST API](./docs/architecture/api-contracts.md)
 - [Модель даних, ERD і словник](./docs/architecture/data-model/README.md)
 - [Runtime-конфігурація та середовища](./docs/setup/runtime-configuration.md)
 - [Стратегія тестування](./docs/testing-strategy.md)
