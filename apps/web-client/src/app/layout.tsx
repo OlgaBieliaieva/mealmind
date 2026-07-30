@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { readWebEnv } from "@/config/env";
+import { ClientShell } from "@/features/client-shell/client-shell";
 
 import { AppProviders } from "./providers";
 
@@ -25,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="uk">
       <body>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <ClientShell>{children}</ClientShell>
+        </AppProviders>
       </body>
     </html>
   );
