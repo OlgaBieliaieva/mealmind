@@ -3,6 +3,7 @@ import type { ErrorRequestHandler } from "express";
 import { AppError } from "../../application/errors/app-error.js";
 import { createErrorResponse } from "../errors/error-response.js";
 import { InvalidJsonError } from "../errors/invalid-json-error.js";
+import { PayloadTooLargeError } from "../errors/payload-too-large-error.js";
 import { RequestValidationError } from "../errors/request-validation-error.js";
 
 interface BodyParserError {
@@ -10,23 +11,35 @@ interface BodyParserError {
   readonly type?: unknown;
 }
 
-function isInvalidJsonError(error: unknown): boolean {
-  if (!(error instanceof SyntaxError)) {
+function isBodyParserError(error: unknown, status: number, type: string): boolean {
+  if (!(error instanceof Error)) {
     return false;
   }
 
   const bodyParserError = error as BodyParserError;
 
-  return bodyParserError.status === 400 && bodyParserError.type === "entity.parse.failed";
+  return bodyParserError.status === status && bodyParserError.type === type;
 }
 
-export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, next) => {
+function normalizeError(error: unknown): unknown {
+  if (isBodyParserError(error, 400, "entity.parse.failed")) {
+    return new InvalidJsonError(error);
+  }
+
+  if (isBodyParserError(error, 413, "entity.too.large")) {
+    return new PayloadTooLargeError(error);
+  }
+
+  return error;
+}
+
+export const errorHandler: ErrorRequestHandler = (error: unknown, request, response, next) => {
   if (response.headersSent) {
     next(error);
     return;
   }
 
-  const normalizedError = isInvalidJsonError(error) ? new InvalidJsonError(error) : error;
+  const normalizedError = normalizeError(error);
 
   if (normalizedError instanceof RequestValidationError) {
     response
@@ -45,6 +58,13 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _request, resp
 
     return;
   }
+
+  request.logger?.error(
+    {
+      errorName: normalizedError instanceof Error ? normalizedError.name : "UnknownError",
+    },
+    "Unhandled request error",
+  );
 
   response
     .status(500)

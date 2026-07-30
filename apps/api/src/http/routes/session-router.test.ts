@@ -6,18 +6,19 @@ import type { AuthenticationService } from "../../application/authentication/aut
 import { AuthenticationRequiredError } from "../../application/errors/authentication-errors.js";
 import { createHealthService } from "../../application/health.js";
 
+import type { AppDependencies } from "../../app.js";
+import { createNoopLogger } from "../../application/logging/logger.js";
+import { createReadinessService } from "../../application/readiness.js";
+
 describe("session router", () => {
   it("returns 401 without a Bearer token", async () => {
     const authenticationService: AuthenticationService = {
       authenticateAccessToken: vi.fn(),
     };
 
-    const response = await request(
-      createApp({
-        healthService: createHealthService(),
-        authenticationService,
-      }),
-    ).get("/api/v1/session");
+    const response = await request(createApp(createTestDependencies(authenticationService))).get(
+      "/api/v1/session",
+    );
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
@@ -41,12 +42,7 @@ describe("session router", () => {
       authenticateAccessToken,
     };
 
-    const response = await request(
-      createApp({
-        healthService: createHealthService(),
-        authenticationService,
-      }),
-    )
+    const response = await request(createApp(createTestDependencies(authenticationService)))
       .get("/api/v1/session")
       .set("authorization", "Bearer valid-access-token");
 
@@ -70,12 +66,7 @@ describe("session router", () => {
       }),
     };
 
-    const response = await request(
-      createApp({
-        healthService: createHealthService(),
-        authenticationService,
-      }),
-    )
+    const response = await request(createApp(createTestDependencies(authenticationService)))
       .get("/api/v1/session")
       .set("authorization", "Bearer rejected-token");
 
@@ -83,3 +74,15 @@ describe("session router", () => {
     expect(response.body.error.code).toBe("AUTHENTICATION_REQUIRED");
   });
 });
+
+function createTestDependencies(authenticationService: AuthenticationService): AppDependencies {
+  return {
+    healthService: createHealthService(),
+    readinessService: createReadinessService({
+      async check() {},
+    }),
+    authenticationService,
+    logger: createNoopLogger(),
+    corsAllowedOrigins: ["http://127.0.0.1:3000"],
+  };
+}

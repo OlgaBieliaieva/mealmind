@@ -4,23 +4,35 @@ import type { Express } from "express";
 import { createApp } from "./app.js";
 import { createAuthenticationService } from "./application/authentication/authentication-service.js";
 import { createHealthService } from "./application/health.js";
+import type { AppLogger } from "./application/logging/logger.js";
+import { createReadinessService } from "./application/readiness.js";
 import type { ApiConfig } from "./config/env.js";
 import { createSupabaseIdentityProvider } from "./infrastructure/auth/supabase-identity-provider.js";
+import { createPinoLogger } from "./infrastructure/logging/pino-logger.js";
+import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-readiness-probe.js";
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
 
 export interface ApiRuntime {
   readonly app: Express;
   readonly database: DatabaseClient;
+  readonly logger: AppLogger;
   dispose(): Promise<void>;
 }
 
 export function createApiRuntime(config: ApiConfig): ApiRuntime {
+  const logger = createPinoLogger({
+    environment: config.nodeEnv,
+  });
+
   const database = createDatabaseClient({
     connectionString: config.databaseUrl,
     log: ["error"],
   });
 
   const healthService = createHealthService();
+
+  const readinessProbe = createPrismaReadinessProbe(database);
+  const readinessService = createReadinessService(readinessProbe);
 
   const identityProvider = createSupabaseIdentityProvider({
     url: config.supabase.url,
@@ -36,7 +48,10 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
 
   const app = createApp({
     healthService,
+    readinessService,
     authenticationService,
+    logger,
+    corsAllowedOrigins: config.corsAllowedOrigins,
   });
 
   let disposed = false;
@@ -44,6 +59,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
   return Object.freeze({
     app,
     database,
+    logger,
 
     async dispose(): Promise<void> {
       if (disposed) {
