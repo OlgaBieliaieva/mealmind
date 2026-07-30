@@ -47,6 +47,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Validate frontend markup and accessibility
+        run: npm run test:ui-quality
+
       - name: Run tests with coverage
         run: npm run test:coverage
 

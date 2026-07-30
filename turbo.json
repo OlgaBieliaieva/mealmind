@@ -23,9 +23,17 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "@mealmind/db#typecheck": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["^test"],
       "outputs": ["coverage/**"]
+    },
+    "test:ui-quality": {
+      "dependsOn": ["^test:ui-quality"],
+      "outputs": []
     },
     "test:coverage": {
       "dependsOn": ["^test:coverage"],

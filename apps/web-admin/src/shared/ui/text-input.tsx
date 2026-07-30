@@ -16,6 +16,7 @@ export function TextInput({
   error,
   className,
   required,
+  type = "text",
   ...inputProps
 }: TextInputProps) {
   const generatedId = useId();
@@ -53,6 +54,7 @@ export function TextInput({
       <input
         {...inputProps}
         id={inputId}
+        type={type}
         className={classes}
         required={required}
         aria-describedby={describedBy.length === 0 ? undefined : describedBy}
