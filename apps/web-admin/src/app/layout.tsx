@@ -7,6 +7,7 @@ import { AdminShell } from "@/features/admin-shell/admin-shell";
 import { AppProviders } from "./providers";
 
 import "./globals.css";
+import "@/shared/ui/ui.css";
 
 readWebEnv();
 

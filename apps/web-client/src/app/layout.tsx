@@ -7,6 +7,7 @@ import { ClientShell } from "@/features/client-shell/client-shell";
 import { AppProviders } from "./providers";
 
 import "./globals.css";
+import "@/shared/ui/ui.css";
 
 readWebEnv();
 

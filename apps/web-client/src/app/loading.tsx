@@ -1,7 +1,12 @@
+import { PageState } from "@/shared/ui";
+
 export default function Loading() {
   return (
-    <section className="client-page-state" aria-busy="true" aria-live="polite">
-      <p>Завантаження MealMind…</p>
-    </section>
+    <PageState
+      kind="loading"
+      headingLevel={1}
+      title="Завантаження MealMind"
+      description="Зачекайте, поки ми підготуємо сторінку."
+    />
   );
 }

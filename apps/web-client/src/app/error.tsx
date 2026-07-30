@@ -1,5 +1,7 @@
 "use client";
 
+import { Button, PageState } from "@/shared/ui";
+
 export interface ErrorPageProps {
   readonly error: Error & {
     readonly digest?: string;
@@ -9,14 +11,13 @@ export interface ErrorPageProps {
 
 export default function ErrorPage({ reset }: ErrorPageProps) {
   return (
-    <section className="client-page-state" aria-labelledby="error-title">
-      <h1 id="error-title">Не вдалося завантажити сторінку</h1>
-
-      <p role="alert">Сталася неочікувана помилка. Спробуйте повторити дію.</p>
-
-      <button className="client-page-state__button" type="button" onClick={reset}>
-        Спробувати ще раз
-      </button>
-    </section>
+    <PageState
+      kind="error"
+      headingLevel={1}
+      title="Не вдалося завантажити сторінку"
+      description="Сталася неочікувана помилка. Спробуйте повторити дію."
+      visual="⚠️"
+      actions={<Button onClick={reset}>Спробувати ще раз</Button>}
+    />
   );
 }

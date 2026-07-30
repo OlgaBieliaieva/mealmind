@@ -1,7 +1,12 @@
+import { PageState } from "@/shared/ui";
+
 export default function Loading() {
   return (
-    <section className="admin-page-state" aria-busy="true" aria-live="polite">
-      <p>Завантаження панелі керування…</p>
-    </section>
+    <PageState
+      kind="loading"
+      headingLevel={1}
+      title="Завантаження панелі керування"
+      description="Зачекайте, поки MealMind підготує адміністративні дані."
+    />
   );
 }

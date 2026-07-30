@@ -21,7 +21,6 @@
 }
 
 html {
-  min-width: 20rem;
   background: var(--admin-color-background);
 }
 

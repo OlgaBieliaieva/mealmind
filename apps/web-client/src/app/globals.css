@@ -2,20 +2,20 @@
 
 :root {
   color-scheme: light;
-  --client-color-background: #f7f9f5;
+  --client-color-background: #f3f4f6;
   --client-color-surface: #ffffff;
-  --client-color-surface-muted: #edf4ea;
-  --client-color-text: #182117;
-  --client-color-text-muted: #5c675b;
-  --client-color-border: #d7e1d4;
-  --client-color-primary: #34724a;
-  --client-color-primary-hover: #285b3a;
-  --client-color-accent: #e7f2df;
-  --client-color-focus: #915f00;
-  --client-shadow-card: 0 0.25rem 1rem rgb(24 33 23 / 8%);
-  --client-content-width: 72rem;
-  --client-navigation-height: 4.75rem;
-  --client-sidebar-width: 15rem;
+  --client-color-surface-muted: #f3f4f6;
+  --client-color-text: #171717;
+  --client-color-text-muted: #6b7280;
+  --client-color-border: #e5e7eb;
+  --client-color-primary: #059669;
+  --client-color-primary-hover: #047857;
+  --client-color-primary-muted: #d1fae5;
+  --client-color-focus: #047857;
+  --client-shadow-card: 0 0.125rem 0.5rem rgb(23 23 23 / 7%);
+  --client-shadow-navigation: 0 0.75rem 2rem rgb(23 23 23 / 14%);
+  --client-content-width: 28rem;
+  --client-navigation-height: 5.5rem;
 }
 
 * {
@@ -23,7 +23,6 @@
 }
 
 html {
-  min-width: 20rem;
   background: var(--client-color-background);
 }
 
@@ -59,34 +58,40 @@ button {
   position: fixed;
   z-index: 100;
   top: 0.75rem;
-  left: 0.75rem;
+  left: 50%;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   color: #ffffff;
   background: var(--client-color-primary);
-  transform: translateY(-200%);
+  transform: translate(-50%, -200%);
 }
 
 .skip-link:focus {
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .client-shell {
   display: grid;
-  min-height: 100vh;
+  width: min(100%, var(--client-content-width));
+  min-height: 100dvh;
+  margin-inline: auto;
   padding-bottom: calc(var(--client-navigation-height) + env(safe-area-inset-bottom));
   grid-template-rows: auto 1fr auto;
+  background: var(--client-color-surface);
+  box-shadow: 0 0 2rem rgb(23 23 23 / 8%);
 }
 
 .client-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
   border-bottom: 0.0625rem solid var(--client-color-border);
-  background: var(--client-color-surface);
+  background: rgb(255 255 255 / 95%);
+  backdrop-filter: blur(0.75rem);
 }
 
 .client-header__content {
-  width: min(100%, var(--client-content-width));
-  margin-inline: auto;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .client-brand {
@@ -114,36 +119,37 @@ button {
 }
 
 .client-brand__name {
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 
 .client-brand__description {
   color: var(--client-color-text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
 }
 
 .client-shell__body {
-  display: grid;
-  width: min(100%, var(--client-content-width));
   min-width: 0;
-  margin-inline: auto;
-  grid-template-columns: minmax(0, 1fr);
+  background: #f9fafb;
 }
 
 .client-navigation-region {
   position: fixed;
   z-index: 50;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 0.0625rem solid var(--client-color-border);
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  left: 1rem;
+  width: min(calc(100% - 2rem), 26rem);
+  margin-inline: auto;
+  border: 0.0625rem solid var(--client-color-border);
+  border-radius: 1rem;
   background: var(--client-color-surface);
+  box-shadow: var(--client-shadow-navigation);
 }
 
 .client-navigation {
   display: grid;
-  min-height: var(--client-navigation-height);
+  min-height: 4.5rem;
   margin: 0;
   padding: 0.375rem;
   grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -152,25 +158,30 @@ button {
 
 .client-navigation__link {
   display: flex;
-  min-height: 3.5rem;
+  min-height: 3.75rem;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  padding: 0.5rem;
+  padding: 0.375rem 0.5rem;
   border-radius: 0.75rem;
-  color: var(--client-color-text-muted);
+  color: #9ca3af;
+  font-size: 0.6875rem;
+  font-weight: 500;
   text-decoration: none;
+  touch-action: manipulation;
 }
 
 .client-navigation__mark {
   display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   place-items: center;
   border-radius: 50%;
-  background: var(--client-color-surface-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
+}
+
+.client-navigation__mark svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .client-navigation__link:hover {
@@ -179,13 +190,13 @@ button {
 
 .client-navigation__link[aria-current="page"] {
   color: var(--client-color-primary);
-  background: var(--client-color-accent);
+  background: var(--client-color-primary-muted);
   font-weight: 700;
 }
 
 .client-main {
   min-width: 0;
-  padding: 1.5rem 1rem 2rem;
+  padding: 1rem;
 }
 
 .client-main:focus {
@@ -194,17 +205,21 @@ button {
 
 .client-page {
   display: grid;
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .client-hero {
-  max-width: 48rem;
+  padding: 1.25rem;
+  border: 0.0625rem solid var(--client-color-border);
+  border-radius: 1rem;
+  background: var(--client-color-surface);
+  box-shadow: var(--client-shadow-card);
 }
 
 .client-hero__eyebrow {
   margin: 0 0 0.5rem;
   color: var(--client-color-primary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -212,25 +227,24 @@ button {
 
 .client-page h1,
 .client-page h2,
-.client-page h3,
-.client-page-state h1 {
-  line-height: 1.2;
+.client-page h3 {
+  line-height: 1.25;
 }
 
 .client-page h1 {
   margin: 0;
-  font-size: clamp(2rem, 9vw, 3.5rem);
+  font-size: clamp(1.75rem, 8vw, 2.25rem);
 }
 
 .client-hero__description {
-  margin: 1rem 0 0;
+  margin: 0.75rem 0 0;
   color: var(--client-color-text-muted);
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
 }
 
 .client-capability-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 1rem 0 0;
   padding: 0;
   grid-template-columns: minmax(0, 1fr);
@@ -239,7 +253,7 @@ button {
 
 .client-capability-card {
   height: 100%;
-  padding: 1.25rem;
+  padding: 1rem;
   border: 0.0625rem solid var(--client-color-border);
   border-radius: 1rem;
   background: var(--client-color-surface);
@@ -254,36 +268,7 @@ button {
 .client-capability-card__status {
   margin-bottom: 0;
   color: var(--client-color-text-muted);
-  font-size: 0.875rem;
-}
-
-.client-page-state {
-  max-width: 42rem;
-  padding: 1.25rem;
-  border: 0.0625rem solid var(--client-color-border);
-  border-radius: 1rem;
-  background: var(--client-color-surface);
-}
-
-.client-page-state__link,
-.client-page-state__button {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.625rem 1rem;
-  border: 0;
-  border-radius: 0.75rem;
-  color: #ffffff;
-  background: var(--client-color-primary);
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.client-page-state__link:hover,
-.client-page-state__button:hover {
-  background: var(--client-color-primary-hover);
+  font-size: 0.75rem;
 }
 
 .client-footer {
@@ -292,55 +277,12 @@ button {
   color: var(--client-color-text-muted);
   background: var(--client-color-surface);
   text-align: center;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
-@media (min-width: 40rem) {
-  .client-header__content {
-    padding-inline: 1.5rem;
-  }
-
+@media (min-width: 30rem) {
   .client-main {
-    padding: 2rem 1.5rem 3rem;
-  }
-
-  .client-capability-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 64rem) {
-  .client-shell {
-    padding-bottom: 0;
-  }
-
-  .client-shell__body {
-    grid-template-columns: var(--client-sidebar-width) minmax(0, 1fr);
-  }
-
-  .client-navigation-region {
-    position: static;
-    padding: 1.5rem;
-    border-top: 0;
-    border-right: 0.0625rem solid var(--client-color-border);
-    background: transparent;
-  }
-
-  .client-navigation {
-    display: grid;
-    min-height: auto;
-    gap: 0.375rem;
-    padding: 0;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .client-navigation__link {
-    justify-content: flex-start;
-    padding-inline: 0.875rem;
-  }
-
-  .client-main {
-    padding: 3rem;
+    padding: 1.25rem;
   }
 }
 
