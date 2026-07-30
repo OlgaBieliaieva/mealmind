@@ -127,6 +127,10 @@ API відповідає за:
 
 Зовнішні REST endpoints версіонуються під префіксом `/api/v1`.
 
+Правила versioning, transport validation, response envelopes, error contracts
+і OpenAPI strategy визначено в документі
+[«Контракти REST API»](./api-contracts.md).
+
 Створення Express application відокремлюється від запуску HTTP server. Функція на зразок `createApp(dependencies)` повинна дозволяти integration testing без відкриття реального мережевого порту.
 
 ### Database package

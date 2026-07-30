@@ -156,15 +156,65 @@ Supabase-specific SQL допускається лише для platform capabili
 
 Нижче наведено цільовий inventory, а не твердження про вже виконане production deployment.
 
-| Platform boundary   | Repository scope                       | Build/start contract                                                         | Configuration source                                |
-| ------------------- | -------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------- |
-| Vercel web-client   | `apps/web-client` у root npm workspace | `npm ci`; `npm run build -w @mealmind/web-client`                            | Тільки `NEXT_PUBLIC_*` для відповідного environment |
-| Vercel web-admin    | `apps/web-admin` у root npm workspace  | `npm ci`; `npm run build -w @mealmind/web-admin`                             | Тільки `NEXT_PUBLIC_*` для відповідного environment |
-| Render API          | `apps/api` у root npm workspace        | `npm ci`; `npm run build -w @mealmind/api`; `npm run start -w @mealmind/api` | Server-only API, database і Supabase variables      |
-| Supabase staging    | Окремий cloud project                  | Prisma migrations перед rollout; reference/staging seed за policy            | Окремі staging database, buckets і credentials      |
-| Supabase production | Окремий cloud project                  | Контрольовані Prisma migrations перед rollout                                | Окремі production database, buckets і credentials   |
+| Platform boundary   | Repository scope                                              | Build/start contract                                                             | Configuration source                                |
+| ------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Vercel web-client   | `apps/web-client` у root npm workspace                        | `npm ci`; `npm run build -w @mealmind/web-client`                                | Тільки `NEXT_PUBLIC_*` для відповідного environment |
+| Vercel web-admin    | `apps/web-admin` у root npm workspace                         | `npm ci`; `npm run build -w @mealmind/web-admin`                                 | Тільки `NEXT_PUBLIC_*` для відповідного environment |
+| Render API          | Repository root; `apps/api` і `packages/db` як npm workspaces | `npm ci --include=dev`; filtered Turbo build; Prisma deploy migration; API start | Server-only API, database і Supabase variables      |
+| Supabase staging    | Окремий cloud project                                         | Prisma migrations перед rollout; reference/staging seed за policy                | Окремі staging database, buckets і credentials      |
+| Supabase production | Окремий cloud project                                         | Контрольовані Prisma migrations перед rollout                                    | Окремі production database, buckets і credentials   |
 
 Фактичні Vercel project settings, Render service, DNS, staging acceptance і production rollout перевіряються під час release hardening. Project IDs, connection strings і credentials не додаються до repository.
+
+### Render API
+
+Файл `render.yaml` у корені репозиторію описує цільовий deployment contract
+MealMind API.
+
+Render виконує команди з кореня монорепозиторію, оскільки API залежить від
+root lockfile, Turborepo configuration і пакета `@mealmind/db`.
+
+Послідовність deployment:
+
+```text
+npm ci --include=dev
+        ↓
+npm run build -- --filter=@mealmind/api
+        ↓
+npm run db:migrate:deploy
+        ↓
+npm run start -w @mealmind/api
+```
+
+`prisma migrate deploy` застосовує тільки reviewed migrations. Reference seed
+не запускається автоматично під час кожного deployment.
+
+Render використовує `/health` як platform health check. Endpoint `/ready`
+залишається окремою перевіркою доступності PostgreSQL.
+
+`PORT` надається платформою і не зберігається у Blueprint. Решта
+environment-specific values задаються через Render Dashboard.
+
+Blueprint містить лише назви:
+
+- `API_ORIGIN`;
+- `CORS_ALLOWED_ORIGINS`;
+- `DATABASE_URL`;
+- `DIRECT_URL`;
+- `SUPABASE_URL`;
+- `SUPABASE_PUBLISHABLE_KEY`;
+- `SUPABASE_SECRET_KEY`.
+
+Значення цих параметрів не зберігаються у Git.
+
+Target Blueprint використовує paid starter instance, оскільки
+`preDeployCommand` для database migrations не підтримується free web service.
+Сам Blueprint не створює зовнішніх ресурсів, доки його явно не синхронізовано
+з Render.
+
+Регіон Render потрібно остаточно звірити з регіоном Supabase staging project
+до першого Blueprint sync. Після створення Render service його region не
+можна змінити.
 
 ## Security rules
 
