@@ -46,7 +46,7 @@
     "test:ui-quality": "turbo run test:ui-quality"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.5",
+    "@eslint/js": "10.0.1",
     "@vitest/coverage-v8": "4.1.10",
     "axe-core": "4.12.1",
     "eslint": "9.39.5",
