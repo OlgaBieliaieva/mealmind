@@ -30,16 +30,13 @@ function createLogger() {
 
   return {
     logger,
-    requestLogger,
     info,
-    warn,
-    error,
     child,
   };
 }
 
 describe("request context middleware", () => {
-  it("propagates a valid request ID", async () => {
+  it("propagates a valid request ID without logging query values", async () => {
     const { logger, info, child } = createLogger();
     const app = express();
 
@@ -51,7 +48,9 @@ describe("request context middleware", () => {
       });
     });
 
-    const response = await request(app).get("/example").set("x-request-id", "request-123");
+    const response = await request(app)
+      .get("/example?token=secret-query-value")
+      .set("x-request-id", "request-123");
 
     expect(response.status).toBe(200);
     expect(response.headers["x-request-id"]).toBe("request-123");
@@ -71,6 +70,11 @@ describe("request context middleware", () => {
       }),
       "HTTP request completed",
     );
+
+    const serializedLogs = JSON.stringify(info.mock.calls);
+
+    expect(serializedLogs).not.toContain("secret-query-value");
+    expect(serializedLogs).not.toContain("token");
   });
 
   it("replaces an unsafe request ID", async () => {
