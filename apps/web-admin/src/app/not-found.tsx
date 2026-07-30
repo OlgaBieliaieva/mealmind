@@ -2,10 +2,12 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <main>
-      <h1>Сторінку не знайдено</h1>
+    <section className="admin-page-state" aria-labelledby="not-found-title">
+      <h1 id="not-found-title">Сторінку не знайдено</h1>
       <p>Запитаний розділ панелі керування не існує.</p>
-      <Link href="/">До панелі керування</Link>
-    </main>
+      <Link className="admin-page-state__link" href="/">
+        До панелі керування
+      </Link>
+    </section>
   );
 }
