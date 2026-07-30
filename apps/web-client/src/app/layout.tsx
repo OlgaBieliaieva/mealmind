@@ -2,13 +2,20 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { readWebEnv } from "@/config/env";
+import { ClientShell } from "@/features/client-shell/client-shell";
+
+import { AppProviders } from "./providers";
 
 import "./globals.css";
+import "@/shared/ui/ui.css";
 
 readWebEnv();
 
 export const metadata: Metadata = {
-  title: "MealMind",
+  title: {
+    default: "MealMind",
+    template: "%s | MealMind",
+  },
   description: "Система планування сімейного харчування",
 };
 
@@ -19,7 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk">
-      <body>{children}</body>
+      <body>
+        <AppProviders>
+          <ClientShell>{children}</ClientShell>
+        </AppProviders>
+      </body>
     </html>
   );
 }

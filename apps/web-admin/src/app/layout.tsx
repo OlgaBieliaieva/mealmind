@@ -2,13 +2,20 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { readWebEnv } from "@/config/env";
+import { AdminShell } from "@/features/admin-shell/admin-shell";
+
+import { AppProviders } from "./providers";
 
 import "./globals.css";
+import "@/shared/ui/ui.css";
 
 readWebEnv();
 
 export const metadata: Metadata = {
-  title: "MealMind Admin",
+  title: {
+    default: "MealMind Admin",
+    template: "%s | MealMind Admin",
+  },
   description: "Адміністративний застосунок системи MealMind",
 };
 
@@ -19,7 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk">
-      <body>{children}</body>
+      <body>
+        <AppProviders>
+          <AdminShell>{children}</AdminShell>
+        </AppProviders>
+      </body>
     </html>
   );
 }

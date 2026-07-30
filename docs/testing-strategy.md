@@ -42,8 +42,47 @@ E2E-інфраструктура додається окремо після по
 - **Testing Library** — перевірка поведінки React-компонентів;
 - **Supertest** — перевірка HTTP-маршрутів Express без запуску окремого порту;
 - **V8 coverage** — формування текстового, HTML- та LCOV-звітів про покриття.
+- **HTML Validate** — локальна перевірка валідності й семантичної структури
+  згенерованої HTML-розмітки;
+- **axe-core** — автоматизована перевірка доступності React-компонентів і
+  composition fixtures.
 
 Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, а також database smoke tests для baseline migration та reference seed. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
+
+## Валідність розмітки та доступність
+
+Цільовим рівнем доступності web-застосунків MealMind є WCAG 2.2 Level AA.
+
+`npm run test:ui-quality` перевіряє композиції application shell, навігації,
+форм, modal dialogs і стандартних page states в обох web workspace.
+
+Автоматизована перевірка складається з двох рівнів:
+
+- HTML Validate перевіряє синтаксичну валідність, вкладеність елементів,
+  обов’язкові атрибути та частину семантичних правил HTML;
+- axe-core перевіряє доступні назви, ARIA, landmarks, структуру форм,
+  навігацію та автоматизовану частину вимог WCAG.
+
+Автоматизований тест не доводить повну відповідність WCAG 2.2 AA. JSDOM не
+відтворює реальний layout, CSS rendering, browser focus navigation або
+візуальне сприйняття. Зокрема, правило `color-contrast` вимкнено в JSDOM і
+перевіряється в реальному браузері.
+
+Перед завершенням frontend pull request вручну перевіряються:
+
+- керування тільки клавіатурою;
+- видимість і логічний порядок focus;
+- skip link і переміщення до основного вмісту;
+- focus behavior і закриття modal dialogs;
+- послідовна ієрархія заголовків;
+- читабельність і контраст тексту та controls;
+- масштаб браузера 200%;
+- відсутність горизонтального overflow на ширині 320 CSS px;
+- loading, empty, error і disabled states.
+
+Зовнішній W3C validation service не використовується як обов’язковий CI gate,
+оскільки перевірки повинні бути локальними, детермінованими та не передавати
+розмітку сторонньому сервісу.
 
 ### Перевірки бази даних
 
@@ -65,6 +104,8 @@ apps/web-admin/src/**/*.test.tsx
 apps/web-client/src/**/*.test.tsx
 packages/*/src/**/*.test.ts
 e2e/**/*.spec.ts
+apps/web-admin/src/test/ui-quality.test.tsx
+apps/web-client/src/test/ui-quality.test.tsx
 ```
 
 Тести розташовуються поруч із кодом, коли вони перевіряють окремий модуль або компонент. Окремі test-директорії використовуються лише для integration- та E2E-сценаріїв зі спільним середовищем або fixtures.
@@ -92,6 +133,7 @@ npm run db:test:migrations
 npm run db:test:seed
 npm run db:test
 npm run check
+npm run test:ui-quality
 ```
 
 - `npm run test` запускає всі наявні тести;
@@ -99,7 +141,10 @@ npm run check
 - `npm run db:test:migrations` відтворює `mealmind_test` і перевіряє застосування baseline migration до чистої бази;
 - `npm run db:test:seed` відтворює `mealmind_test`, застосовує migration і перевіряє reference seed двома послідовними запусками;
 - `npm run db:test` послідовно виконує обидві database-перевірки;
-- `npm run check` послідовно перевіряє форматування, lint, типи, тести з coverage та production build.
+- `npm run check` послідовно перевіряє форматування, lint, типи, frontend
+  markup/accessibility baseline, тести з coverage та production build.
+- `npm run test:ui-quality` перевіряє валідність згенерованої HTML-розмітки
+  та автоматизовану accessibility baseline обох web workspace;
 
 Згенеровані директорії `coverage/` не додаються до Git. У CI вони можуть публікуватися як тимчасовий artifact для аналізу результатів.
 
