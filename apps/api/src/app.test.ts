@@ -6,6 +6,7 @@ import type { AuthenticationService } from "./application/authentication/authent
 import { createHealthService } from "./application/health.js";
 import { createNoopLogger } from "./application/logging/logger.js";
 import { createReadinessService } from "./application/readiness.js";
+import { API_RATE_LIMIT_LIMIT } from "./http/middleware/rate-limit.js";
 
 const allowedClientOrigin = "http://127.0.0.1:3000";
 
@@ -88,6 +89,20 @@ describe("MealMind API application", () => {
       expect(serializedResponse).not.toContain("DATABASE_URL");
       expect(serializedResponse).not.toContain("postgresql://");
       expect(serializedResponse).not.toContain("secret");
+    });
+
+    it("does not rate limit health checks", async () => {
+      const app = createApp(dependencies);
+
+      for (let requestNumber = 0; requestNumber <= API_RATE_LIMIT_LIMIT; requestNumber += 1) {
+        const response = await request(app).get("/health");
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+          status: "ok",
+        });
+        expect(response.headers.ratelimit).toBeUndefined();
+      }
     });
   });
 

@@ -20,6 +20,22 @@ Endpoint `/health` не звертається до бази даних. Endpoin
   безпечному формату.
 - HTTP-запити та неактивні з’єднання мають обмежений час очікування.
 
+## Rate limiting
+
+Прикладні маршрути під `/api/v1` мають базовий IP-based rate limit:
+
+- 120 запитів;
+- window 60 секунд;
+- standard `RateLimit` headers;
+- відповідь `429 RATE_LIMIT_EXCEEDED` після вичерпання quota.
+
+Операційні endpoints `/health` і `/ready` не входять до прикладної quota,
+щоб platform health checks не блокувалися користувацьким трафіком.
+
+Поточний in-memory store відповідає одному Render Starter instance. Під час
+масштабування API на кілька instances потрібно перейти на спільний
+Redis-compatible store, щоб усі процеси використовували один лічильник.
+
 ## Політика логування
 
 Логи зберігаються у форматі структурованих JSON-записів.

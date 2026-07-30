@@ -6,6 +6,8 @@ import type { FamilyAuthorizationService } from "../../application/authorization
 import { FamilyAccessDeniedError } from "../../application/errors/authentication-errors.js";
 import { authorizeFamily } from "./authorize-family.js";
 import { errorHandler } from "./error-handler.js";
+import { rateLimit } from "express-rate-limit";
+import { createApiRateLimitOptions } from "./rate-limit.js";
 
 const routeFamilyId = "7f36be0a-0607-4cc3-a00e-e628c44f5755";
 const forgedHeaderFamilyId = "47c2abe0-888f-4839-87b4-1ed4991c3cf3";
@@ -14,6 +16,14 @@ const forgedHeaderUserId = "8a82aac7-a3a5-497a-adfb-9965dd69db28";
 
 function createFamilyTestApp(authorizationService: FamilyAuthorizationService) {
   const app = express();
+
+  app.use(
+    rateLimit(
+      createApiRateLimitOptions({
+        limit: 1_000,
+      }),
+    ),
+  );
 
   app.get(
     "/families/:familyId",

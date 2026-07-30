@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import { rateLimit } from "express-rate-limit";
 
 import type { AuthenticationService } from "./application/authentication/authentication-service.js";
 import type { HealthService } from "./application/health.js";
@@ -8,6 +9,7 @@ import { JSON_BODY_LIMIT } from "./http/http-policy.js";
 import { createCorsMiddleware } from "./http/middleware/cors.js";
 import { errorHandler } from "./http/middleware/error-handler.js";
 import { notFoundHandler } from "./http/middleware/not-found-handler.js";
+import { createApiRateLimitOptions } from "./http/middleware/rate-limit.js";
 import { createRequestContextMiddleware } from "./http/middleware/request-context.js";
 import { createSessionRouter } from "./http/routes/session-router.js";
 
@@ -24,8 +26,15 @@ export function createApp(dependencies: AppDependencies): Express {
 
   app.disable("x-powered-by");
 
+  // Render forwards public traffic through its load balancer.
+  // A numeric value is safer than enabling unrestricted proxy trust.
+  app.set("trust proxy", 1);
+
   app.use(createRequestContextMiddleware(dependencies.logger));
   app.use(createCorsMiddleware(dependencies.corsAllowedOrigins));
+
+  app.use("/api/v1", rateLimit(createApiRateLimitOptions()));
+
   app.use(
     express.json({
       limit: JSON_BODY_LIMIT,

@@ -182,6 +182,7 @@ Request ID призначений для трасування технічног
 - `404 Not Found` — маршрут або доступний користувачу ресурс не знайдено;
 - `409 Conflict` — конфлікт стану, версії або унікальності;
 - `413 Payload Too Large` — перевищено дозволений розмір body;
+- `429 Too Many Requests` — перевищено дозволену частоту запитів;
 - `422 Unprocessable Content` — доменна команда синтаксично валідна, але не
   може бути виконана за поточного стану;
 - `500 Internal Server Error` — неочікувана внутрішня помилка;
@@ -224,6 +225,7 @@ Request ID призначений для трасування технічног
 | `FAMILY_ACCESS_DENIED`          | `403`  | Немає дозволеного активного доступу до сім'ї |
 | `ROUTE_NOT_FOUND`               | `404`  | HTTP-маршрут не існує                        |
 | `PAYLOAD_TOO_LARGE`             | `413`  | Перевищено ліміт request body                |
+| `RATE_LIMIT_EXCEEDED`           | `429`  | Перевищено дозволену частоту API-запитів     |
 | `INTERNAL_SERVER_ERROR`         | `500`  | Неочікувана внутрішня помилка                |
 | `IDENTITY_PROVIDER_UNAVAILABLE` | `503`  | Провайдер ідентичності тимчасово недоступний |
 
@@ -317,6 +319,22 @@ pagination. Невеликі стабільні reference-каталоги мо�
 - поведінку порожньої сторінки.
 
 API не приймає довільні Prisma filters від клієнта.
+
+## Rate limiting
+
+Прикладні endpoints під `/api/v1` мають базовий IP-based rate limit.
+Операційні `/health` і `/ready` не використовують цю quota.
+
+Поточний платформний contract:
+
+- 120 запитів на 60 секунд;
+- standard `RateLimit` headers;
+- `429 RATE_LIMIT_EXCEEDED` після вичерпання quota;
+- limiter виконується до authentication, database access і JSON body parsing.
+
+Rate limiting є захистом від надмірного використання ресурсів, але не замінює
+authentication, authorization, request validation або інфраструктурний DDoS
+захист.
 
 ## OpenAPI
 
