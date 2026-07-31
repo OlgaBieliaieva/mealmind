@@ -3,11 +3,22 @@ import { createServer } from "node:http";
 import { createApiRuntime } from "./composition-root.js";
 import { parseApiEnv } from "./config/env.js";
 import { configureHttpServer } from "./http/http-policy.js";
+import {
+  flushApiSentry,
+  initializeApiSentry,
+} from "./infrastructure/observability/sentry.js";
+import { resolveApiRelease } from "./infrastructure/observability/release.js";
 import { registerGracefulShutdown } from "./runtime/graceful-shutdown.js";
 
 const config = parseApiEnv(process.env);
-const runtime = createApiRuntime(config);
 
+initializeApiSentry({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.SENTRY_ENVIRONMENT,
+  release: resolveApiRelease(),
+});
+
+const runtime = createApiRuntime(config);
 const server = createServer(runtime.app);
 
 configureHttpServer(server);
@@ -15,7 +26,10 @@ configureHttpServer(server);
 registerGracefulShutdown({
   server,
   logger: runtime.logger,
-  dispose: runtime.dispose,
+  async dispose() {
+    await runtime.dispose();
+    await flushApiSentry();
+  },
 });
 
 server.listen(config.port, () => {

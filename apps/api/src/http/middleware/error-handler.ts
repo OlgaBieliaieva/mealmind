@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler } from "express";
 
 import { AppError } from "../../application/errors/app-error.js";
+import { captureApiException } from "../../infrastructure/observability/sentry.js";
 import { createErrorResponse } from "../errors/error-response.js";
 import { InvalidJsonError } from "../errors/invalid-json-error.js";
 import { PayloadTooLargeError } from "../errors/payload-too-large-error.js";
@@ -33,7 +34,12 @@ function normalizeError(error: unknown): unknown {
   return error;
 }
 
-export const errorHandler: ErrorRequestHandler = (error: unknown, request, response, next) => {
+export const errorHandler: ErrorRequestHandler = (
+  error: unknown,
+  request,
+  response,
+  next,
+) => {
   if (response.headersSent) {
     next(error);
     return;
@@ -45,7 +51,11 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
     response
       .status(normalizedError.statusCode)
       .json(
-        createErrorResponse(normalizedError.code, normalizedError.message, normalizedError.issues),
+        createErrorResponse(
+          normalizedError.code,
+          normalizedError.message,
+          normalizedError.issues,
+        ),
       );
 
     return;
@@ -59,14 +69,30 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
     return;
   }
 
+  const errorName =
+    normalizedError instanceof Error ? normalizedError.name : "UnknownError";
+
   request.logger?.error(
     {
-      errorName: normalizedError instanceof Error ? normalizedError.name : "UnknownError",
+      errorName,
     },
     "Unhandled request error",
   );
 
+  captureApiException(normalizedError, {
+    level: "error",
+    tags: {
+      component: "api",
+      handled: "express-error-middleware",
+    },
+  });
+
   response
     .status(500)
-    .json(createErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred"));
+    .json(
+      createErrorResponse(
+        "INTERNAL_SERVER_ERROR",
+        "An unexpected error occurred",
+      ),
+    );
 };
