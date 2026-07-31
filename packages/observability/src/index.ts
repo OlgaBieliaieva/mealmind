@@ -12,3 +12,9 @@ export {
   type SentryEventTags,
   type SentryRuntime,
 } from "./sentry-event-policy.js";
+
+export {
+  resolveSentryRuntimeConfig,
+  type ResolveSentryRuntimeConfigOptions,
+  type ResolvedSentryRuntimeConfig,
+} from "./sentry-runtime-config.js";

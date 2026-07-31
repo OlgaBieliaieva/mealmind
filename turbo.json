@@ -12,8 +12,17 @@
       "env": [
         "NEXT_PUBLIC_API_URL",
         "NEXT_PUBLIC_SUPABASE_URL",
-        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-      ]
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "SENTRY_DSN",
+        "SENTRY_ENVIRONMENT",
+        "SENTRY_RELEASE",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "VERCEL_GIT_COMMIT_SHA",
+        "GITHUB_SHA"
+      ],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     },
     "lint": {
       "dependsOn": ["^lint"],
