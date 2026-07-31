@@ -40,6 +40,9 @@
       "dependsOn": ["^test"],
       "outputs": ["coverage/**"]
     },
+    "@mealmind/observability#test": {
+      "outputs": []
+    },
     "test:ui-quality": {
       "dependsOn": ["^test:ui-quality"],
       "outputs": []

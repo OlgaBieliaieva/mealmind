@@ -1,7 +1,4 @@
-import {
-  resolveSentryRuntimeConfig,
-  sanitizeSentryEvent,
-} from "@mealmind/observability";
+import { resolveSentryRuntimeConfig, sanitizeSentryEvent } from "@mealmind/observability";
 import * as Sentry from "@sentry/node";
 
 export interface InitializeApiSentryOptions {
@@ -57,10 +54,7 @@ export function initializeApiSentry(options: InitializeApiSentryOptions): void {
   });
 }
 
-export function captureApiException(
-  error: unknown,
-  context?: CaptureApiExceptionContext,
-): void {
+export function captureApiException(error: unknown, context?: CaptureApiExceptionContext): void {
   Sentry.withScope((scope) => {
     if (context?.tags) {
       scope.setTags(context.tags);

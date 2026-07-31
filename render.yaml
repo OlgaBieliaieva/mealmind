@@ -47,6 +47,6 @@ services:
 
       - key: SENTRY_ENVIRONMENT
         sync: false
-        
+
       - key: SENTRY_RELEASE
         sync: false

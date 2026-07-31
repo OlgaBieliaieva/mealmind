@@ -1,4 +1,4 @@
-import {
+﻿import {
   SENTRY_ENVIRONMENTS,
   createSentryEventPolicy,
   type SentryApplication,
@@ -13,6 +13,7 @@ export interface ResolveSentryRuntimeConfigOptions {
   readonly dsn: string | undefined;
   readonly environment: string | undefined;
   readonly release: string | undefined;
+  readonly requestId?: string | undefined;
 }
 
 export type ResolvedSentryRuntimeConfig =
@@ -67,7 +68,7 @@ export function resolveSentryRuntimeConfig(
 ): ResolvedSentryRuntimeConfig {
   const dsnValue = normalizeOptionalValue(options.dsn);
 
-  // DSN є feature flag: без нього Sentry повністю вимкнений.
+  // DSN is the feature flag: without it, Sentry is fully disabled.
   if (dsnValue === undefined) {
     return Object.freeze({
       enabled: false,
@@ -82,11 +83,13 @@ export function resolveSentryRuntimeConfig(
   }
 
   const dsn = parseSentryDsn(dsnValue);
+  const requestId = normalizeOptionalValue(options.requestId);
   const policy = createSentryEventPolicy({
     application: options.application,
     runtime: options.runtime,
     environment,
     release,
+    ...(requestId === undefined ? {} : { requestId }),
   });
 
   return Object.freeze({

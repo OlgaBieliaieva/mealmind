@@ -3,10 +3,7 @@ import { createServer } from "node:http";
 import { createApiRuntime } from "./composition-root.js";
 import { parseApiEnv } from "./config/env.js";
 import { configureHttpServer } from "./http/http-policy.js";
-import {
-  flushApiSentry,
-  initializeApiSentry,
-} from "./infrastructure/observability/sentry.js";
+import { flushApiSentry, initializeApiSentry } from "./infrastructure/observability/sentry.js";
 import { resolveApiRelease } from "./infrastructure/observability/release.js";
 import { registerGracefulShutdown } from "./runtime/graceful-shutdown.js";
 

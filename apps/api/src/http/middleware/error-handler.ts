@@ -1,4 +1,4 @@
-import type { ErrorRequestHandler } from "express";
+﻿import type { ErrorRequestHandler } from "express";
 
 import { AppError } from "../../application/errors/app-error.js";
 import { captureApiException } from "../../infrastructure/observability/sentry.js";
@@ -34,12 +34,7 @@ function normalizeError(error: unknown): unknown {
   return error;
 }
 
-export const errorHandler: ErrorRequestHandler = (
-  error: unknown,
-  request,
-  response,
-  next,
-) => {
+export const errorHandler: ErrorRequestHandler = (error: unknown, request, response, next) => {
   if (response.headersSent) {
     next(error);
     return;
@@ -51,11 +46,7 @@ export const errorHandler: ErrorRequestHandler = (
     response
       .status(normalizedError.statusCode)
       .json(
-        createErrorResponse(
-          normalizedError.code,
-          normalizedError.message,
-          normalizedError.issues,
-        ),
+        createErrorResponse(normalizedError.code, normalizedError.message, normalizedError.issues),
       );
 
     return;
@@ -69,8 +60,7 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  const errorName =
-    normalizedError instanceof Error ? normalizedError.name : "UnknownError";
+  const errorName = normalizedError instanceof Error ? normalizedError.name : "UnknownError";
 
   request.logger?.error(
     {
@@ -84,15 +74,11 @@ export const errorHandler: ErrorRequestHandler = (
     tags: {
       component: "api",
       handled: "express-error-middleware",
+      ...(request.requestId === undefined ? {} : { request_id: request.requestId }),
     },
   });
 
   response
     .status(500)
-    .json(
-      createErrorResponse(
-        "INTERNAL_SERVER_ERROR",
-        "An unexpected error occurred",
-      ),
-    );
+    .json(createErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred"));
 };
