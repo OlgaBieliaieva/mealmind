@@ -13,6 +13,8 @@
     "test:ui-quality": "vitest run src/test/ui-quality.test.tsx"
   },
   "dependencies": {
+    "@mealmind/observability": "0.0.0",
+    "@sentry/nextjs": "10.68.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.111.0",
     "@tanstack/react-query": "5.101.4",

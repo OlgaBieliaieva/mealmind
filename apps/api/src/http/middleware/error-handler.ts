@@ -1,6 +1,7 @@
-import type { ErrorRequestHandler } from "express";
+﻿import type { ErrorRequestHandler } from "express";
 
 import { AppError } from "../../application/errors/app-error.js";
+import { captureApiException } from "../../infrastructure/observability/sentry.js";
 import { createErrorResponse } from "../errors/error-response.js";
 import { InvalidJsonError } from "../errors/invalid-json-error.js";
 import { PayloadTooLargeError } from "../errors/payload-too-large-error.js";
@@ -59,12 +60,23 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
     return;
   }
 
+  const errorName = normalizedError instanceof Error ? normalizedError.name : "UnknownError";
+
   request.logger?.error(
     {
-      errorName: normalizedError instanceof Error ? normalizedError.name : "UnknownError",
+      errorName,
     },
     "Unhandled request error",
   );
+
+  captureApiException(normalizedError, {
+    level: "error",
+    tags: {
+      component: "api",
+      handled: "express-error-middleware",
+      ...(request.requestId === undefined ? {} : { request_id: request.requestId }),
+    },
+  });
 
   response
     .status(500)

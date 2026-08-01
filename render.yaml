@@ -41,3 +41,12 @@ services:
 
       - key: SUPABASE_SECRET_KEY
         sync: false
+
+      - key: SENTRY_DSN
+        sync: false
+
+      - key: SENTRY_ENVIRONMENT
+        sync: false
+
+      - key: SENTRY_RELEASE
+        sync: false

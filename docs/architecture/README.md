@@ -166,9 +166,21 @@ Local, test, staging і production використовують ізольова
 
 ### Sentry
 
-Sentry використовується для контрольованого збору неочікуваних помилок у `web-client`, `web-admin` та `api`.
+Sentry використовується для контрольованого збору неочікуваних помилок у
+`web-client`, `web-admin` та `api`.
 
-Для кожного deployable application передбачається окремий Sentry project. Події не повинні містити tokens, cookies, request bodies, алергії, антропометричні параметри, назви спожитих страв, кількості, нутрієнтні показники або інші чутливі профільні дані.
+Для кожного deployable application використовується окремий Sentry project.
+Події містять environment, release, application, runtime і request ID там, де
+він доступний. Події не повинні містити tokens, cookies, request bodies,
+алергії, антропометричні параметри, назви спожитих страв, кількості,
+нутрієнтні показники або інші чутливі профільні дані.
+
+Tracing, Session Replay, Profiling, Sentry Logs і User Feedback не входять до
+поточного baseline. Source maps завантажуються build-only token, а збій Sentry
+не порушує основний application flow.
+
+Детальний event contract, privacy defaults і failure policy наведено в
+документі [«Спостережуваність і Sentry»](./observability.md).
 
 ## Бізнес-модулі API
 
@@ -549,8 +561,8 @@ Frontend перетворює API errors на узгоджені loading, empty,
 - structured API logs;
 - request/correlation ID;
 - стандартизовані error responses;
-- Sentry error tracking для трьох застосунків;
-- release і commit metadata;
+- Sentry error tracking для трьох застосунків із application-side sanitization;
+- release і commit metadata та source maps;
 - uptime check для API;
 - alert на недоступність API.
 
@@ -623,3 +635,6 @@ Vercel Preview, staging і production не повинні використову
 
 - [Бачення продукту](../product/vision.md)
 - [Межі MVP](../product/mvp-scope.md)
+- [Спостережуваність і Sentry](./observability.md)
+- [Runtime-конфігурація та середовища](../setup/runtime-configuration.md)
+- [Обробка observability-інцидентів](../operations/incident-response.md)

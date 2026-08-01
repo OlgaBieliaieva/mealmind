@@ -431,4 +431,7 @@ composite read models допускаються snapshot tests, якщо snapshot
 - доменні endpoints, pagination contracts та OpenAPI artifact додаються
   поступово у відповідних pull requests;
 - Sentry належить окремому observability етапу і не змінює публічну форму
-  HTTP-контрактів.
+  HTTP-контрактів;
+- для неочікуваних помилок API передає безпечний `x-request-id` до Sentry tag
+  `request_id`, але не передає request body, authorization headers, cookies
+  або персональні дані.

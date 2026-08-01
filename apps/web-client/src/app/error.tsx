@@ -1,5 +1,8 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
+import { useEffect } from "react";
+
 import { Button, PageState } from "@/shared/ui";
 
 export interface ErrorPageProps {
@@ -9,7 +12,11 @@ export interface ErrorPageProps {
   readonly reset: () => void;
 }
 
-export default function ErrorPage({ reset }: ErrorPageProps) {
+export default function ErrorPage({ error, reset }: ErrorPageProps) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <PageState
       kind="error"

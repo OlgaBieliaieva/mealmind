@@ -1,10 +1,15 @@
-import express from "express";
+﻿import express from "express";
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AppLogger } from "../../application/logging/logger.js";
+import { captureApiException } from "../../infrastructure/observability/sentry.js";
 import { errorHandler } from "./error-handler.js";
 import { createRequestContextMiddleware } from "./request-context.js";
+
+vi.mock("../../infrastructure/observability/sentry.js", () => ({
+  captureApiException: vi.fn(),
+}));
 
 function createLogger() {
   const error = vi.fn();
@@ -46,6 +51,10 @@ function createErrorTestApp(logger: AppLogger) {
 }
 
 describe("error handler", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("redacts unexpected errors from the response and structured logs", async () => {
     const { rootLogger, error } = createLogger();
 
@@ -66,6 +75,14 @@ describe("error handler", () => {
       "Unhandled request error",
     );
 
+    expect(captureApiException).toHaveBeenCalledWith(expect.any(Error), {
+      level: "error",
+      tags: expect.objectContaining({
+        component: "api",
+        handled: "express-error-middleware",
+      }),
+    });
+
     const serializedResponse = JSON.stringify(response.body);
     const serializedLogs = JSON.stringify(error.mock.calls);
 
@@ -77,5 +94,23 @@ describe("error handler", () => {
     expect(serializedLogs).not.toContain("DATABASE_URL");
     expect(serializedLogs).not.toContain("postgresql://");
     expect(serializedLogs).not.toContain("secret");
+  });
+
+  it("captures unexpected errors with request metadata", async () => {
+    const { rootLogger } = createLogger();
+
+    await request(createErrorTestApp(rootLogger))
+      .get("/unexpected")
+      .set("x-request-id", "request-123")
+      .expect(500);
+
+    expect(captureApiException).toHaveBeenCalledWith(expect.any(Error), {
+      level: "error",
+      tags: {
+        component: "api",
+        handled: "express-error-middleware",
+        request_id: "request-123",
+      },
+    });
   });
 });

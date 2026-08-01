@@ -19,32 +19,41 @@ Local, test, staging і production не використовують спіль�
 
 ## Класи конфігурації
 
-| Клас                 | Приклади                                                           | Правило                                                                      |
-| -------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Public build-time    | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, publishable key | Може потрапляти до browser bundle; не надає підвищених привілеїв             |
-| Server-only runtime  | `SUPABASE_SECRET_KEY`, CORS allowlist, API origin                  | Доступний лише API або server-side deployment environment                    |
-| Database credentials | `DATABASE_URL`, `DIRECT_URL`, `TEST_DATABASE_URL`                  | Вважається secret навіть тоді, коли URL має локальний приклад                |
-| Deployment metadata  | `NODE_ENV`, `PORT`, service URL                                    | Не є secret, але задається платформою або environment-specific configuration |
+| Клас                  | Приклади                                                           | Правило                                                                      |
+| --------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Public build-time     | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, publishable key | Може потрапляти до browser bundle; не надає підвищених привілеїв             |
+| Server-only runtime   | `SUPABASE_SECRET_KEY`, CORS allowlist, API origin                  | Доступний лише API або server-side deployment environment                    |
+| Database credentials  | `DATABASE_URL`, `DIRECT_URL`, `TEST_DATABASE_URL`                  | Вважається secret навіть тоді, коли URL має локальний приклад                |
+| Deployment metadata   | `NODE_ENV`, `PORT`, service URL                                    | Не є secret, але задається платформою або environment-specific configuration |
+| Observability runtime | Sentry DSN, environment і release                                  | DSN є public ingestion endpoint; metadata не є secret                        |
+| Build-only credential | `SENTRY_AUTH_TOKEN`                                                | Secret тільки для CI або deployment build; не потрапляє до runtime bundle    |
 
 Префікс `NEXT_PUBLIC_` означає технічну можливість опублікувати значення, а не автоматично робить довільну змінну безпечною. Secret key, database URL і privileged Storage credentials ніколи не отримують цей префікс.
 
 ## Environment variables
 
-| Variable                               | Owner                          | Consumers                   | Environments                     | Classification            | Purpose                                            |
-| -------------------------------------- | ------------------------------ | --------------------------- | -------------------------------- | ------------------------- | -------------------------------------------------- |
-| `NODE_ENV`                             | API runtime                    | `apps/api`                  | Local, Test, Staging, Production | Non-secret                | Вибір дозволеного runtime mode                     |
-| `PORT`                                 | API runtime / hosting platform | `apps/api`                  | Local, Staging, Production       | Non-secret                | HTTP port Express server                           |
-| `API_ORIGIN`                           | API deployment                 | `apps/api`                  | Local, Staging, Production       | Non-secret                | Канонічний origin API                              |
-| `CORS_ALLOWED_ORIGINS`                 | API security boundary          | `apps/api`                  | Local, Test, Staging, Production | Non-secret runtime policy | Список дозволених web origins                      |
-| `DATABASE_URL`                         | Database connectivity          | API, Prisma runtime         | Local, Staging, Production       | Secret                    | Pooled або application PostgreSQL connection       |
-| `DIRECT_URL`                           | Database migrations            | Prisma tooling              | Local, Staging, Production       | Secret                    | Пряме з'єднання для migrations, якщо потрібне      |
-| `TEST_DATABASE_URL`                    | Test infrastructure            | Prisma та integration tests | Test                             | Secret                    | Окрема локальна database `mealmind_test`           |
-| `SUPABASE_URL`                         | Supabase platform              | `apps/api`                  | Local, Staging, Production       | Public metadata           | Server-side endpoint Supabase API                  |
-| `SUPABASE_PUBLISHABLE_KEY`             | Supabase platform              | `apps/api`                  | Local, Staging, Production       | Public                    | Низькопривілейований application key               |
-| `SUPABASE_SECRET_KEY`                  | Supabase platform              | Тільки `apps/api`           | Local, Staging, Production       | Secret                    | Привілейований server key; не передається браузеру |
-| `NEXT_PUBLIC_API_URL`                  | Web deployment                 | `web-admin`, `web-client`   | Local, Staging, Production       | Public build-time         | Browser endpoint MealMind API                      |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase platform              | `web-admin`, `web-client`   | Local, Staging, Production       | Public build-time         | Browser endpoint Supabase                          |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase platform              | `web-admin`, `web-client`   | Local, Staging, Production       | Public build-time         | Низькопривілейований browser key                   |
+| Variable                               | Owner                          | Consumers                    | Environments                     | Classification            | Purpose                                            |
+| -------------------------------------- | ------------------------------ | ---------------------------- | -------------------------------- | ------------------------- | -------------------------------------------------- |
+| `NODE_ENV`                             | API runtime                    | `apps/api`                   | Local, Test, Staging, Production | Non-secret                | Вибір дозволеного runtime mode                     |
+| `PORT`                                 | API runtime / hosting platform | `apps/api`                   | Local, Staging, Production       | Non-secret                | HTTP port Express server                           |
+| `API_ORIGIN`                           | API deployment                 | `apps/api`                   | Local, Staging, Production       | Non-secret                | Канонічний origin API                              |
+| `CORS_ALLOWED_ORIGINS`                 | API security boundary          | `apps/api`                   | Local, Test, Staging, Production | Non-secret runtime policy | Список дозволених web origins                      |
+| `DATABASE_URL`                         | Database connectivity          | API, Prisma runtime          | Local, Staging, Production       | Secret                    | Pooled або application PostgreSQL connection       |
+| `DIRECT_URL`                           | Database migrations            | Prisma tooling               | Local, Staging, Production       | Secret                    | Пряме з'єднання для migrations, якщо потрібне      |
+| `TEST_DATABASE_URL`                    | Test infrastructure            | Prisma та integration tests  | Test                             | Secret                    | Окрема локальна database `mealmind_test`           |
+| `SUPABASE_URL`                         | Supabase platform              | `apps/api`                   | Local, Staging, Production       | Public metadata           | Server-side endpoint Supabase API                  |
+| `SUPABASE_PUBLISHABLE_KEY`             | Supabase platform              | `apps/api`                   | Local, Staging, Production       | Public                    | Низькопривілейований application key               |
+| `SUPABASE_SECRET_KEY`                  | Supabase platform              | Тільки `apps/api`            | Local, Staging, Production       | Secret                    | Привілейований server key; не передається браузеру |
+| `NEXT_PUBLIC_API_URL`                  | Web deployment                 | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Browser endpoint MealMind API                      |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase platform              | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Browser endpoint Supabase                          |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase platform              | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Низькопривілейований browser key                   |
+| `NEXT_PUBLIC_SENTRY_DSN`               | Sentry project                 | `web-admin` або `web-client` | Preview, Staging, Production     | Public ingestion endpoint | DSN відповідного frontend project                  |
+| `SENTRY_DSN`                           | Sentry project                 | `apps/api`                   | Staging, Production              | Public ingestion endpoint | DSN API project                                    |
+| `SENTRY_ENVIRONMENT`                   | Deployment metadata            | Усі deployable applications  | Preview, Staging, Production     | Non-secret                | `preview`, `staging` або `production`              |
+| `SENTRY_RELEASE`                       | Deployment metadata            | Build і runtime              | Preview, Staging, Production     | Non-secret                | `<application>@<git-sha>`                          |
+| `SENTRY_ORG`                           | Sentry source-map upload       | Build only                   | Preview, Staging, Production     | Non-secret                | Organization для upload                            |
+| `SENTRY_PROJECT`                       | Sentry source-map upload       | Build only                   | Preview, Staging, Production     | Non-secret                | Project відповідного application                   |
+| `SENTRY_AUTH_TOKEN`                    | Sentry source-map upload       | Build only                   | Preview, Staging, Production     | Secret                    | Upload source maps; ніколи не доступний browser    |
 
 `DIRECT_URL` використовується Prisma tooling для контрольованих migrations. `TEST_DATABASE_URL` приймається лише database test utilities і має вказувати на окрему локальну database `mealmind_test`.
 
@@ -58,6 +67,11 @@ Local, test, staging і production не використовують спіль�
 - Production build web-застосунків потребує public build-time configuration; CI використовує лише безпечні non-production values.
 
 Environment contract покритий unit tests у кожному deployable application.
+
+Sentry transport у local development і automated tests вимкнено за
+замовчуванням. Відсутній DSN поза production не блокує startup. Build-only
+`SENTRY_AUTH_TOKEN` не читається runtime-кодом і не має `NEXT_PUBLIC_`
+префікса.
 
 ## Локальний запуск
 
@@ -163,6 +177,7 @@ Supabase-specific SQL допускається лише для platform capabili
 | Render API          | Repository root; `apps/api` і `packages/db` як npm workspaces | `npm ci --include=dev`; filtered Turbo build; Prisma deploy migration; API start | Server-only API, database і Supabase variables      |
 | Supabase staging    | Окремий cloud project                                         | Prisma migrations перед rollout; reference/staging seed за policy                | Окремі staging database, buckets і credentials      |
 | Supabase production | Окремий cloud project                                         | Контрольовані Prisma migrations перед rollout                                    | Окремі production database, buckets і credentials   |
+| Sentry              | Одна organization, три application projects                   | Runtime event ingestion; source-map upload під час build                         | Окремі DSN; build-only auth token                   |
 
 Фактичні Vercel project settings, Render service, DNS, staging acceptance і production rollout перевіряються під час release hardening. Project IDs, connection strings і credentials не додаються до repository.
 
@@ -226,6 +241,10 @@ Target Blueprint використовує paid starter instance, оскільк�
 6. Auth users, Storage objects і database rows розглядаються як окремі набори даних під час backup, очищення й deployment.
 7. `supabase/.temp`, `supabase/.branches`, generated output і local env files не комітяться.
 8. Remote database commands виконуються лише після явного вибору target environment; local development не потребує linked project.
+9. `SENTRY_AUTH_TOKEN` зберігається тільки в deployment/CI secrets, має
+   мінімально необхідні права й не потрапляє до browser bundle.
+10. Sentry DSN не класифікується як адміністративний secret, але кожний
+    application використовує DSN тільки свого project.
 
 ## References
 

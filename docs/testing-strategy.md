@@ -47,7 +47,7 @@ E2E-інфраструктура додається окремо після по
 - **axe-core** — автоматизована перевірка доступності React-компонентів і
   composition fixtures.
 
-Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, а також database smoke tests для baseline migration та reference seed. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
+Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, database smoke tests для baseline migration та reference seed, а також unit tests політики Sentry event sanitization і transport mocks для observability metadata. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
 
 ## Валідність розмітки та доступність
 
@@ -95,6 +95,46 @@ Database foundation перевіряється в окремій локальн�
 - перевіряє точні кількості восьми довідників, унікальність UUID і кодів та незмінність службових часових міток під час повторного запуску.
 
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
+
+## Перевірки Sentry
+
+Observability tests не виконують реальний network call до Sentry.
+
+Unit tests для sanitizer/`beforeSend` перевіряють видалення:
+
+- authorization headers;
+- cookies;
+- request і response body;
+- token-like query values;
+- email та імені;
+- антропометричних, алергічних, медичних і харчових полів.
+
+Transport mock окремо перевіряє:
+
+- `environment`;
+- `release`;
+- tag `application`;
+- tag `runtime`;
+- tag `request_id`, коли request ID доступний;
+- відсутність event dispatch у local/test за default configuration.
+
+Для API integration test підтверджує, що неочікувана помилка зберігає
+стандартний зовнішній `500 INTERNAL_SERVER_ERROR` contract і capture-иться
+один раз, а Sentry error handler не замінює final application middleware.
+
+Source-map correctness і правильність project DSN не доводяться unit test.
+Вони перевіряються контрольованою staging-помилкою окремо для
+`web-client`, `web-admin` і API. Після перевірки debug endpoint або test button
+видаляється і не доступний у production.
+
+Staging acceptance підтверджує:
+
+1. event потрапив до правильного project;
+2. environment, release і application відповідають deployment;
+3. API event має request ID, який зіставляється зі structured log;
+4. stack trace веде до TypeScript source;
+5. raw event не містить synthetic sensitive payload;
+6. application працює, якщо Sentry transport тимчасово недоступний.
 
 ## Розташування і назви
 
