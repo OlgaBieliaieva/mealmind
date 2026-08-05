@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AuthenticationService } from "../../../application/authentication/authentication-service.js";
 import { createNoopLogger } from "../../../application/logging/logger.js";
 import { errorHandler } from "../../../http/middleware/error-handler.js";
+import type { ApiRateLimitOverrides } from "../../../http/middleware/rate-limit.js";
 import { createRequestContextMiddleware } from "../../../http/middleware/request-context.js";
 import type { ReferenceService } from "../application/reference-service.js";
 import { createReferenceController } from "./reference-controller.js";
@@ -23,13 +24,21 @@ function authenticationService(role: "USER" | "ADMIN"): AuthenticationService {
   };
 }
 
-function createTestApp(service: ReferenceService, role: "USER" | "ADMIN") {
+function createTestApp(
+  service: ReferenceService,
+  role: "USER" | "ADMIN",
+  rateLimitOverrides: ApiRateLimitOverrides = {},
+) {
   const app = express();
   app.use(createRequestContextMiddleware(createNoopLogger()));
   app.use(express.json());
   app.use(
     "/api/v1",
-    createReferenceRouter(createReferenceController(service), authenticationService(role)),
+    createReferenceRouter(
+      createReferenceController(service),
+      authenticationService(role),
+      rateLimitOverrides,
+    ),
   );
   app.use(errorHandler);
   return app;
@@ -113,6 +122,28 @@ describe("reference router", () => {
       meta: { page: 1, pageSize: 50, total: 0 },
     });
     expect(response.headers["cache-control"]).toContain("max-age=300");
+  });
+
+  it("rate limits reference routes before calling protected handlers", async () => {
+    const service = referenceService();
+    const app = createTestApp(service, "USER", { limit: 1, windowMs: 60_000 });
+
+    const accepted = await request(app)
+      .get("/api/v1/reference/meal-types")
+      .set("authorization", "Bearer token");
+    const blocked = await request(app)
+      .get("/api/v1/reference/meal-types")
+      .set("authorization", "Bearer token");
+
+    expect(accepted.status).toBe(200);
+    expect(blocked.status).toBe(429);
+    expect(blocked.body).toEqual({
+      error: {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "Too many requests",
+      },
+    });
+    expect(service.list).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an admin mutation for a regular user", async () => {
