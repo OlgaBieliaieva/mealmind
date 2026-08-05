@@ -1,0 +1,26 @@
+$kind: http-example
+name: Потрібна автентифікація користувача
+request:
+  url: "{{baseUrl}}/api/v1/admin/reference/:resource?search=string&page=1&pageSize=50&includeInactive=false"
+  method: GET
+  headers:
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  queryParams:
+    search: string
+    page: "1"
+    pageSize: "50"
+    includeInactive: "false"
+  pathVariables:
+    resource: product-categories
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  body:
+    type: text
+    content: ""
+order: 3000

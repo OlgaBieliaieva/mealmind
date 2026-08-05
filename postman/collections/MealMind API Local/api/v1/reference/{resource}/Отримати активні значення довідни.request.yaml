@@ -1,0 +1,90 @@
+$kind: http-request
+name: Отримати активні значення довідника
+description: ""
+url: "{{baseUrl}}/api/v1/reference/:resource?search=string&page=1&pageSize=50"
+method: GET
+queryParams:
+  - key: search
+    value: string
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      }
+  - key: page
+    value: "1"
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1
+          }
+        }
+      }
+  - key: pageSize
+    value: "50"
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      }
+pathVariables:
+  - key: resource
+    value: product-categories
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "allergens",
+              "authors",
+              "brands",
+              "cuisines",
+              "dietary-tags",
+              "meal-types",
+              "measurement-units",
+              "nutrients",
+              "product-categories",
+              "recipe-types"
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+body:
+  type: text
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{bearerToken}}"
+settings: {}
+examples: ./.resources/Отримати активні значення довідни.resources/examples
+order: 1000

@@ -26,10 +26,10 @@
     "format:check": "prettier . --check",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:ui-quality && npm run test:coverage && npm run build",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run api:openapi:check && npm run test:ui-quality && npm run test:coverage && npm run build",
     "audit": "npm audit --omit=dev --audit-level=moderate",
     "audit:all": "npm audit --audit-level=moderate",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:ui-quality && npm run test:coverage",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run api:openapi:check && npm run test:ui-quality && npm run test:coverage",
     "supabase:start": "supabase start",
     "supabase:status": "supabase status",
     "supabase:stop": "supabase stop",
@@ -43,6 +43,9 @@
     "db:test:migrations": "npm run db:test:migrations -w @mealmind/db",
     "db:test:seed": "npm run db:test:seed -w @mealmind/db",
     "db:test": "npm run db:test -w @mealmind/db",
+    "api:openapi:export": "npm run openapi:export -w @mealmind/api",
+    "api:openapi:check": "npm run openapi:check -w @mealmind/api",
+    "api:openapi:watch": "npm run openapi:watch -w @mealmind/api",
     "test:ui-quality": "turbo run test:ui-quality"
   },
   "devDependencies": {

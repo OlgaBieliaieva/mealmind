@@ -1,0 +1,29 @@
+$kind: http-example
+name: Потрібна автентифікація користувача
+request:
+  url: "{{baseUrl}}/api/v1/admin/reference/:resource"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  pathVariables:
+    resource: product-categories
+  body:
+    type: json
+    content: |-
+      {
+        "code": "test_allergen",
+        "nameUa": "Алерген",
+        "nameEn": "Allergen",
+        "isActive": true
+      }
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  body:
+    type: text
+    content: ""
+order: 3000
