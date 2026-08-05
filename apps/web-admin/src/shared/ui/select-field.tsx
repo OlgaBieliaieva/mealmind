@@ -12,7 +12,7 @@ export interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectEl
   readonly id?: string;
   readonly label: string;
   readonly description?: string;
-  readonly error?: string;
+  readonly error?: string | undefined;
   readonly placeholder?: string;
   readonly options: readonly SelectOption[];
 }

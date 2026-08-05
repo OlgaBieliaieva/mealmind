@@ -6,7 +6,7 @@ export interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   readonly id?: string;
   readonly label: string;
   readonly description?: string;
-  readonly error?: string;
+  readonly error?: string | undefined;
 }
 
 export function TextInput({

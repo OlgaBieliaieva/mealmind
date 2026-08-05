@@ -1,6 +1,7 @@
 import express, { type Express, type Router } from "express";
 import { rateLimit } from "express-rate-limit";
 
+import { apiOpenApiDocument } from "./api-openapi.js";
 import type { AuthenticationService } from "./application/authentication/authentication-service.js";
 import type { HealthService } from "./application/health.js";
 import type { AppLogger } from "./application/logging/logger.js";
@@ -12,13 +13,13 @@ import { notFoundHandler } from "./http/middleware/not-found-handler.js";
 import { createApiRateLimitOptions } from "./http/middleware/rate-limit.js";
 import { createRequestContextMiddleware } from "./http/middleware/request-context.js";
 import { createSessionRouter } from "./http/routes/session-router.js";
-import { referenceOpenApiDocument } from "./modules/reference/reference-openapi.js";
 
 export interface AppDependencies {
   readonly healthService: HealthService;
   readonly readinessService: ReadinessService;
   readonly authenticationService: AuthenticationService;
   readonly referenceRouter?: Router;
+  readonly productRouter?: Router;
   readonly logger: AppLogger;
   readonly corsAllowedOrigins: readonly string[];
 }
@@ -58,13 +59,17 @@ export function createApp(dependencies: AppDependencies): Express {
   });
 
   app.get("/api/openapi.json", (_request, response) => {
-    response.status(200).json(referenceOpenApiDocument);
+    response.status(200).json(apiOpenApiDocument);
   });
 
   app.use("/api/v1", createSessionRouter(dependencies.authenticationService));
 
   if (dependencies.referenceRouter !== undefined) {
     app.use("/api/v1", dependencies.referenceRouter);
+  }
+
+  if (dependencies.productRouter !== undefined) {
+    app.use("/api/v1", dependencies.productRouter);
   }
 
   app.use(notFoundHandler);

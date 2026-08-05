@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
+    "test:products:db": "tsx src/modules/product/infrastructure/prisma-product-repository.integration.ts",
     "test:coverage": "vitest run --coverage",
     "openapi:export": "tsx src/scripts/export-openapi.ts",
     "openapi:check": "tsx src/scripts/export-openapi.ts --check",
-    "openapi:watch": "tsx watch --clear-screen=false src/scripts/export-openapi.ts"
+    "openapi:watch": "tsx watch --clear-screen=false src/scripts/export-openapi.ts",
+    "media:cleanup": "tsx src/modules/product/scripts/cleanup-orphaned-media.ts"
   },
   "dependencies": {
     "@mealmind/db": "0.0.0",
@@ -24,6 +26,7 @@
     "express": "5.2.1",
     "express-rate-limit": "8.6.1",
     "pino": "10.3.1",
+    "sharp": "0.35.3",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -31,6 +34,7 @@
     "@types/express": "5.0.6",
     "@types/node": "24.13.3",
     "@types/supertest": "7.2.1",
+    "prettier": "3.9.6",
     "supertest": "7.2.2",
     "tsx": "4.23.1"
   }

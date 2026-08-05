@@ -1,0 +1,236 @@
+.product-page {
+  gap: 1.5rem;
+}
+
+.product-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.product-filters,
+.product-form__grid,
+.product-media__form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.product-table-scroll {
+  overflow-x: auto;
+}
+
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.product-table__caption {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.product-table th,
+.product-table td {
+  padding: 0.875rem 1rem;
+  border-top: 0.0625rem solid var(--admin-color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.product-table__identity {
+  display: flex;
+  min-width: 13rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.product-table__identity img,
+.product-table__placeholder {
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.product-table__placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--admin-color-primary);
+  background: var(--admin-color-surface-muted);
+  font-weight: 700;
+}
+
+.product-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: var(--admin-color-surface-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.product-status--active {
+  color: #165b2c;
+  background: #e4f4e8;
+}
+
+.product-status--archived {
+  color: #6a3838;
+  background: #f5e8e8;
+}
+
+.product-pagination,
+.product-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.product-pagination {
+  justify-content: center;
+}
+
+.product-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.product-form__section {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 0.0625rem solid var(--admin-color-border);
+  border-radius: 0.75rem;
+  background: var(--admin-color-surface);
+  box-shadow: var(--admin-shadow-card);
+}
+
+.product-form__section legend {
+  padding-inline: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.product-form__conditional {
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--admin-color-border);
+}
+
+.product-form__textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.product-form__hint {
+  margin: 0;
+  color: var(--admin-color-text-muted);
+}
+
+.product-form__rows {
+  display: grid;
+  gap: 1rem;
+}
+
+.product-form__repeat-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--admin-color-border);
+  border-radius: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.product-form__checkbox {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.product-status-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.product-status-actions h2,
+.product-status-actions p,
+.product-media h2,
+.product-media__card p {
+  margin-top: 0;
+}
+
+.product-media {
+  display: grid;
+  gap: 1rem;
+}
+
+.product-media__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-media__progress progress {
+  width: min(100%, 18rem);
+}
+
+.product-media__grid {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+}
+
+.product-media__card img,
+.product-media__placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.product-media__placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--admin-color-text-muted);
+  background: var(--admin-color-surface-muted);
+}
+
+@media (max-width: 48rem) {
+  .product-page__header,
+  .product-status-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .product-filters,
+  .product-form__grid,
+  .product-form__repeat-row,
+  .product-media__form,
+  .product-media__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 48.0625rem) and (max-width: 64rem) {
+  .product-filters,
+  .product-form__grid,
+  .product-form__repeat-row,
+  .product-media__form,
+  .product-media__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

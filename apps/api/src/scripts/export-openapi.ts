@@ -2,13 +2,19 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { referenceOpenApiDocument } from "../modules/reference/reference-openapi.js";
+import { format, resolveConfig } from "prettier";
+
+import { apiOpenApiDocument } from "../api-openapi.js";
 
 const outputPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../../../postman/specs/MealMind API/MealMind API.openapi.json",
 );
-const serializedDocument = JSON.stringify(referenceOpenApiDocument, null, 2) + "\n";
+const prettierConfig = await resolveConfig(outputPath);
+const serializedDocument = await format(JSON.stringify(apiOpenApiDocument), {
+  ...prettierConfig,
+  parser: "json",
+});
 const checkOnly = process.argv.includes("--check");
 
 if (checkOnly) {

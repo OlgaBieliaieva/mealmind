@@ -27,7 +27,7 @@ describe("MealMind API application", () => {
       }),
       authenticationService: unusedAuthenticationService,
       logger: createNoopLogger(),
-      corsAllowedOrigins: [allowedClientOrigin, "http://127.0.0.1:3001"],
+      corsAllowedOrigins: [allowedClientOrigin, "http://127.0.0.1:3001", "http://localhost:3001"],
     };
   });
 
@@ -40,6 +40,12 @@ describe("MealMind API application", () => {
         "Створити значення довідника",
       );
       expect(response.body.paths["/api/v1/admin/reference/{resource}/{id}"].patch).toBeDefined();
+      expect(response.body.paths["/api/v1/admin/products"].post.summary).toBe(
+        "Створити generic або branded продукт",
+      );
+      expect(
+        response.body.paths["/api/v1/admin/products/{id}/media/{mediaId}/complete"].post,
+      ).toBeDefined();
       expect(response.body.servers).toContainEqual({
         url: "http://127.0.0.1:3002",
         description: "Локальне середовище розробки",
@@ -160,6 +166,19 @@ describe("MealMind API application", () => {
       expect(response.headers["access-control-allow-origin"]).toBe(allowedClientOrigin);
       expect(response.headers["access-control-allow-methods"]).toContain("GET");
       expect(response.headers["access-control-max-age"]).toBe("600");
+    });
+
+    it("handles a CORS preflight request from the localhost admin app", async () => {
+      const adminOrigin = "http://localhost:3001";
+      const response = await request(createApp(dependencies))
+        .options("/api/v1/admin/products?page=1&pageSize=20")
+        .set("origin", adminOrigin)
+        .set("access-control-request-method", "GET")
+        .set("access-control-request-headers", "authorization,x-request-id");
+
+      expect(response.status).toBe(204);
+      expect(response.headers["access-control-allow-origin"]).toBe(adminOrigin);
+      expect(response.headers["access-control-allow-methods"]).toContain("GET");
     });
   });
 

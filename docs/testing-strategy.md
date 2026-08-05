@@ -94,6 +94,14 @@ Database foundation перевіряється в окремій локальн�
 - запускає reference seed двічі та підтверджує його ідемпотентність;
 - перевіряє точні кількості восьми довідників, унікальність UUID і кодів та незмінність службових часових міток під час повторного запуску.
 
+Після baseline migration і reference seed окремий product repository integration test перевіряє на
+реальному PostgreSQL:
+
+- атомарне створення product разом із nutrients і portions;
+- збереження relations, коли поле відсутнє в update, та явне очищення порожнім масивом;
+- конфлікт duplicate GTIN;
+- server-side search, count і pagination.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -172,6 +180,7 @@ npm run test:coverage
 npm run db:test:migrations
 npm run db:test:seed
 npm run db:test
+npm run api:test:products:db
 npm run check
 npm run test:ui-quality
 ```
@@ -181,6 +190,8 @@ npm run test:ui-quality
 - `npm run db:test:migrations` відтворює `mealmind_test` і перевіряє застосування baseline migration до чистої бази;
 - `npm run db:test:seed` відтворює `mealmind_test`, застосовує migration і перевіряє reference seed двома послідовними запусками;
 - `npm run db:test` послідовно виконує обидві database-перевірки;
+- `npm run api:test:products:db` після `npm run db:test` перевіряє product repository лише в
+  локальній `mealmind_test` на `127.0.0.1:54322`;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.
 - `npm run test:ui-quality` перевіряє валідність згенерованої HTML-розмітки
