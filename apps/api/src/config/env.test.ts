@@ -6,7 +6,8 @@ const validEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "development",
   PORT: "3002",
   API_ORIGIN: "http://127.0.0.1:3002",
-  CORS_ALLOWED_ORIGINS: "http://127.0.0.1:3000,http://127.0.0.1:3001",
+  CORS_ALLOWED_ORIGINS:
+    "http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:3001,http://localhost:3001",
   DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
   SUPABASE_URL: "http://127.0.0.1:54321",
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
@@ -21,7 +22,12 @@ describe("parseApiEnv", () => {
       nodeEnv: "development",
       port: 3002,
       apiOrigin: "http://127.0.0.1:3002",
-      corsAllowedOrigins: ["http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+      corsAllowedOrigins: [
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:3001",
+      ],
       databaseUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
       supabase: {
         url: "http://127.0.0.1:54321",

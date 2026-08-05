@@ -1,12 +1,14 @@
 workspace:
   id: 196aa202-2cd0-4367-aa82-18c34c8faed3
-
 localResources:
   specs:
     - ../postman/specs/MealMind API/MealMind API.openapi.json
-
+    - ../C:/Users/Admin/my/projects/meal_mind/mealmind/postman/specs/MealMind API/MealMind API.openapi.json
 dependencies:
   collections:
     28081010-b84d6b35-fae8-45f9-a149-ad6b99a832cf:
       name: MealMind API
       path: ../postman/.dependencies/collections/MealMind API
+resourceNameMappings:
+  specs:
+    - ../postman/specs/MealMind API/MealMind API.openapi.json: MealMind API.openapi.json

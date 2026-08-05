@@ -43,6 +43,7 @@
     "db:test:migrations": "npm run db:test:migrations -w @mealmind/db",
     "db:test:seed": "npm run db:test:seed -w @mealmind/db",
     "db:test": "npm run db:test -w @mealmind/db",
+    "api:test:products:db": "npm run test:products:db -w @mealmind/api",
     "api:openapi:export": "npm run openapi:export -w @mealmind/api",
     "api:openapi:check": "npm run openapi:check -w @mealmind/api",
     "api:openapi:watch": "npm run openapi:watch -w @mealmind/api",

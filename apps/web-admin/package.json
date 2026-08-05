@@ -13,6 +13,7 @@
     "test:ui-quality": "vitest run src/test/ui-quality.test.tsx"
   },
   "dependencies": {
+    "@hookform/resolvers": "5.7.1",
     "@mealmind/observability": "0.0.0",
     "@sentry/nextjs": "10.68.0",
     "@supabase/ssr": "0.12.4",
@@ -21,6 +22,7 @@
     "next": "16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "7.84.0",
     "sonner": "2.0.7",
     "zod": "4.4.3"
   },
