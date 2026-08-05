@@ -1,0 +1,25 @@
+$kind: http-example
+name: Детерміновано відсортований список значень
+request:
+  url: "{{baseUrl}}/api/v1/reference/:resource?search=string&page=1&pageSize=50"
+  method: GET
+  headers:
+    - key: Authorization
+      value: Bearer <token>
+      description: "Added as a part of security scheme: bearer"
+  queryParams:
+    search: string
+    page: "1"
+    pageSize: "50"
+  pathVariables:
+    resource: product-categories
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

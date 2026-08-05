@@ -11,6 +11,7 @@ import { createSupabaseIdentityProvider } from "./infrastructure/auth/supabase-i
 import { createPinoLogger } from "./infrastructure/logging/pino-logger.js";
 import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-readiness-probe.js";
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
+import { createReferenceModule } from "./modules/reference/reference-module.js";
 
 export interface ApiRuntime {
   readonly app: Express;
@@ -46,10 +47,13 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     userIdentityRepository,
   });
 
+  const referenceModule = createReferenceModule(database, authenticationService);
+
   const app = createApp({
     healthService,
     readinessService,
     authenticationService,
+    referenceRouter: referenceModule.router,
     logger,
     corsAllowedOrigins: config.corsAllowedOrigins,
   });

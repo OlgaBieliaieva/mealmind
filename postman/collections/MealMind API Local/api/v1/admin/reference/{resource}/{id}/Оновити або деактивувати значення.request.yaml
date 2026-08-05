@@ -1,0 +1,71 @@
+$kind: http-request
+name: Оновити або деактивувати значення довідника
+description: Коди seeded-довідників не змінюються. Для деактивації передайте isActive=false; автори архівуються, а бренди використовують status=ARCHIVED.
+url: "{{baseUrl}}/api/v1/admin/reference/:resource/:id"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: resource
+    value: product-categories
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "allergens",
+              "authors",
+              "brands",
+              "cuisines",
+              "dietary-tags",
+              "meal-types",
+              "measurement-units",
+              "nutrients",
+              "product-categories",
+              "recipe-types"
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+  - key: id
+    value: 4df61dfb-5a29-8a80-deea-c069b96b5c4e
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+body:
+  type: json
+  content: |-
+    {
+      "nameUa": "Оновлена назва"
+    }
+  $type: |-
+    {
+      "description": "Набір полів залежить від resource. Точні обмеження наведені в документації reference-модуля.",
+      "type": "object"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bearerToken}}"
+settings: {}
+examples: ./.resources/Оновити або деактивувати значення.resources/examples
+order: 1000

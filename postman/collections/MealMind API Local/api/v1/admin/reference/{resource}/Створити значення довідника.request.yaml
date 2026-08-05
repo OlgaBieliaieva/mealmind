@@ -1,0 +1,56 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/api/v1/admin/reference/:resource"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: resource
+    value: product-categories
+    disabled: false
+    description: ""
+    $type: |-
+      {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "enum": [
+              "allergens",
+              "authors",
+              "brands",
+              "cuisines",
+              "dietary-tags",
+              "meal-types",
+              "measurement-units",
+              "nutrients",
+              "product-categories",
+              "recipe-types"
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+body:
+  type: json
+  content: |-
+    {
+      "code": "test_allergen",
+      "nameUa": "Алерген",
+      "nameEn": "Allergen",
+      "isActive": true
+    }
+  $type: |-
+    {
+      "description": "Набір полів залежить від resource. Точні обмеження наведені в документації reference-модуля.",
+      "type": "object"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{bearerToken}}"
+settings: {}
+examples: ./.resources/Створити значення довідника.resources/examples
+order: 2000

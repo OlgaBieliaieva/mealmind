@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "openapi:export": "tsx src/scripts/export-openapi.ts",
+    "openapi:check": "tsx src/scripts/export-openapi.ts --check",
+    "openapi:watch": "tsx watch --clear-screen=false src/scripts/export-openapi.ts"
   },
   "dependencies": {
     "@mealmind/db": "0.0.0",

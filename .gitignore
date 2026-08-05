@@ -149,3 +149,4 @@ docs/migration-ledger.md
 
 # Turborepo
 .turbo/
+postman/.dependencies/

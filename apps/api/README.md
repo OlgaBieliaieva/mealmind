@@ -7,9 +7,24 @@ MealMind API — серверна межа застосунку, яка відп
 
 - `GET /health` перевіряє, чи працює процес API.
 - `GET /ready` перевіряє доступність необхідної інфраструктури.
+- `GET /api/openapi.json` повертає OpenAPI 3.1 contract прикладних endpoint-ів.
+
+Статичний файл для Postman генерується командою `npm run api:openapi:export` з кореня
+репозиторію. Інструкція з локального підключення міститься у `postman/README.md`.
 
 Endpoint `/health` не звертається до бази даних. Endpoint `/ready` виконує
 мінімальну перевірку підключення до PostgreSQL.
+
+## Довідникові endpoints
+
+Довідникові дані доступні автентифікованим клієнтам через
+`GET /api/v1/reference/:resource`. Адміністративний список використовує
+`GET /api/v1/admin/reference/:resource`; створення та редагування всіх
+довідників — `POST /api/v1/admin/reference/:resource` і
+`PATCH /api/v1/admin/reference/:resource/:id`.
+
+Підтримувані ресурси, правила сортування, пагінації, кешування й архітектурний
+шаблон описані в `src/modules/reference/README.md` та OpenAPI contract.
 
 ## Політика HTTP-запитів
 

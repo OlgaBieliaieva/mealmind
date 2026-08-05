@@ -32,6 +32,20 @@ describe("MealMind API application", () => {
   });
 
   describe("operational endpoints", () => {
+    it("publishes the Ukrainian OpenAPI contract for generic reference mutations", async () => {
+      const response = await request(createApp(dependencies)).get("/api/openapi.json");
+
+      expect(response.status).toBe(200);
+      expect(response.body.paths["/api/v1/admin/reference/{resource}"].post.summary).toBe(
+        "Створити значення довідника",
+      );
+      expect(response.body.paths["/api/v1/admin/reference/{resource}/{id}"].patch).toBeDefined();
+      expect(response.body.servers).toContainEqual({
+        url: "http://127.0.0.1:3002",
+        description: "Локальне середовище розробки",
+      });
+    });
+
     it("returns the API health status without checking the database", async () => {
       const databaseCheck = vi.fn(async () => {});
 
