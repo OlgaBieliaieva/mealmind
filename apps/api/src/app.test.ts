@@ -49,6 +49,10 @@ describe("MealMind API application", () => {
       expect(response.body.paths["/api/v1/account/bootstrap"].post.summary).toBe(
         "Створити або повернути локальний обліковий запис",
       );
+      expect(response.body.paths["/api/v1/admin/recipes"].post.summary).toBe(
+        "Створити рецепт із розрахунком поживності",
+      );
+      expect(response.body.paths["/api/v1/recipes/{id}"].get).toBeDefined();
       expect(response.body.servers).toContainEqual({
         url: "http://127.0.0.1:3002",
         description: "Локальне середовище розробки",

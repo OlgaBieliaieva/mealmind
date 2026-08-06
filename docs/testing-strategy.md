@@ -109,6 +109,15 @@ Database foundation перевіряється в окремій локальн�
 - unique email conflict для іншого external subject;
 - відмову автоматично відновлювати soft-deleted account.
 
+Окремий recipe repository integration test перевіряє:
+
+- атомарне створення recipe разом із впорядкованими ingredients, steps і
+  nutrient snapshot;
+- розрахунок total та per-serving nutrition на основі product nutrients;
+- rollback усієї update-транзакції при невалідному дочірньому reference;
+- стабільний порядок steps після повної заміни;
+- видимість client details лише після переходів `DRAFT -> READY -> PUBLISHED`.
+
 Auth unit/component tests окремо перевіряють identity-only bootstrap, заборону
 role injection, password schemas, нейтральні recovery states, same-origin
 `returnTo`, admin role gate та HTML/axe semantics auth forms.
@@ -193,6 +202,7 @@ npm run db:test:seed
 npm run db:test
 npm run api:test:products:db
 npm run api:test:accounts:db
+npm run api:test:recipes:db
 npm run check
 npm run test:ui-quality
 ```
@@ -205,6 +215,9 @@ npm run test:ui-quality
 - `npm run api:test:products:db` після `npm run db:test` перевіряє product repository лише в
   локальній `mealmind_test` на `127.0.0.1:54322`;
 - `npm run api:test:accounts:db` після `npm run db:test` перевіряє account
+  repository лише в ізольованій test database;
+- `npm run api:test:recipes:db` після `npm run db:test` перевіряє recipe
+  transactions і nutrition snapshot лише в ізольованій test database.
   bootstrap repository у тій самій ізольованій test database;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.

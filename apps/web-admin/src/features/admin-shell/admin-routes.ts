@@ -1,6 +1,7 @@
 export const adminRoutes = {
   home: "/",
   products: "/products",
+  recipes: "/recipes",
 } as const;
 
 export const adminNavigationItems = [
@@ -11,5 +12,9 @@ export const adminNavigationItems = [
   {
     href: adminRoutes.products,
     label: "Продукти",
+  },
+  {
+    href: adminRoutes.recipes,
+    label: "Рецепти",
   },
 ] as const;
