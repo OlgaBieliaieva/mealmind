@@ -8,6 +8,7 @@ import { AppProviders } from "./providers";
 
 import "./globals.css";
 import "@/shared/ui/ui.css";
+import "@/features/auth/auth.css";
 
 readWebEnv();
 

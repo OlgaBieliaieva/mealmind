@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+
+import { SignOutButton } from "@/features/auth/sign-out-button";
 
 import { ClientNavigation } from "./client-navigation";
 import { clientRoutes } from "./client-routes";
@@ -9,6 +14,21 @@ export interface ClientShellProps {
 }
 
 export function ClientShell({ children }: ClientShellProps) {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/auth/")) {
+    return (
+      <>
+        <a className="skip-link" href="#main-content">
+          Перейти до основного вмісту
+        </a>
+        <main id="main-content" className="auth-page-shell" tabIndex={-1}>
+          {children}
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -32,6 +52,8 @@ export function ClientShell({ children }: ClientShellProps) {
                 <span className="client-brand__description">Сімейне планування харчування</span>
               </span>
             </Link>
+
+            <SignOutButton />
           </div>
         </header>
 

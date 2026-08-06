@@ -105,6 +105,17 @@ CORS не є механізмом авторизації. Кожен захищ�
 Запити без заголовка `Origin`, зокрема server-to-server запити та перевірки
 стану сервісу, можуть оброблятися API.
 
+## Account bootstrap
+
+`POST /api/v1/account/bootstrap` є єдиним identity-only application route.
+Він перевіряє Supabase bearer token, вимагає підтверджений email та
+ідемпотентно створює локального `User` з роллю `USER`. Request body має бути
+порожнім: client-supplied role, subject, email або user ID відхиляються.
+
+Після bootstrap звичайні routes використовують незмінний authentication
+pipeline, який вимагає активний локальний account. Soft-deleted account
+автоматично не відновлюється.
+
 ## Завершення роботи
 
 API обробляє сигнали `SIGTERM` і `SIGINT`.

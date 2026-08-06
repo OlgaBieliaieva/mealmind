@@ -11,6 +11,7 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:products:db": "tsx src/modules/product/infrastructure/prisma-product-repository.integration.ts",
+    "test:accounts:db": "tsx src/modules/account/infrastructure/prisma-account-repository.integration.ts",
     "test:coverage": "vitest run --coverage",
     "openapi:export": "tsx src/scripts/export-openapi.ts",
     "openapi:check": "tsx src/scripts/export-openapi.ts --check",

@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+
+import { SignOutButton } from "@/features/auth/sign-out-button";
 
 import { AdminNavigation } from "./admin-navigation";
 import { adminRoutes } from "./admin-routes";
@@ -9,6 +14,21 @@ export interface AdminShellProps {
 }
 
 export function AdminShell({ children }: AdminShellProps) {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/auth/")) {
+    return (
+      <>
+        <a className="skip-link" href="#main-content">
+          Перейти до основного вмісту
+        </a>
+        <main id="main-content" className="auth-page-shell" tabIndex={-1}>
+          {children}
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -32,6 +52,8 @@ export function AdminShell({ children }: AdminShellProps) {
                 <span className="admin-brand__description">Керування каталогом і рецептами</span>
               </span>
             </Link>
+
+            <SignOutButton />
           </div>
         </header>
 
