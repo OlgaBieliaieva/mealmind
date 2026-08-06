@@ -43,6 +43,7 @@ export function createSupabaseIdentityProvider(
         return Object.freeze({
           subject: data.user.id,
           email: data.user.email ?? null,
+          emailVerified: typeof data.user.email_confirmed_at === "string",
         });
       } catch (error) {
         if (error instanceof IdentityProviderUnavailableError) {

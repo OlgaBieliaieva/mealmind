@@ -102,6 +102,17 @@ Database foundation перевіряється в окремій локальн�
 - конфлікт duplicate GTIN;
 - server-side search, count і pagination.
 
+Окремий account repository integration test перевіряє:
+
+- створення локального `User` із database default `USER`;
+- ідемпотентний повторний bootstrap;
+- unique email conflict для іншого external subject;
+- відмову автоматично відновлювати soft-deleted account.
+
+Auth unit/component tests окремо перевіряють identity-only bootstrap, заборону
+role injection, password schemas, нейтральні recovery states, same-origin
+`returnTo`, admin role gate та HTML/axe semantics auth forms.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -181,6 +192,7 @@ npm run db:test:migrations
 npm run db:test:seed
 npm run db:test
 npm run api:test:products:db
+npm run api:test:accounts:db
 npm run check
 npm run test:ui-quality
 ```
@@ -192,6 +204,8 @@ npm run test:ui-quality
 - `npm run db:test` послідовно виконує обидві database-перевірки;
 - `npm run api:test:products:db` після `npm run db:test` перевіряє product repository лише в
   локальній `mealmind_test` на `127.0.0.1:54322`;
+- `npm run api:test:accounts:db` після `npm run db:test` перевіряє account
+  bootstrap repository у тій самій ізольованій test database;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.
 - `npm run test:ui-quality` перевіряє валідність згенерованої HTML-розмітки

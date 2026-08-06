@@ -11,6 +11,7 @@ import { createSupabaseIdentityProvider } from "./infrastructure/auth/supabase-i
 import { createPinoLogger } from "./infrastructure/logging/pino-logger.js";
 import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-readiness-probe.js";
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
+import { createAccountModule } from "./modules/account/account-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
 
@@ -48,6 +49,8 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     userIdentityRepository,
   });
 
+  const accountModule = createAccountModule(database, identityProvider);
+
   const referenceModule = createReferenceModule(database, authenticationService);
   const productModule = createProductModule(database, authenticationService, {
     url: config.supabase.url,
@@ -58,6 +61,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     healthService,
     readinessService,
     authenticationService,
+    accountRouter: accountModule.router,
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,
     logger,

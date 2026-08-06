@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { describe, it, vi } from "vitest";
 
 import { ClientShell } from "@/features/client-shell/client-shell";
+import { AuthForm } from "@/features/auth/auth-form";
 import { Button, Card, Modal, PageState, SelectField, TextInput } from "@/shared/ui";
 
 import { validateRenderedUi } from "./ui-quality";
@@ -89,6 +90,16 @@ describe("Web Client markup and accessibility baseline", () => {
           headingLevel={2}
           actions={<Button>Створити план</Button>}
         />
+      </main>,
+    );
+
+    await validateRenderedUi(container);
+  });
+
+  it("validates authentication and recovery form semantics", async () => {
+    const { container } = render(
+      <main>
+        <AuthForm mode="sign-up" />
       </main>,
     );
 

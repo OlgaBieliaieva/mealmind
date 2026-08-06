@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { describe, it, vi } from "vitest";
 
 import { AdminShell } from "@/features/admin-shell/admin-shell";
+import { AdminAuthForm } from "@/features/auth/admin-auth-form";
 import { Button, Card, Modal, PageState, SelectField, TextInput } from "@/shared/ui";
 
 import { validateRenderedUi } from "./ui-quality";
@@ -89,6 +90,16 @@ describe("Web Admin markup and accessibility baseline", () => {
           headingLevel={2}
           actions={<Button variant="secondary">Повторити</Button>}
         />
+      </main>,
+    );
+
+    await validateRenderedUi(container);
+  });
+
+  it("validates administrator sign-in semantics", async () => {
+    const { container } = render(
+      <main>
+        <AdminAuthForm mode="sign-in" />
       </main>,
     );
 

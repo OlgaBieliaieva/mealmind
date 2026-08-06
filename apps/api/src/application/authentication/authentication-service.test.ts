@@ -13,6 +13,7 @@ describe("AuthenticationService", () => {
       verifyAccessToken: vi.fn(async () => ({
         subject: "252b50f0-47a3-4444-b40a-02f84fbb86a4",
         email: "auth@example.com",
+        emailVerified: true,
       })),
     };
 
@@ -65,6 +66,7 @@ describe("AuthenticationService", () => {
       verifyAccessToken: vi.fn(async () => ({
         subject: "252b50f0-47a3-4444-b40a-02f84fbb86a4",
         email: "auth@example.com",
+        emailVerified: true,
       })),
     };
 

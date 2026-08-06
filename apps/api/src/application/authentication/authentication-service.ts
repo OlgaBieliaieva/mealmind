@@ -8,6 +8,7 @@ export type ApplicationRole = "USER" | "ADMIN";
 export interface VerifiedIdentity {
   readonly subject: string;
   readonly email: string | null;
+  readonly emailVerified: boolean;
 }
 
 export interface IdentityProvider {

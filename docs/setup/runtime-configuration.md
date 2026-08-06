@@ -47,6 +47,8 @@ Local, test, staging і production не використовують спіль�
 | `NEXT_PUBLIC_API_URL`                  | Web deployment                 | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Browser endpoint MealMind API                      |
 | `NEXT_PUBLIC_SUPABASE_URL`             | Supabase platform              | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Browser endpoint Supabase                          |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase platform              | `web-admin`, `web-client`    | Local, Staging, Production       | Public build-time         | Низькопривілейований browser key                   |
+| `APP_ORIGIN`                           | Web deployment                 | Кожний web application       | Local, Staging, Production       | Non-secret server runtime | Канонічний origin callback і redirects             |
+| `WEB_CLIENT_ORIGIN`                    | Web deployment                 | `web-admin`                  | Local, Staging, Production       | Non-secret server runtime | Безпечне посилання з access-denied state           |
 | `NEXT_PUBLIC_SENTRY_DSN`               | Sentry project                 | `web-admin` або `web-client` | Preview, Staging, Production     | Public ingestion endpoint | DSN відповідного frontend project                  |
 | `SENTRY_DSN`                           | Sentry project                 | `apps/api`                   | Staging, Production              | Public ingestion endpoint | DSN API project                                    |
 | `SENTRY_ENVIRONMENT`                   | Deployment metadata            | Усі deployable applications  | Preview, Staging, Production     | Non-secret                | `preview`, `staging` або `production`              |
@@ -60,7 +62,8 @@ Local, test, staging і production не використовують спіль�
 ## Валідація
 
 - API перевіряє environment до відкриття HTTP port.
-- Кожний web application перевіряє тільки три дозволені public variables на server rendering/build boundary.
+- Кожний web application перевіряє public variables на build boundary, а
+  server-only `APP_ORIGIN` — на callback/access boundary.
 - URL, port і CORS origins нормалізуються та перевіряються.
 - Validation errors містять назви некоректних variables, але не їхні значення.
 - Static quality gate `npm run verify` не потребує локальних secrets.
@@ -72,6 +75,21 @@ Sentry transport у local development і automated tests вимкнено за
 замовчуванням. Відсутній DSN поза production не блокує startup. Build-only
 `SENTRY_AUTH_TOKEN` не читається runtime-кодом і не має `NEXT_PUBLIC_`
 префікса.
+
+## Supabase Auth
+
+- `web-client` і `web-admin` використовують окремі host-scoped cookie
+  sessions через `@supabase/ssr`.
+- Локальний `site_url` — `http://localhost:3000`; callback URLs обох
+  застосунків для `localhost` і `127.0.0.1` внесені до exact redirect
+  allowlist.
+- Email confirmation увімкнено локально та перевіряється через Mailpit.
+- Мінімальна довжина пароля — 8 символів.
+- Confirmation і recovery templates зберігаються у `supabase/templates`.
+- Production потребує custom SMTP, SPF/DKIM/DMARC, CAPTCHA та exact staging і
+  production redirects.
+- Google OAuth provider залишається вимкненим; майбутній client secret
+  зберігатиметься тільки у Supabase/provider secrets.
 
 ## Локальний запуск
 
