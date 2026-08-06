@@ -116,6 +116,17 @@ CORS не є механізмом авторизації. Кожен захищ�
 pipeline, який вимагає активний локальний account. Soft-deleted account
 автоматично не відновлюється.
 
+## Рецепти та поживність
+
+Адміністративні маршрути `/api/v1/admin/recipes` підтримують server-side
+пошук, create/update, nutrition preview і контрольовані lifecycle transitions.
+Кожен маршрут має authentication, роль `ADMIN` та explicit rate limiting.
+
+Окремий `GET /api/v1/recipes/:id` доступний автентифікованому клієнту та
+повертає лише опублікований публічний рецепт. Формула, gram conversion,
+snapshot policy, atomic replacement semantics і status model описані у
+`src/modules/recipe/README.md`.
+
 ## Завершення роботи
 
 API обробляє сигнали `SIGTERM` і `SIGINT`.

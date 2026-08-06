@@ -45,6 +45,7 @@
     "db:test": "npm run db:test -w @mealmind/db",
     "api:test:products:db": "npm run test:products:db -w @mealmind/api",
     "api:test:accounts:db": "npm run test:accounts:db -w @mealmind/api",
+    "api:test:recipes:db": "npm run test:recipes:db -w @mealmind/api",
     "api:openapi:export": "npm run openapi:export -w @mealmind/api",
     "api:openapi:check": "npm run openapi:check -w @mealmind/api",
     "api:openapi:watch": "npm run openapi:watch -w @mealmind/api",

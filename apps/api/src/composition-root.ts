@@ -14,6 +14,7 @@ import { createPrismaUserIdentityRepository } from "./infrastructure/persistence
 import { createAccountModule } from "./modules/account/account-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
+import { createRecipeModule } from "./modules/recipe/recipe-module.js";
 
 export interface ApiRuntime {
   readonly app: Express;
@@ -56,6 +57,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
   });
+  const recipeModule = createRecipeModule(database, authenticationService);
 
   const app = createApp({
     healthService,
@@ -64,6 +66,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     accountRouter: accountModule.router,
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,
+    recipeRouter: recipeModule.router,
     logger,
     corsAllowedOrigins: config.corsAllowedOrigins,
   });

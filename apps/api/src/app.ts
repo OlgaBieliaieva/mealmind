@@ -21,6 +21,7 @@ export interface AppDependencies {
   readonly accountRouter?: Router;
   readonly referenceRouter?: Router;
   readonly productRouter?: Router;
+  readonly recipeRouter?: Router;
   readonly logger: AppLogger;
   readonly corsAllowedOrigins: readonly string[];
 }
@@ -75,6 +76,10 @@ export function createApp(dependencies: AppDependencies): Express {
 
   if (dependencies.productRouter !== undefined) {
     app.use("/api/v1", dependencies.productRouter);
+  }
+
+  if (dependencies.recipeRouter !== undefined) {
+    app.use("/api/v1", dependencies.recipeRouter);
   }
 
   app.use(notFoundHandler);

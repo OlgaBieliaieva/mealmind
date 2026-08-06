@@ -1,0 +1,133 @@
+.recipe-page,
+.recipe-form,
+.recipe-form__rows {
+  display: grid;
+  gap: 1.5rem;
+}
+.recipe-page__header,
+.recipe-status-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.recipe-form__section,
+.inline-author,
+.recipe-status-actions {
+  padding: 1.25rem;
+  border: 1px solid var(--admin-color-border);
+  border-radius: 0.75rem;
+  background: var(--admin-color-surface);
+}
+.recipe-form__section > legend {
+  padding: 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.recipe-form__grid,
+.recipe-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.recipe-form__textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+.recipe-form__multi {
+  min-height: 8rem;
+}
+.recipe-form__repeat {
+  padding: 1rem;
+  border: 1px solid var(--admin-color-border);
+  border-radius: 0.6rem;
+}
+.recipe-form__repeat > legend {
+  padding: 0 0.35rem;
+  font-weight: 700;
+}
+.recipe-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.recipe-form__hint {
+  color: var(--admin-color-text-muted);
+}
+.recipe-form__actions,
+.recipe-status-actions__buttons,
+.recipe-pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.recipe-table-scroll {
+  overflow-x: auto;
+}
+.recipe-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.recipe-table caption {
+  padding: 1rem;
+  text-align: left;
+}
+.recipe-table th,
+.recipe-table td {
+  padding: 0.9rem 1rem;
+  border-top: 1px solid var(--admin-color-border);
+  text-align: left;
+}
+.recipe-status {
+  display: inline-flex;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: var(--admin-color-surface-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.recipe-status--published {
+  color: #165b2e;
+  background: #dff3e5;
+}
+.recipe-status--archived {
+  color: #6b3c00;
+  background: #f5e8d5;
+}
+.inline-author {
+  display: grid;
+  gap: 1rem;
+}
+.inline-author h2,
+.recipe-status-actions h2 {
+  margin: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 48rem) {
+  .recipe-page__header,
+  .recipe-status-actions {
+    display: grid;
+  }
+  .recipe-form__grid,
+  .recipe-filters {
+    grid-template-columns: 1fr;
+  }
+  .recipe-form__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .recipe-table {
+    min-width: 42rem;
+  }
+}

@@ -1,5 +1,6 @@
 import { productOpenApiPaths, productOpenApiSchemas } from "./modules/product/product-openapi.js";
 import { referenceOpenApiDocument } from "./modules/reference/reference-openapi.js";
+import { recipeOpenApiPaths, recipeOpenApiSchemas } from "./modules/recipe/recipe-openapi.js";
 
 export const apiOpenApiDocument = Object.freeze({
   ...referenceOpenApiDocument,
@@ -33,12 +34,14 @@ export const apiOpenApiDocument = Object.freeze({
       },
     },
     ...productOpenApiPaths,
+    ...recipeOpenApiPaths,
   }),
   components: Object.freeze({
     ...referenceOpenApiDocument.components,
     schemas: Object.freeze({
       ...referenceOpenApiDocument.components.schemas,
       ...productOpenApiSchemas,
+      ...recipeOpenApiSchemas,
     }),
   }),
 });
