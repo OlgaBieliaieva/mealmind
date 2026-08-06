@@ -46,4 +46,5 @@ export const USDA_PATHS = {
   srLegacyFoodFile: path.join(usdaRoot, "data", "raw", "sr_legacy_food.csv"),
 
   selectedFoodsFile: path.join(usdaRoot, "data", "work", "selected-foods.json"),
+  normalizedProductsFile: path.join(usdaRoot, "data", "work", "normalized-products.json"),
 } as const;

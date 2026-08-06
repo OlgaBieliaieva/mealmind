@@ -7,7 +7,7 @@
  * - validate
  * - generate
  */
-export type UsdaCommand = "check" | "select";
+export type UsdaCommand = "check" | "select" | "normalize";
 
 /**
  * Common shape of a CSV row returned by csv-parse
@@ -97,6 +97,124 @@ export interface SelectedFoodsDocument {
   readonly datasets: readonly UsdaDataset[];
   readonly statistics: SelectFoodsStatistics;
   readonly foods: readonly SelectedFood[];
+}
+
+/**
+ * Detailed preparation method detected from a USDA description.
+ *
+ * This is more specific than the current Prisma ProductFoodState.
+ * It will later be mapped to the database representation.
+ */
+export type PreparationMethod =
+  | "UNSPECIFIED"
+  | "RAW"
+  | "BOILED"
+  | "STEAMED"
+  | "BAKED"
+  | "ROASTED"
+  | "GRILLED"
+  | "BROILED"
+  | "FRIED"
+  | "PAN_FRIED"
+  | "DEEP_FRIED"
+  | "SAUTEED"
+  | "MICROWAVED"
+  | "SIMMERED"
+  | "POACHED"
+  | "BRAISED"
+  | "STEWED"
+  | "CANNED"
+  | "DRIED"
+  | "DEHYDRATED"
+  | "FROZEN"
+  | "SMOKED"
+  | "FERMENTED"
+  | "PICKLED"
+  | "TOASTED";
+
+/**
+ * Broad state compatible with the current MealMind product model.
+ */
+export type NormalizedFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
+
+/**
+ * Describes how confidently a preparation method was recognized.
+ */
+export type NormalizationConfidence = "HIGH" | "MEDIUM" | "LOW";
+
+/**
+ * One normalized food produced from a SelectedFood.
+ */
+export interface NormalizedProduct {
+  readonly fdcId: number;
+  readonly dataset: UsdaDataset;
+  readonly dataType: string;
+
+  readonly originalDescription: string;
+  readonly normalizedNameEn: string;
+
+  readonly preparationMethod: PreparationMethod;
+  readonly foodState: NormalizedFoodState;
+  readonly preparationConfidence: NormalizationConfidence;
+
+  /**
+   * Known qualifiers removed from the base name.
+   *
+   * Examples:
+   * - without salt
+   * - skinless
+   * - meat only
+   */
+  readonly modifiersEn: readonly string[];
+
+  /**
+   * Parts that look like processing metadata but were not classified
+   * by current deterministic rules.
+   */
+  readonly unclassifiedParts: readonly string[];
+
+  readonly foodCategoryExternalId: string | null;
+  readonly publicationDate: string | null;
+  readonly ndbNumber: string | null;
+}
+
+/**
+ * Statistics generated during normalization.
+ */
+export interface NormalizeFoodsStatistics {
+  readonly inputFoodsTotal: number;
+  readonly normalizedFoodsTotal: number;
+
+  readonly rawFoods: number;
+  readonly cookedFoods: number;
+  readonly processedFoods: number;
+  readonly readyToEatFoods: number;
+  readonly unspecifiedFoods: number;
+
+  readonly foodsWithModifiers: number;
+  readonly foodsWithUnclassifiedParts: number;
+}
+
+/**
+ * Deterministic normalized-products.json document.
+ */
+export interface NormalizedProductsDocument {
+  readonly schemaVersion: 1;
+  readonly sourceSchemaVersion: 1;
+  readonly statistics: NormalizeFoodsStatistics;
+  readonly products: readonly NormalizedProduct[];
+}
+
+/**
+ * Result of parsing one USDA description.
+ */
+export interface NormalizedDescription {
+  readonly normalizedNameEn: string;
+  readonly preparationMethod: PreparationMethod;
+  readonly foodState: NormalizedFoodState;
+  readonly preparationConfidence: NormalizationConfidence;
+  readonly modifiersEn: readonly string[];
+  readonly unclassifiedParts: readonly string[];
 }
 
 /**

@@ -1,8 +1,10 @@
 import { USDA_PATHS } from "./paths.js";
 import { selectFoods } from "./select-foods.js";
-import type { UsdaCommand } from "./types.js";
 import { verifyUsdaFramework } from "./verify-framework.js";
 import { writeJsonFile } from "./write-json.js";
+import { normalizeFoods } from "./normalize-foods.js";
+import { readJsonFile } from "./read-json.js";
+import type { SelectedFoodsDocument, UsdaCommand } from "./types.js";
 
 function printUsage(): void {
   console.info(`
@@ -12,12 +14,15 @@ Usage:
   npm run usda
   npm run usda -- check
   npm run usda -- select
+  npm run usda -- normalize
   npm run usda:check
   npm run usda:select
+  npm run usda:normalize
 
 Available commands:
-  check    Verify the local USDA framework and required directories.
-  select   Select Foundation Foods and SR Legacy records from food.csv.
+  check       Verify the local USDA framework and required directories.
+  select      Select Foundation Foods and SR Legacy records from food.csv.
+  normalize   Normalize selected USDA food descriptions.
 `);
 }
 
@@ -28,6 +33,10 @@ function resolveCommand(argument: string | undefined): UsdaCommand {
 
   if (argument === "select") {
     return "select";
+  }
+
+  if (argument === "normalize") {
+    return "normalize";
   }
 
   throw new Error(`Unknown USDA command: "${argument}". Run "npm run usda -- --help" for usage.`);
@@ -85,6 +94,34 @@ async function runSelect(): Promise<void> {
   console.info(`\nOutput: ${USDA_PATHS.selectedFoodsFile}`);
 }
 
+async function runNormalize(): Promise<void> {
+  await verifyUsdaFramework();
+
+  console.info("Normalizing selected USDA foods...\n");
+
+  console.info(`Input:  ${USDA_PATHS.selectedFoodsFile}`);
+  console.info(`Output: ${USDA_PATHS.normalizedProductsFile}`);
+
+  const selectedFoods = await readJsonFile<SelectedFoodsDocument>(USDA_PATHS.selectedFoodsFile);
+
+  const document = normalizeFoods(selectedFoods);
+
+  await writeJsonFile(USDA_PATHS.normalizedProductsFile, document);
+
+  console.info("\nNormalization completed:");
+  console.info(`  input foods:             ${document.statistics.inputFoodsTotal}`);
+  console.info(`  normalized foods:        ${document.statistics.normalizedFoodsTotal}`);
+  console.info(`  raw:                     ${document.statistics.rawFoods}`);
+  console.info(`  cooked:                  ${document.statistics.cookedFoods}`);
+  console.info(`  processed:               ${document.statistics.processedFoods}`);
+  console.info(`  ready to eat:            ${document.statistics.readyToEatFoods}`);
+  console.info(`  unspecified:             ${document.statistics.unspecifiedFoods}`);
+  console.info(`  with modifiers:          ${document.statistics.foodsWithModifiers}`);
+  console.info(`  with unclassified parts: ${document.statistics.foodsWithUnclassifiedParts}`);
+
+  console.info(`\nOutput: ${USDA_PATHS.normalizedProductsFile}`);
+}
+
 async function main(): Promise<void> {
   const argument = process.argv[2];
 
@@ -102,6 +139,10 @@ async function main(): Promise<void> {
 
     case "select":
       await runSelect();
+      return;
+
+    case "normalize":
+      await runNormalize();
       return;
 
     default: {

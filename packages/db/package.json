@@ -28,7 +28,8 @@
     "usda": "tsx scripts/usda/src/index.ts",
     "usda:check": "tsx scripts/usda/src/index.ts check",
     "usda:test": "tsx --test scripts/usda/src/**/*.test.ts",
-    "usda:select": "tsx scripts/usda/src/index.ts select"
+    "usda:select": "tsx scripts/usda/src/index.ts select",
+    "usda:normalize": "tsx scripts/usda/src/index.ts normalize"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
