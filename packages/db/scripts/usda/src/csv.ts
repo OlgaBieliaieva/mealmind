@@ -21,21 +21,8 @@ export async function fileExists(filePath: string): Promise<boolean> {
  *
  * This is important for large USDA files such as food_nutrient.csv:
  * the entire file is not loaded into memory.
- *
- * The generic type should describe the expected columns:
- *
- * interface FoodRow extends CsvRow {
- *   fdc_id: string;
- *   description: string;
- * }
- *
- * for await (const row of readCsvRows<FoodRow>(filePath)) {
- *   // ...
- * }
  */
-export async function* readCsvRows<TRow extends CsvRow = CsvRow>(
-  filePath: string,
-): AsyncGenerator<TRow> {
+export async function* readCsvRows<TRow extends CsvRow>(filePath: string): AsyncGenerator<TRow> {
   if (!(await fileExists(filePath))) {
     throw new Error(`CSV file does not exist: ${filePath}`);
   }
@@ -73,11 +60,10 @@ export async function* readCsvRows<TRow extends CsvRow = CsvRow>(
 /**
  * Reads a small CSV file into an array.
  *
- * Do not use this helper for food_nutrient.csv or other very large files.
+ * Do not use this helper for food_nutrient.csv
+ * or other very large files.
  */
-export async function readSmallCsvFile<TRow extends CsvRow = CsvRow>(
-  filePath: string,
-): Promise<TRow[]> {
+export async function readSmallCsvFile<TRow extends CsvRow>(filePath: string): Promise<TRow[]> {
   const rows: TRow[] = [];
 
   for await (const row of readCsvRows<TRow>(filePath)) {

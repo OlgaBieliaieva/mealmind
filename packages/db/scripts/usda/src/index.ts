@@ -6,6 +6,7 @@ import { normalizeFoods } from "./normalize-foods.js";
 import { readJsonFile } from "./read-json.js";
 import { buildCatalogReview } from "./build-catalog-review.js";
 import { buildCuratedCatalog } from "./build-curated-catalog.js";
+import { runNutrientExtraction } from "./run-nutrient-extraction.js";
 import type {
   CatalogReviewDocument,
   NormalizedProductsDocument,
@@ -25,6 +26,7 @@ Usage:
   npm run usda -- review
   npm run usda -- curate
   npm run usda -- curate --strict
+  npm run usda -- nutrients
 
 Available commands:
   check       Verify framework directories.
@@ -32,6 +34,7 @@ Available commands:
   normalize   Normalize selected USDA food descriptions.
   review      Generate catalog-review.json with curation decisions.
   curate      Generate curated-products.json from included products.
+  nutrients   Extract MealMind-supported nutrients for curated products.
 
 Options:
   --strict    Fail curate when NEEDS_REVIEW products remain.
@@ -57,6 +60,10 @@ function resolveCommand(argument: string | undefined): UsdaCommand {
 
   if (argument === "curate") {
     return "curate";
+  }
+
+  if (argument === "nutrients") {
+    return "nutrients";
   }
 
   throw new Error(`Unknown USDA command: "${argument}". Run "npm run usda -- --help" for usage.`);
@@ -218,6 +225,11 @@ async function main(): Promise<void> {
     case "curate":
       await runCurate(strict);
       return;
+
+    case "nutrients": {
+      await runNutrientExtraction();
+      break;
+    }
 
     default: {
       const exhaustiveCheck: never = command;
