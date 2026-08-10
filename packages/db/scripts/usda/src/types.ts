@@ -7,7 +7,15 @@
  * - validate
  * - generate
  */
-export type UsdaCommand = "check" | "select" | "normalize" | "review" | "curate" | "nutrients";
+export type UsdaCommand =
+  | "check"
+  | "select"
+  | "normalize"
+  | "review"
+  | "curate"
+  | "nutrients"
+  | "portions"
+  | "normalize-portions";
 
 /**
  * Common shape of a CSV row returned by csv-parse

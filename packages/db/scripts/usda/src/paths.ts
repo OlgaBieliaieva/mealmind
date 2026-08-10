@@ -77,4 +77,11 @@ export const USDA_PATHS = {
     "work",
     "curated-product-nutrients.json",
   ),
+  foodPortionFile: path.join(usdaRoot, "data", "raw", "food_portion.csv"),
+
+  measureUnitFile: path.join(usdaRoot, "data", "raw", "measure_unit.csv"),
+
+  extractedPortionsFile: path.join(usdaRoot, "data", "work", "extracted-portions.json"),
+
+  normalizedPortionsFile: path.join(usdaRoot, "data", "work", "normalized-portions.json"),
 } as const;

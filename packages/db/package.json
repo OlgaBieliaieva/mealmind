@@ -34,7 +34,9 @@
     "usda:review": "tsx scripts/usda/src/index.ts review",
     "usda:curate": "tsx scripts/usda/src/index.ts curate",
     "usda:curate:strict": "tsx scripts/usda/src/index.ts curate --strict",
-    "usda:nutrients": "tsx scripts/usda/src/index.ts nutrients"
+    "usda:nutrients": "tsx scripts/usda/src/index.ts nutrients",
+    "usda:portions": "tsx scripts/usda/src/index.ts portions",
+    "usda:normalize-portions": "tsx scripts/usda/src/index.ts normalize-portions"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
