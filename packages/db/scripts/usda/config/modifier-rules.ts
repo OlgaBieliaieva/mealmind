@@ -66,6 +66,12 @@ export const MODIFIER_PATTERNS: readonly RegExp[] = [
 
   /^as purchased$/i,
   /^edible portion$/i,
+  /^cooked in skin$/i,
+  /^cooked without skin$/i,
+  /^baked in skin$/i,
+  /^packed in oil$/i,
+  /^packed in tomato juice$/i,
+  /^liquid or frozen$/i,
 ] as const;
 
 export function isKnownModifier(part: string): boolean {

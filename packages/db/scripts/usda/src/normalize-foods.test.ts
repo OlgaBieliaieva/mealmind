@@ -66,15 +66,13 @@ test("normalizeFoods creates deterministic normalized products", () => {
   assert.deepEqual(result.statistics, {
     inputFoodsTotal: 4,
     normalizedFoodsTotal: 4,
-
     rawFoods: 1,
     cookedFoods: 2,
     processedFoods: 0,
     readyToEatFoods: 0,
     unspecifiedFoods: 1,
-
-    foodsWithModifiers: 1,
-    foodsWithUnclassifiedParts: 1,
+    foodsWithModifiers: 2,
+    foodsWithUnclassifiedParts: 0,
   });
 
   assert.deepEqual(
@@ -112,12 +110,16 @@ test("normalizeFoods preserves source metadata", () => {
 test("normalizeFoods rejects duplicate FDC IDs", () => {
   const document = createSelectedFoodsDocument();
 
+  const firstFood = document.foods[0];
+
+  assert.ok(firstFood);
+
   const duplicateDocument: SelectedFoodsDocument = {
     ...document,
     foods: [
       ...document.foods,
       {
-        ...document.foods[0],
+        ...firstFood,
       },
     ],
   };

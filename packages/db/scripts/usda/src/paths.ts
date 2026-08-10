@@ -47,4 +47,7 @@ export const USDA_PATHS = {
 
   selectedFoodsFile: path.join(usdaRoot, "data", "work", "selected-foods.json"),
   normalizedProductsFile: path.join(usdaRoot, "data", "work", "normalized-products.json"),
+  catalogReviewFile: path.join(usdaRoot, "data", "work", "catalog-review.json"),
+
+  curatedProductsFile: path.join(usdaRoot, "data", "work", "curated-products.json"),
 } as const;

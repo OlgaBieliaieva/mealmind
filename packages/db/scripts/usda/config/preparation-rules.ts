@@ -31,10 +31,21 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
     patterns: [/^deep[- ]fried$/i, /^deep fat fried$/i, /^fried in deep fat$/i],
   },
   {
+    method: "STIR_FRIED",
+    foodState: "COOKED",
+    confidence: "HIGH",
+    patterns: [/^stir[- ]fried$/i],
+  },
+  {
     method: "PAN_FRIED",
     foodState: "COOKED",
     confidence: "HIGH",
-    patterns: [/^pan[- ]fried$/i, /^fried in pan$/i],
+    patterns: [
+      /^pan[- ]fried$/i,
+      /^fried in pan$/i,
+      /^pan fried in .+ oil$/i,
+      /^pan[- ]fried in .+ oil$/i,
+    ],
   },
   {
     method: "RAW",
@@ -46,7 +57,7 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
     method: "BOILED",
     foodState: "COOKED",
     confidence: "HIGH",
-    patterns: [/^boiled$/i, /^cooked,? boiled$/i],
+    patterns: [/^boiled$/i, /^cooked,? boiled$/i, /^hard[- ]boiled$/i],
   },
   {
     method: "STEAMED",
@@ -64,7 +75,17 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
     method: "ROASTED",
     foodState: "COOKED",
     confidence: "HIGH",
-    patterns: [/^roasted$/i, /^cooked,? roasted$/i, /^roast$/i],
+    patterns: [
+      /^roasted$/i,
+      /^cooked,? roasted$/i,
+      /^roast$/i,
+      /^dry[- ]roasted$/i,
+      /^oil[- ]roasted$/i,
+      /^fast roasted$/i,
+      /^slow roasted$/i,
+      /^oven[- ]roasted$/i,
+      /^honey roasted$/i,
+    ],
   },
   {
     method: "GRILLED",
@@ -82,7 +103,14 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
     method: "FRIED",
     foodState: "COOKED",
     confidence: "HIGH",
-    patterns: [/^fried$/i, /^cooked,? fried$/i],
+    patterns: [
+      /^fried$/i,
+      /^cooked,? fried$/i,
+      /^french fried$/i,
+      /^fast fried$/i,
+      /^breaded and fried$/i,
+      /^fried chicken$/i,
+    ],
   },
   {
     method: "SAUTEED",
@@ -124,25 +152,46 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
     method: "CANNED",
     foodState: "PROCESSED",
     confidence: "HIGH",
-    patterns: [/^canned$/i, /^canned solids$/i, /^canned,? drained$/i],
+    patterns: [
+      /^canned$/i,
+      /^canned solids$/i,
+      /^canned,? drained$/i,
+      /^canned or bottled$/i,
+      /^canned in oil$/i,
+      /^canned in water$/i,
+    ],
   },
   {
     method: "DEHYDRATED",
     foodState: "PROCESSED",
     confidence: "HIGH",
-    patterns: [/^dehydrated$/i, /^dehydrated solids$/i],
+    patterns: [
+      /^dehydrated$/i,
+      /^dehydrated solids$/i,
+      /^dehydrated flakes$/i,
+      /^dehydrated \(low[- ]moisture\)$/i,
+      /^dehydrated \(low moisture\)$/i,
+    ],
   },
   {
     method: "DRIED",
     foodState: "PROCESSED",
     confidence: "HIGH",
-    patterns: [/^dried$/i, /^dry$/i, /^sun[- ]dried$/i],
+    patterns: [
+      /^dried$/i,
+      /^dry$/i,
+      /^sun[- ]dried$/i,
+      /^freeze[- ]dried$/i,
+      /^dried \(desiccated\)$/i,
+      /^dried \(alaska native\)$/i,
+      /^dried \(prunes\)$/i,
+    ],
   },
   {
     method: "FROZEN",
     foodState: "PROCESSED",
     confidence: "HIGH",
-    patterns: [/^frozen$/i, /^frozen,? unprepared$/i],
+    patterns: [/^frozen$/i, /^frozen,? unprepared$/i, /^frozen concentrate$/i, /^frozen mixture$/i],
   },
   {
     method: "SMOKED",
@@ -173,7 +222,15 @@ export const PREPARATION_RULES: readonly PreparationRule[] = [
 /**
  * Generic state markers do not identify an exact preparation method.
  */
-export const GENERIC_COOKED_PATTERNS: readonly RegExp[] = [/^cooked$/i, /^prepared$/i];
+export const GENERIC_COOKED_PATTERNS = [
+  /^cooked$/i,
+  /^prepared$/i,
+  /^heated$/i,
+  /^fully cooked$/i,
+  /^pre[- ]cooked$/i,
+  /^oven[- ]heated$/i,
+  /^heated in oven$/i,
+];
 
 export const READY_TO_EAT_PATTERNS: readonly RegExp[] = [
   /^ready[- ]to[- ]eat$/i,

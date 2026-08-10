@@ -7,7 +7,7 @@
  * - validate
  * - generate
  */
-export type UsdaCommand = "check" | "select" | "normalize";
+export type UsdaCommand = "check" | "select" | "normalize" | "review" | "curate";
 
 /**
  * Common shape of a CSV row returned by csv-parse
@@ -130,7 +130,8 @@ export type PreparationMethod =
   | "SMOKED"
   | "FERMENTED"
   | "PICKLED"
-  | "TOASTED";
+  | "TOASTED"
+  | "STIR_FRIED";
 
 /**
  * Broad state compatible with the current MealMind product model.
@@ -215,6 +216,120 @@ export interface NormalizedDescription {
   readonly preparationConfidence: NormalizationConfidence;
   readonly modifiersEn: readonly string[];
   readonly unclassifiedParts: readonly string[];
+}
+
+/**
+ * Final or suggested catalog decision.
+ */
+export type CurationDecision = "INCLUDE" | "EXCLUDE" | "NEEDS_REVIEW";
+
+/**
+ * Origin of the final decision.
+ */
+export type CurationDecisionSource = "AUTOMATIC" | "OVERRIDE";
+
+/**
+ * Stable machine-readable reasons used in reports and tests.
+ */
+export type CurationReasonCode =
+  | "CATEGORY_INCLUDED"
+  | "CATEGORY_EXCLUDED"
+  | "CATEGORY_REQUIRES_REVIEW"
+  | "CATEGORY_MISSING"
+  | "DESCRIPTION_EXCLUDED"
+  | "COMPOSITE_DISH"
+  | "RESTAURANT_OR_FAST_FOOD"
+  | "BABY_OR_INFANT_FOOD"
+  | "SUPPLEMENT_OR_MEDICAL_PRODUCT"
+  | "ALCOHOLIC_PRODUCT"
+  | "OVERLY_SPECIFIC_MEAT_VARIANT"
+  | "UNCLASSIFIED_PROCESSING"
+  | "LOW_NORMALIZATION_CONFIDENCE"
+  | "MULTIPLE_MODIFIERS"
+  | "UNKNOWN_FOOD_STATE"
+  | "MANUAL_INCLUDE"
+  | "MANUAL_EXCLUDE"
+  | "MANUAL_REVIEW";
+
+/**
+ * One manually maintained decision.
+ */
+export interface CurationOverride {
+  readonly decision: CurationDecision;
+  readonly note: string;
+}
+
+/**
+ * Result produced by automatic curation rules.
+ */
+export interface AutomaticCurationResult {
+  readonly decision: CurationDecision;
+  readonly reasonCodes: readonly CurationReasonCode[];
+}
+
+/**
+ * One entry in catalog-review.json.
+ */
+export interface CatalogReviewItem extends NormalizedProduct {
+  readonly foodCategoryExternalName: string | null;
+  readonly automaticDecision: CurationDecision;
+  readonly finalDecision: CurationDecision;
+  readonly decisionSource: CurationDecisionSource;
+  readonly reasonCodes: readonly CurationReasonCode[];
+  readonly overrideNote: string | null;
+}
+
+/**
+ * Statistics for catalog-review.json.
+ */
+export interface CatalogReviewStatistics {
+  readonly inputProductsTotal: number;
+
+  readonly automaticIncludes: number;
+  readonly automaticExcludes: number;
+  readonly automaticNeedsReview: number;
+
+  readonly finalIncludes: number;
+  readonly finalExcludes: number;
+  readonly finalNeedsReview: number;
+
+  readonly overriddenProducts: number;
+}
+
+/**
+ * Full local review document.
+ */
+export interface CatalogReviewDocument {
+  readonly schemaVersion: 1;
+  readonly sourceSchemaVersion: 1;
+  readonly statistics: CatalogReviewStatistics;
+  readonly items: readonly CatalogReviewItem[];
+}
+
+/**
+ * Product approved for the curated catalog.
+ */
+export interface CuratedProduct extends NormalizedProduct {
+  readonly curation: {
+    readonly decisionSource: CurationDecisionSource;
+    readonly reasonCodes: readonly CurationReasonCode[];
+    readonly overrideNote: string | null;
+  };
+}
+
+/**
+ * Final curated-products.json document.
+ */
+export interface CuratedProductsDocument {
+  readonly schemaVersion: 1;
+  readonly sourceSchemaVersion: 1;
+  readonly statistics: {
+    readonly reviewItemsTotal: number;
+    readonly includedProductsTotal: number;
+    readonly excludedProductsTotal: number;
+    readonly unresolvedProductsTotal: number;
+  };
+  readonly products: readonly CuratedProduct[];
 }
 
 /**

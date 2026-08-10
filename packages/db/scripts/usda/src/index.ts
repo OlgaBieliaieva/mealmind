@@ -4,7 +4,14 @@ import { verifyUsdaFramework } from "./verify-framework.js";
 import { writeJsonFile } from "./write-json.js";
 import { normalizeFoods } from "./normalize-foods.js";
 import { readJsonFile } from "./read-json.js";
-import type { SelectedFoodsDocument, UsdaCommand } from "./types.js";
+import { buildCatalogReview } from "./build-catalog-review.js";
+import { buildCuratedCatalog } from "./build-curated-catalog.js";
+import type {
+  CatalogReviewDocument,
+  NormalizedProductsDocument,
+  SelectedFoodsDocument,
+  UsdaCommand,
+} from "./types.js";
 
 function printUsage(): void {
   console.info(`
@@ -15,14 +22,19 @@ Usage:
   npm run usda -- check
   npm run usda -- select
   npm run usda -- normalize
-  npm run usda:check
-  npm run usda:select
-  npm run usda:normalize
+  npm run usda -- review
+  npm run usda -- curate
+  npm run usda -- curate --strict
 
 Available commands:
-  check       Verify the local USDA framework and required directories.
-  select      Select Foundation Foods and SR Legacy records from food.csv.
+  check       Verify framework directories.
+  select      Select Foundation Foods and SR Legacy records.
   normalize   Normalize selected USDA food descriptions.
+  review      Generate catalog-review.json with curation decisions.
+  curate      Generate curated-products.json from included products.
+
+Options:
+  --strict    Fail curate when NEEDS_REVIEW products remain.
 `);
 }
 
@@ -37,6 +49,14 @@ function resolveCommand(argument: string | undefined): UsdaCommand {
 
   if (argument === "normalize") {
     return "normalize";
+  }
+
+  if (argument === "review") {
+    return "review";
+  }
+
+  if (argument === "curate") {
+    return "curate";
   }
 
   throw new Error(`Unknown USDA command: "${argument}". Run "npm run usda -- --help" for usage.`);
@@ -122,6 +142,50 @@ async function runNormalize(): Promise<void> {
   console.info(`\nOutput: ${USDA_PATHS.normalizedProductsFile}`);
 }
 
+async function runReview(): Promise<void> {
+  await verifyUsdaFramework();
+
+  console.info("Building USDA catalog review...\n");
+
+  const normalized = await readJsonFile<NormalizedProductsDocument>(
+    USDA_PATHS.normalizedProductsFile,
+  );
+
+  const review = buildCatalogReview(normalized);
+
+  await writeJsonFile(USDA_PATHS.catalogReviewFile, review);
+
+  console.info("Catalog review completed:");
+  console.info(`  input products:        ${review.statistics.inputProductsTotal}`);
+  console.info(`  final includes:        ${review.statistics.finalIncludes}`);
+  console.info(`  final excludes:        ${review.statistics.finalExcludes}`);
+  console.info(`  needs review:          ${review.statistics.finalNeedsReview}`);
+  console.info(`  manual overrides:      ${review.statistics.overriddenProducts}`);
+  console.info(`\nOutput: ${USDA_PATHS.catalogReviewFile}`);
+}
+
+async function runCurate(strict: boolean): Promise<void> {
+  await verifyUsdaFramework();
+
+  console.info("Building curated USDA catalog...\n");
+
+  const review = await readJsonFile<CatalogReviewDocument>(USDA_PATHS.catalogReviewFile);
+
+  const curated = buildCuratedCatalog(review, {
+    strict,
+  });
+
+  await writeJsonFile(USDA_PATHS.curatedProductsFile, curated);
+
+  console.info("Curated catalog completed:");
+  console.info(`  review items:          ${curated.statistics.reviewItemsTotal}`);
+  console.info(`  included products:     ${curated.statistics.includedProductsTotal}`);
+  console.info(`  excluded products:     ${curated.statistics.excludedProductsTotal}`);
+  console.info(`  unresolved products:   ${curated.statistics.unresolvedProductsTotal}`);
+  console.info(`  strict mode:           ${strict ? "yes" : "no"}`);
+  console.info(`\nOutput: ${USDA_PATHS.curatedProductsFile}`);
+}
+
 async function main(): Promise<void> {
   const argument = process.argv[2];
 
@@ -131,6 +195,8 @@ async function main(): Promise<void> {
   }
 
   const command = resolveCommand(argument);
+
+  const strict = process.argv.slice(3).includes("--strict");
 
   switch (command) {
     case "check":
@@ -143,6 +209,14 @@ async function main(): Promise<void> {
 
     case "normalize":
       await runNormalize();
+      return;
+
+    case "review":
+      await runReview();
+      return;
+
+    case "curate":
+      await runCurate(strict);
       return;
 
     default: {

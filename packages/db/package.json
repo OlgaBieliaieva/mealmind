@@ -26,10 +26,14 @@
     "db:test:seed": "npm run generate && tsx prisma/tests/reference-seed-idempotency.ts",
     "db:test": "npm run db:test:migrations && npm run db:test:seed",
     "usda": "tsx scripts/usda/src/index.ts",
+    "usda:typecheck": "tsc --project scripts/usda/tsconfig.json",
     "usda:check": "tsx scripts/usda/src/index.ts check",
     "usda:test": "tsx --test scripts/usda/src/**/*.test.ts",
     "usda:select": "tsx scripts/usda/src/index.ts select",
-    "usda:normalize": "tsx scripts/usda/src/index.ts normalize"
+    "usda:normalize": "tsx scripts/usda/src/index.ts normalize",
+    "usda:review": "tsx scripts/usda/src/index.ts review",
+    "usda:curate": "tsx scripts/usda/src/index.ts curate",
+    "usda:curate:strict": "tsx scripts/usda/src/index.ts curate --strict"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",

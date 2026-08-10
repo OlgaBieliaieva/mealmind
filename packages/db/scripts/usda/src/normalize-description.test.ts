@@ -97,14 +97,29 @@ test("does not classify poultry class fryers as a processing method", () => {
   });
 });
 
-test("keeps unknown processing text in the name and exposes it for review", () => {
-  assert.deepEqual(normalizeDescription("Soup, prepared with water"), {
-    normalizedNameEn: "Soup, prepared with water",
+test("recognizes known preparation metadata instead of exposing it for review", () => {
+  const result = normalizeDescription("Soup, prepared with water");
+
+  assert.deepEqual(result, {
+    normalizedNameEn: "Soup",
+    preparationMethod: "UNSPECIFIED",
+    foodState: "UNSPECIFIED",
+    preparationConfidence: "LOW",
+    modifiersEn: ["prepared with water"],
+    unclassifiedParts: [],
+  });
+});
+
+test("keeps truly unknown processing text in the name and exposes it for review", () => {
+  const result = normalizeDescription("Vegetable, special cooking preparation");
+
+  assert.deepEqual(result, {
+    normalizedNameEn: "Vegetable, special cooking preparation",
     preparationMethod: "UNSPECIFIED",
     foodState: "UNSPECIFIED",
     preparationConfidence: "LOW",
     modifiersEn: [],
-    unclassifiedParts: ["prepared with water"],
+    unclassifiedParts: ["special cooking preparation"],
   });
 });
 
@@ -130,6 +145,59 @@ test("marks conflicting explicit preparation methods as medium confidence", () =
   });
 });
 
+test("normalizes a hard-boiled egg", () => {
+  assert.deepEqual(normalizeDescription("Egg, whole, cooked, hard-boiled"), {
+    normalizedNameEn: "Egg",
+    preparationMethod: "BOILED",
+    foodState: "COOKED",
+    preparationConfidence: "HIGH",
+    modifiersEn: ["whole"],
+    unclassifiedParts: [],
+  });
+});
+
+test("normalizes a stir-fried vegetable", () => {
+  const result = normalizeDescription("Mushrooms, shiitake, stir-fried");
+
+  assert.equal(result.preparationMethod, "STIR_FRIED");
+
+  assert.equal(result.foodState, "COOKED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("normalizes dry-roasted nuts", () => {
+  const result = normalizeDescription("Nuts, almonds, dry roasted, without salt added");
+
+  assert.equal(result.preparationMethod, "ROASTED");
+
+  assert.equal(result.foodState, "COOKED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("normalizes freeze-dried herbs", () => {
+  const result = normalizeDescription("Parsley, freeze-dried");
+
+  assert.equal(result.preparationMethod, "DRIED");
+
+  assert.equal(result.foodState, "PROCESSED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("does not classify baking powder as processing metadata", () => {
+  const result = normalizeDescription("Leavening agents, baking powder");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("does not classify baking chocolate as processing metadata", () => {
+  const result = normalizeDescription("Chocolate, baking, unsweetened");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
 test("rejects an empty description", () => {
   assert.throws(() => normalizeDescription("   "), /must not be empty/);
 });
@@ -143,4 +211,118 @@ test("does not remove words embedded inside a product name", () => {
     modifiersEn: [],
     unclassifiedParts: ["Roasted red pepper sauce"],
   });
+});
+
+test("recognizes preparation with water as a modifier", () => {
+  const result = normalizeDescription("Cereals, oats, instant, prepared with water");
+
+  assert.ok(result.modifiersEn.includes("prepared with water"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared with water"), false);
+});
+
+test("recognizes equal-volume water preparation as a modifier", () => {
+  const result = normalizeDescription("Soup, tomato, prepared with equal volume water");
+
+  assert.ok(result.modifiersEn.includes("prepared with equal volume water"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared with equal volume water"), false);
+});
+
+test("recognizes preparation with whole milk as a modifier", () => {
+  const result = normalizeDescription("Pudding, chocolate, prepared with whole milk");
+
+  assert.ok(result.modifiersEn.includes("prepared with whole milk"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared with whole milk"), false);
+});
+
+test("recognizes preparation with 2% milk as a modifier", () => {
+  const result = normalizeDescription("Pudding, vanilla, prepared with 2% milk");
+
+  assert.ok(result.modifiersEn.includes("prepared with 2% milk"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared with 2% milk"), false);
+});
+
+test("recognizes recipe-derived preparation as a modifier", () => {
+  const result = normalizeDescription("Cake, chocolate, prepared from recipe");
+
+  assert.ok(result.modifiersEn.includes("prepared from recipe"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared from recipe"), false);
+});
+
+test("canonicalizes prepared-from-recipe modifier", () => {
+  const result = normalizeDescription("Candies, fudge, prepared-from-recipe");
+
+  assert.ok(result.modifiersEn.includes("prepared from recipe"));
+
+  assert.equal(result.unclassifiedParts.includes("prepared-from-recipe"), false);
+});
+
+test("recognizes commercially prepared as known metadata", () => {
+  const result = normalizeDescription("Cookies, chocolate chip, commercially prepared");
+
+  assert.ok(result.modifiersEn.includes("commercially prepared"));
+
+  assert.equal(result.unclassifiedParts.includes("commercially prepared"), false);
+});
+
+test("canonicalizes home-prepared metadata", () => {
+  const result = normalizeDescription("Bread, banana, home prepared");
+
+  assert.ok(result.modifiersEn.includes("home-prepared"));
+
+  assert.equal(result.unclassifiedParts.includes("home prepared"), false);
+});
+
+test("does not treat fried rice as generic preparation metadata", () => {
+  const result = normalizeDescription("Restaurant, Chinese, fried rice, without meat");
+
+  assert.match(result.normalizedNameEn, /fried rice/i);
+});
+
+test("does not treat frozen yogurt as generic preparation metadata", () => {
+  const result = normalizeDescription("Frozen yogurts, chocolate");
+
+  assert.match(result.normalizedNameEn, /frozen yogurts/i);
+});
+
+test("recognizes USDA contextual cooked annotation", () => {
+  const result = normalizeDescription("Caribou, hind quarter, meat, cooked (Alaska Native)");
+
+  assert.equal(result.foodState, "COOKED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+
+  assert.match(result.normalizedNameEn, /Caribou, hind quarter, meat/i);
+});
+
+test("recognizes USDA contextual roasted annotation", () => {
+  const result = normalizeDescription("Pinon Nuts, roasted (Navajo)");
+
+  assert.equal(result.preparationMethod, "ROASTED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("recognizes cooked-roasted as roasted", () => {
+  const result = normalizeDescription(
+    "Pork loin, fresh, backribs, bone-in, cooked-roasted, lean only",
+  );
+
+  assert.equal(result.preparationMethod, "ROASTED");
+
+  assert.equal(result.foodState, "COOKED");
+
+  assert.deepEqual(result.unclassifiedParts, []);
+});
+
+test("recognizes tofu coagulant as preparation metadata", () => {
+  const result = normalizeDescription("Tofu, raw, firm, prepared with calcium sulfate");
+
+  assert.ok(result.modifiersEn.includes("prepared with calcium sulfate"));
+
+  assert.deepEqual(result.unclassifiedParts, []);
 });
