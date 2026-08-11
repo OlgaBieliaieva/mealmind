@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Огляд",
 };
 
-const plannedModules = [
+const modules = [
   {
     title: "Довідники",
     description: "Категорії, бренди, нутрієнти, кухні та інші контрольовані значення.",
+    href: "/reference/product-categories",
   },
   {
     title: "Продукти",
     description: "Створення, перевірка та керування generic і branded продуктами.",
+    href: "/products",
   },
   {
     title: "Рецепти",
     description: "Керування рецептами, інгредієнтами, кроками та поживною цінністю.",
+    href: "/recipes",
   },
 ] as const;
 
@@ -34,15 +38,15 @@ export default function Home() {
       </header>
 
       <section aria-labelledby="modules-title">
-        <h2 id="modules-title">Заплановані модулі</h2>
+        <h2 id="modules-title">Доступні модулі</h2>
 
         <ul className="admin-module-grid">
-          {plannedModules.map((module) => (
+          {modules.map((module) => (
             <li key={module.title}>
               <article className="admin-module-card">
                 <h3>{module.title}</h3>
                 <p>{module.description}</p>
-                <p className="admin-module-card__status">Буде додано пізніше</p>
+                <Link href={module.href}>Відкрити модуль</Link>
               </article>
             </li>
           ))}

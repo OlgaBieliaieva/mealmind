@@ -4,13 +4,14 @@ import { getAuthenticatedUser } from "../../../http/auth/request-context.js";
 import { validateRequest } from "../../../http/validation/validate-request.js";
 import type { ReferenceService } from "../application/reference-service.js";
 import { presentReference, presentReferencePage } from "./reference-presenter.js";
-import { listReferenceSchema } from "./reference-schema.js";
+import { archiveReferenceSchema, listReferenceSchema } from "./reference-schema.js";
 import { createReferenceSchema, updateReferenceSchema } from "./reference-write-schema.js";
 
 export interface ReferenceController {
   readonly list: RequestHandler;
   readonly create: RequestHandler;
   readonly update: RequestHandler;
+  readonly archive: RequestHandler;
 }
 
 export function createReferenceController(service: ReferenceService): ReferenceController {
@@ -37,6 +38,13 @@ export function createReferenceController(service: ReferenceService): ReferenceC
 
     update: validateRequest(updateReferenceSchema, async (input, _request, response) => {
       const record = await service.update(input.params.resource, input.params.id, input.body);
+
+      response.set("cache-control", "no-store");
+      response.status(200).json(presentReference(record));
+    }),
+
+    archive: validateRequest(archiveReferenceSchema, async (input, _request, response) => {
+      const record = await service.archive(input.params.resource, input.params.id);
 
       response.set("cache-control", "no-store");
       response.status(200).json(presentReference(record));

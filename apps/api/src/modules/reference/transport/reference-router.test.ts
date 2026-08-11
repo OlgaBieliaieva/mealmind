@@ -49,6 +49,10 @@ function referenceService(): ReferenceService {
     list: vi.fn(async () => ({ items: [], page: 1, pageSize: 50, total: 0 })),
     create: vi.fn(async (_resource, data) => ({ id: "new-reference", ...data })),
     update: vi.fn(async (_resource, id, data) => ({ id, ...data })),
+    archive: vi.fn(async (resource, id) => ({
+      id,
+      ...(resource === "brands" ? { status: "ARCHIVED" } : { isActive: false }),
+    })),
   };
 }
 
@@ -210,5 +214,29 @@ describe("reference router", () => {
       isActive: false,
     });
     expect(rejected.status).toBe(400);
+  });
+
+  it("soft-deletes a reference for an administrator", async () => {
+    const service = referenceService();
+    const id = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const response = await request(createTestApp(service, "ADMIN"))
+      .delete(`/api/v1/admin/reference/brands/${id}`)
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ id, status: "ARCHIVED" });
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(service.archive).toHaveBeenCalledWith("brands", id);
+  });
+
+  it("rejects soft-delete for a regular user", async () => {
+    const service = referenceService();
+    const id = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const response = await request(createTestApp(service, "USER"))
+      .delete(`/api/v1/admin/reference/allergens/${id}`)
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(403);
+    expect(service.archive).not.toHaveBeenCalled();
   });
 });

@@ -54,7 +54,18 @@ export function getUserFacingErrorMessage(error: unknown): string {
       return "Забагато запитів. Зачекайте трохи та спробуйте знову.";
 
     case "VALIDATION_ERROR":
+    case "REQUEST_VALIDATION_FAILED":
       return "Перевірте введені дані.";
+
+    case "REFERENCE_CONFLICT":
+      return "Таке значення вже існує. Перевірте код, назву або зовнішній ідентифікатор.";
+
+    case "INVALID_REFERENCE_RELATION":
+    case "INVALID_REFERENCE_HIERARCHY":
+      return "Неможливо застосувати зв’язок: перевірте ієрархію та активність пов’язаних значень.";
+
+    case "REFERENCE_NOT_FOUND":
+      return "Значення довідника більше не існує. Оновіть список.";
 
     default:
       if (error.statusCode >= 500) {

@@ -178,6 +178,12 @@ apps/web-client/src/test/ui-quality.test.tsx
 
 Тести розташовуються поруч із кодом, коли вони перевіряють окремий модуль або компонент. Окремі test-директорії використовуються лише для integration- та E2E-сценаріїв зі спільним середовищем або fixtures.
 
+Для адміністративних довідників component tests перевіряють нормалізацію
+типізованих полів, незмінність seeded code, field-level validation та доступність
+generic create/edit form. API tests окремо перевіряють ADMIN policy і
+resource-specific soft-delete mapping; фізичне видалення reference records у
+тестових сценаріях не вважається підтримуваною поведінкою.
+
 ## Тестові дані та безпека
 
 - тести не використовують production data, production credentials або персональні дані реальних користувачів;

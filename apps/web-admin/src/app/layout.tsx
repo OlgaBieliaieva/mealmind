@@ -10,6 +10,7 @@ import "./globals.css";
 import "@/shared/ui/ui.css";
 import "@/features/products/products.css";
 import "@/features/recipes/recipes.css";
+import "@/features/reference/reference.css";
 import "@/features/auth/auth.css";
 
 readWebEnv();

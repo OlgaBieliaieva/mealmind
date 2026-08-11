@@ -32,6 +32,7 @@ export interface ReferenceService {
     id: string,
     data: ReferenceWriteData,
   ): Promise<ReferenceRecord>;
+  archive(resource: ReferenceResource, id: string): Promise<ReferenceRecord>;
 }
 
 export function createReferenceService(repository: ReferenceRepository): ReferenceService {
@@ -93,7 +94,24 @@ export function createReferenceService(repository: ReferenceRepository): Referen
 
       return record;
     },
+
+    async archive(resource: ReferenceResource, id: string) {
+      const data = archiveData(resource);
+
+      if (resource === "product-categories") {
+        const records = await repository.list(resource, { includeInactive: true });
+        validateCategoryUpdate(records, id, data);
+      }
+
+      const record = await repository.update(resource, id, data);
+      if (record === null) throw new ReferenceNotFoundError(resource);
+      return record;
+    },
   });
+}
+
+function archiveData(resource: ReferenceResource): ReferenceWriteData {
+  return resource === "brands" ? { status: "ARCHIVED" } : { isActive: false };
 }
 
 function validateNewCategoryParent(

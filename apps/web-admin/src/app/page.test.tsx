@@ -15,13 +15,13 @@ describe("Web Admin home page", () => {
     ).toBeInTheDocument();
   });
 
-  it("describes the planned administration modules", () => {
+  it("links the available administration modules", () => {
     render(<Home />);
 
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "Заплановані модулі",
+        name: "Доступні модулі",
       }),
     ).toBeInTheDocument();
 
@@ -31,6 +31,8 @@ describe("Web Admin home page", () => {
         name: "Довідники",
       }),
     ).toBeInTheDocument();
+
+    expect(screen.getAllByRole("link", { name: "Відкрити модуль" })).toHaveLength(3);
 
     expect(
       screen.getByRole("heading", {
