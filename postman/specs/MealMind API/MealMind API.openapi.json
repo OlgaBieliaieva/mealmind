@@ -355,6 +355,19 @@
         }
       }
     },
+    "/api/v1/session": {
+      "get": {
+        "summary": "Отримати application session і сімейний контекст",
+        "description": "Повертає authenticated User, стан onboarding, власний профіль і єдину активну Family. Стан із кількома ACTIVE memberships повертає конфлікт.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Application session" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "409": { "description": "Невалідний сімейний контекст" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
     "/api/v1/admin/products": {
       "get": {
         "summary": "Переглянути й відфільтрувати продукти",
@@ -743,6 +756,148 @@
           "429": { "description": "Перевищено rate limit" }
         }
       }
+    },
+    "/api/v1/onboarding/complete": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Створено профіль і сімейний контекст" },
+          "400": { "description": "Невалідні дані" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Атомарно завершити onboarding",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/OnboardingInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/current": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Отримати поточну сім’ю"
+      },
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Оновити поточну сім’ю як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FamilyPatch" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Отримати учасників поточної сім’ї"
+      },
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Учасника створено" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Створити dependent-учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FamilyMemberInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Оновити dependent-учасника",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FamilyMemberPatch" } }
+          }
+        }
+      },
+      "delete": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Учасника архівовано" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Архівувати dependent-учасника"
+      }
+    },
+    "/api/v1/profile/me": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Отримати власний профіль"
+      },
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Оновити власний профіль",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FamilyMemberPatch" } }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -918,6 +1073,59 @@
         "required": ["status"],
         "properties": {
           "status": { "type": "string", "enum": ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"] }
+        }
+      },
+      "OnboardingInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["firstName"],
+        "properties": {
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lastName": { "type": "string", "maxLength": 100 },
+          "birthDate": { "type": "string", "format": "date" },
+          "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] },
+          "heightCm": { "type": "number", "minimum": 50, "maximum": 260 },
+          "weightKg": { "type": "number", "minimum": 15, "maximum": 500 },
+          "activityLevel": {
+            "type": "string",
+            "enum": ["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"]
+          },
+          "weightGoalType": { "type": "string", "enum": ["MAINTAIN", "LOSE", "GAIN"] }
+        }
+      },
+      "FamilyMemberInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["firstName"],
+        "properties": {
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lastName": { "type": "string", "maxLength": 100 },
+          "birthDate": { "type": "string", "format": "date" },
+          "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] }
+        }
+      },
+      "FamilyMemberPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lastName": { "type": "string", "maxLength": 100 },
+          "birthDate": { "type": "string", "format": "date" },
+          "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] }
+        }
+      },
+      "FamilyPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "timeZone": { "type": "string", "maxLength": 64 },
+          "weekStartsOn": {
+            "type": "string",
+            "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+          }
         }
       }
     },

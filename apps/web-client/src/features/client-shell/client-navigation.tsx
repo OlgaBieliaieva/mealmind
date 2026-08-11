@@ -3,48 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { clientNavigationItems } from "./client-routes";
+import { Tooltip } from "@/shared/ui";
 
-function HomeIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m3 11 9-8 9 8" />
-      <path d="M5 10v10h14V10" />
-      <path d="M9 20v-6h6v6" />
-    </svg>
-  );
-}
+import { clientNavigationItems } from "./client-routes";
 
 export function ClientNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Основна навігація">
+    <nav className="client-navigation-region" aria-label="Основна навігація">
       <ul className="client-navigation">
         {clientNavigationItems.map((item) => {
-          const isCurrent = pathname === item.href;
+          const isCurrent =
+            pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+
+          const Icon = item.icon;
 
           return (
-            <li key={item.href}>
-              <Link
-                className="client-navigation__link"
-                href={item.href}
-                aria-current={isCurrent ? "page" : undefined}
-              >
-                <span className="client-navigation__mark" aria-hidden="true">
-                  <HomeIcon />
-                </span>
-
-                <span>{item.label}</span>
-              </Link>
+            <li key={item.href} className="client-navigation__item">
+              <Tooltip content={item.label}>
+                <Link
+                  className="client-navigation__link"
+                  href={item.href}
+                  aria-current={isCurrent ? "page" : undefined}
+                  aria-label={item.label}
+                >
+                  <Icon className="client-navigation__icon" aria-hidden="true" />
+                </Link>
+              </Tooltip>
             </li>
           );
         })}

@@ -16,7 +16,7 @@ export interface ClientShellProps {
 export function ClientShell({ children }: ClientShellProps) {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/auth/")) {
+  if (pathname.startsWith("/auth/") || pathname === "/onboarding") {
     return (
       <>
         <a className="skip-link" href="#main-content">

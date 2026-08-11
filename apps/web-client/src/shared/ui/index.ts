@@ -9,3 +9,7 @@ export { PageState, type PageStateKind, type PageStateProps } from "./page-state
 export { SelectField, type SelectFieldProps, type SelectOption } from "./select-field";
 
 export { TextInput, type TextInputProps } from "./text-input";
+
+export { Typography, type TypographyProps, type TypographyVariant } from "./typography";
+
+export { Tooltip, type TooltipProps } from "./tooltip";

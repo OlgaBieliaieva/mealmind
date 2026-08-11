@@ -3,12 +3,14 @@ import { describe, it, vi } from "vitest";
 
 import { ClientShell } from "@/features/client-shell/client-shell";
 import { AuthForm } from "@/features/auth/auth-form";
+import { OnboardingWizard } from "@/features/onboarding/onboarding-wizard";
 import { Button, Card, Modal, PageState, SelectField, TextInput } from "@/shared/ui";
 
 import { validateRenderedUi } from "./ui-quality";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 describe("Web Client markup and accessibility baseline", () => {
@@ -103,6 +105,15 @@ describe("Web Client markup and accessibility baseline", () => {
       </main>,
     );
 
+    await validateRenderedUi(container);
+  });
+
+  it("validates onboarding progress and form semantics", async () => {
+    const { container } = render(
+      <main>
+        <OnboardingWizard />
+      </main>,
+    );
     await validateRenderedUi(container);
   });
 });

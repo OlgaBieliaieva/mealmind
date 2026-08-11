@@ -12,6 +12,7 @@ import { createPinoLogger } from "./infrastructure/logging/pino-logger.js";
 import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-readiness-probe.js";
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
 import { createAccountModule } from "./modules/account/account-module.js";
+import { createFamilyModule } from "./modules/family/family-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
 import { createRecipeModule } from "./modules/recipe/recipe-module.js";
@@ -58,6 +59,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     secretKey: config.supabase.secretKey,
   });
   const recipeModule = createRecipeModule(database, authenticationService);
+  const familyModule = createFamilyModule(database, authenticationService);
 
   const app = createApp({
     healthService,
@@ -67,6 +69,8 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,
     recipeRouter: recipeModule.router,
+    familyRouter: familyModule.router,
+    sessionReader: familyModule.service,
     logger,
     corsAllowedOrigins: config.corsAllowedOrigins,
   });

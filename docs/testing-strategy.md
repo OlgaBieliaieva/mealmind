@@ -122,6 +122,11 @@ Auth unit/component tests окремо перевіряють identity-only boot
 role injection, password schemas, нейтральні recovery states, same-origin
 `returnTo`, admin role gate та HTML/axe semantics auth forms.
 
+Family/onboarding tests окремо перевіряють verified identity, заборону injection
+userId/familyId/role, атомарний та ідемпотентний family bootstrap, рівно одну
+ACTIVE membership, OWNER policy, tenant isolation, dependent-профіль без User,
+soft archive і покрокову доступну форму без проміжного збереження відповідей.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -208,6 +213,7 @@ npm run db:test:seed
 npm run db:test
 npm run api:test:products:db
 npm run api:test:accounts:db
+npm run api:test:families:db
 npm run api:test:recipes:db
 npm run check
 npm run test:ui-quality

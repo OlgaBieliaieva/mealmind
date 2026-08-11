@@ -1,0 +1,59 @@
+.family-page {
+  display: grid;
+  gap: 2rem;
+}
+
+.family-page__header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.family-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.family-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.family-form__header {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.family-members {
+  display: grid;
+  gap: 0.75rem;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.family-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.family-member__info {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.family-member__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 24rem) {
+  .family-member {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
