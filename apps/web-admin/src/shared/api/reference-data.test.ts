@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClient } from "./api-client";
-import { buildReferencePath, createReferenceData, updateReferenceData } from "./reference-data";
+import {
+  archiveReferenceData,
+  buildReferencePath,
+  createReferenceData,
+  updateReferenceData,
+} from "./reference-data";
 
 describe("admin reference API adapter", () => {
   it("builds an encoded admin path with inactive policy", () => {
@@ -18,6 +23,7 @@ describe("admin reference API adapter", () => {
     const apiClient = {
       post: vi.fn(async () => ({ data: { id: "created-id" } })),
       patch: vi.fn(async () => ({ data: { id: "updated-id" } })),
+      delete: vi.fn(async () => ({ data: { id: "archived-id" } })),
     } as unknown as ApiClient;
 
     await createReferenceData(apiClient, "recipe-types", {
@@ -29,6 +35,7 @@ describe("admin reference API adapter", () => {
     await updateReferenceData(apiClient, "allergens", "reference-id", {
       isActive: false,
     });
+    await archiveReferenceData(apiClient, "brands", "brand/id");
 
     expect(apiClient.post).toHaveBeenCalledWith(
       "/api/v1/admin/reference/recipe-types",
@@ -37,5 +44,6 @@ describe("admin reference API adapter", () => {
     expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/admin/reference/allergens/reference-id", {
       isActive: false,
     });
+    expect(apiClient.delete).toHaveBeenCalledWith("/api/v1/admin/reference/brands/brand%2Fid");
   });
 });

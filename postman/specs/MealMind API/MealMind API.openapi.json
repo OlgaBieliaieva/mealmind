@@ -291,6 +291,47 @@
           "404": { "description": "Значення довідника не знайдено" },
           "409": { "$ref": "#/components/responses/ReferenceConflict" }
         }
+      },
+      "delete": {
+        "summary": "Безпечно архівувати значення довідника",
+        "description": "Операція є soft delete: звичайні довідники деактивуються, автор архівується, бренд отримує status=ARCHIVED. Фізичне видалення не виконується.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "allergens",
+                "authors",
+                "brands",
+                "cuisines",
+                "dietary-tags",
+                "meal-types",
+                "measurement-units",
+                "nutrients",
+                "product-categories",
+                "recipe-types"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Значення довідника архівовано" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/AdminRequired" },
+          "404": { "description": "Значення довідника не знайдено" },
+          "409": { "$ref": "#/components/responses/ReferenceConflict" }
+        }
       }
     },
     "/api/v1/account/bootstrap": {
