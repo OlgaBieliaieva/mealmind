@@ -146,6 +146,13 @@ function buildIncludedPortion(
   };
 }
 
+function getPolicyText(portion: ExtractedPortion): string {
+  return [portion.sourceMeasurementUnitName, portion.modifier, portion.portionDescription]
+    .filter((value): value is string => value != null && value.trim() !== "")
+    .map(normalizeWhitespace)
+    .join(" ");
+}
+
 export function normalizePortion(portion: ExtractedPortion): NormalizePortionResult {
   /**
    * Legacy source anomalies are not repaired.
@@ -168,6 +175,8 @@ export function normalizePortion(portion: ExtractedPortion): NormalizePortionRes
     };
   }
 
+  const policyText = getPolicyText(portion);
+
   /**
    * Yield/refuse semantics have higher priority than
    * count detection.
@@ -178,7 +187,7 @@ export function normalizePortion(portion: ExtractedPortion): NormalizePortionRes
    *
    * must not become a normal COUNT portion.
    */
-  if (matchesAny(sourceLabel, COMPLEX_LEGACY_PATTERNS)) {
+  if (matchesAny(policyText, COMPLEX_LEGACY_PATTERNS)) {
     return {
       decision: "EXCLUDE",
 
@@ -190,7 +199,7 @@ export function normalizePortion(portion: ExtractedPortion): NormalizePortionRes
    * Package-specific measures are deliberately excluded
    * from the generic MealMind catalog.
    */
-  if (matchesAny(sourceLabel, PACKAGE_SPECIFIC_PATTERNS)) {
+  if (matchesAny(policyText, PACKAGE_SPECIFIC_PATTERNS)) {
     return {
       decision: "EXCLUDE",
 
@@ -202,7 +211,7 @@ export function normalizePortion(portion: ExtractedPortion): NormalizePortionRes
    * Nutrition-label serving concepts are not physical
    * product portions.
    */
-  if (matchesAny(sourceLabel, SERVING_SPECIFIC_PATTERNS)) {
+  if (matchesAny(policyText, SERVING_SPECIFIC_PATTERNS)) {
     return {
       decision: "EXCLUDE",
 
@@ -214,7 +223,7 @@ export function normalizePortion(portion: ExtractedPortion): NormalizePortionRes
    * US-specific measurement units are intentionally
    * excluded from the current Ukrainian catalog.
    */
-  if (matchesAny(sourceLabel, NON_LOCAL_MEASURE_PATTERNS)) {
+  if (matchesAny(policyText, NON_LOCAL_MEASURE_PATTERNS)) {
     return {
       decision: "EXCLUDE",
 

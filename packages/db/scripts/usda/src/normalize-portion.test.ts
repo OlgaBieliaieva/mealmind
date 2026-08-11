@@ -471,3 +471,156 @@ test("normalizes a scoop as a count portion", () => {
 
   assert.equal(result.portion.kind, "COUNT");
 });
+test("excludes a count portion containing an embedded ounce measure", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "slice (1 oz)",
+      gramWeight: 28.35,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["NON_LOCAL_MEASURE"],
+  });
+});
+
+test("excludes a count portion containing an embedded pound measure", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "roast (3 to 5 lb roast)",
+      gramWeight: 1500,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["NON_LOCAL_MEASURE"],
+  });
+});
+
+test("excludes a count portion containing an embedded NLEA serving", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "piece (1 NLEA serving)",
+      gramWeight: 30,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["SERVING_SPECIFIC_MEASURE"],
+  });
+});
+
+test("excludes a count portion containing embedded serving semantics", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "cake 1 serving",
+      gramWeight: 80,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["SERVING_SPECIFIC_MEASURE"],
+  });
+});
+
+test("excludes a count portion containing embedded package semantics", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "slice 12 oz pkg",
+      gramWeight: 30,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["PACKAGE_SPECIFIC_MEASURE"],
+  });
+});
+
+test("excludes package semantics that do not occur at the start of the label", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "small box",
+      gramWeight: 50,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["PACKAGE_SPECIFIC_MEASURE"],
+  });
+});
+
+test("checks structured USDA measurement unit for localization policy", () => {
+  const result = normalizePortion(
+    createPortion({
+      sourceMeasurementUnitExternalId: "1001",
+
+      sourceMeasurementUnitName: "oz",
+
+      modifier: "chopped",
+
+      gramWeight: 28.35,
+    }),
+  );
+
+  assert.deepEqual(result, {
+    decision: "EXCLUDE",
+
+    reasonCodes: ["NON_LOCAL_MEASURE"],
+  });
+});
+
+test("keeps a clean qualified count portion", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "slice, thin",
+
+      gramWeight: 15,
+    }),
+  );
+
+  assert.equal(result.decision, "INCLUDE");
+
+  if (result.decision !== "INCLUDE") {
+    return;
+  }
+
+  assert.equal(result.portion.kind, "COUNT");
+
+  assert.equal(result.portion.measurementUnitCode, null);
+
+  assert.equal(result.portion.labelEn, "slice, thin");
+});
+
+test("keeps a clean qualified canonical unit", () => {
+  const result = normalizePortion(
+    createPortion({
+      modifier: "cup, shredded",
+
+      gramWeight: 90,
+    }),
+  );
+
+  assert.equal(result.decision, "INCLUDE");
+
+  if (result.decision !== "INCLUDE") {
+    return;
+  }
+
+  assert.equal(result.portion.kind, "VOLUME");
+
+  assert.equal(result.portion.measurementUnitCode, "cup");
+
+  assert.equal(result.portion.labelEn, "cup, shredded");
+});

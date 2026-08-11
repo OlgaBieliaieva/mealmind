@@ -482,3 +482,54 @@ test("portion normalization is deterministic", () => {
 
   assert.deepEqual(first, second);
 });
+test("filters embedded localization and packaging metadata before count normalization", () => {
+  const result = normalizePortions({
+    extracted: createDocument([
+      createProduct(100, [
+        createPortion({
+          sourceRowId: "1",
+
+          modifier: "slice, thin",
+
+          gramWeight: 15,
+        }),
+
+        createPortion({
+          sourceRowId: "2",
+
+          modifier: "slice (1 oz)",
+
+          gramWeight: 28.35,
+        }),
+
+        createPortion({
+          sourceRowId: "3",
+
+          modifier: "piece (1 NLEA serving)",
+
+          gramWeight: 30,
+        }),
+
+        createPortion({
+          sourceRowId: "4",
+
+          modifier: "slice 12 oz pkg",
+
+          gramWeight: 30,
+        }),
+      ]),
+    ]),
+  });
+
+  assert.equal(result.products[0]?.portions.length, 1);
+
+  assert.equal(result.products[0]?.portions[0]?.labelEn, "slice, thin");
+
+  assert.equal(result.statistics.excludedNonLocalMeasure, 1);
+
+  assert.equal(result.statistics.excludedServingSpecificMeasure, 1);
+
+  assert.equal(result.statistics.excludedPackageSpecificMeasure, 1);
+
+  assert.equal(result.excludedPortions.length, 3);
+});

@@ -74,29 +74,35 @@ export const CANONICAL_UNIT_RULES: readonly CanonicalUnitRule[] = [
 ] as const;
 
 /**
- * Known USDA units that are valid source data but are not
- * useful in the current Ukrainian MealMind catalog.
+ * Known US-specific measurement units that are valid USDA source data
+ * but are intentionally excluded from the current Ukrainian MealMind catalog.
+ *
+ * These patterns are deliberately allowed to match both:
+ *
+ * oz
+ * 1 oz
+ * slice (1 oz)
+ * bar 1.5 oz
+ * roast (3 to 5 lb roast)
+ * cup (8 fl oz)
+ *
+ * We keep word boundaries so ordinary words containing the same
+ * character sequences are not accidentally rejected.
  */
 export const NON_LOCAL_MEASURE_PATTERNS: readonly RegExp[] = [
-  /^oz$/i,
-  /^oz\b/i,
-  /^ounce$/i,
-  /^ounces?\b/i,
+  /\bfl\.?\s*oz\b/i,
+  /\bfluid\s+ounces?\b/i,
 
-  /^lb$/i,
-  /^lb\b/i,
-  /^pound$/i,
-  /^pounds?\b/i,
+  /\boz\b/i,
+  /\bounces?\b/i,
 
-  /^fl oz$/i,
-  /^fl oz\b/i,
-  /^fluid ounce/i,
+  /\blbs?\b/i,
+  /\bpounds?\b/i,
 
-  /^quart$/i,
-  /^quarts?\b/i,
-  /^qt$/i,
+  /\bquarts?\b/i,
+  /\bqt\b/i,
 
-  /^cubic inch\b/i,
+  /\bcubic\s+inches?\b/i,
 ] as const;
 
 /**
@@ -104,30 +110,51 @@ export const NON_LOCAL_MEASURE_PATTERNS: readonly RegExp[] = [
  *
  * Package weights are market- and manufacturer-specific and
  * should not become generic ProductPortion records.
+ *
+ * Package semantics may occur after a useful-looking count word:
+ *
+ * slice, 12 oz package
+ * piece from package
+ * small box
  */
 export const PACKAGE_SPECIFIC_PATTERNS: readonly RegExp[] = [
-  /^package\b/i,
-  /^packet\b/i,
-  /^container\b/i,
-  /^can\b/i,
-  /^can or bottle\b/i,
-  /^bottle\b/i,
-  /^bag\b/i,
-  /^box\b/i,
-  /^carton\b/i,
-  /^envelope\b/i,
-  /^drink box\b/i,
-  /^individual box\b/i,
+  /\bpackages?\b/i,
+  /\bpkgs?\b/i,
+
+  /\bpackets?\b/i,
+
+  /\bcontainers?\b/i,
+
+  /\bcans?\b/i,
+
+  /\bbottles?\b/i,
+
+  /\bbags?\b/i,
+
+  /\bbox(?:es)?\b/i,
+
+  /\bcartons?\b/i,
+
+  /\benvelopes?\b/i,
+
+  /\bdrink\s+box(?:es)?\b/i,
+
+  /\bindividual\s+box(?:es)?\b/i,
 ] as const;
 
 /**
- * USDA / nutrition-label serving concepts are intentionally
- * excluded because they are not physical household measures.
+ * USDA / nutrition-label serving concepts are intentionally excluded
+ * because they are not physical household measures.
+ *
+ * Serving semantics may be embedded in an otherwise count-like label:
+ *
+ * piece (1 NLEA serving)
+ * cake 1 serving
  */
 export const SERVING_SPECIFIC_PATTERNS: readonly RegExp[] = [
-  /^serving\b/i,
-  /^nlea serving\b/i,
-  /^order\b/i,
+  /\bnlea\s+servings?\b/i,
+  /\bservings?\b/i,
+  /\border\b/i,
 ] as const;
 
 /**
