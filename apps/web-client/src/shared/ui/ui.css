@@ -282,3 +282,136 @@
     animation: none;
   }
 }
+
+.ui-typography {
+  margin: 0;
+  color: var(--client-color-text);
+}
+
+.ui-typography--eyebrow {
+  color: var(--client-color-primary);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ui-typography--page-title {
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 750;
+  line-height: 1.05;
+
+  letter-spacing: -0.035em;
+}
+
+.ui-typography--page-description {
+  max-width: 40rem;
+
+  color: var(--client-color-text-muted);
+
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.ui-typography--section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+
+  letter-spacing: -0.015em;
+}
+
+.ui-typography--item-title {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.ui-typography--body {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.ui-typography--supporting {
+  color: var(--client-color-text-muted);
+
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.ui-typography--caption {
+  color: var(--client-color-text-muted);
+
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.ui-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.ui-tooltip__content {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.625rem);
+
+  z-index: 10;
+
+  padding: 0.375rem 0.625rem;
+
+  border-radius: 0.5rem;
+
+  color: var(--client-color-surface);
+  background: var(--client-color-text);
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transform: translate(-50%, 0.25rem);
+
+  pointer-events: none;
+
+  transition:
+    opacity 150ms ease,
+    visibility 150ms ease,
+    transform 150ms ease;
+}
+
+.ui-tooltip__content::after {
+  content: "";
+
+  position: absolute;
+  top: 100%;
+  left: 50%;
+
+  border: 0.25rem solid transparent;
+  border-top-color: var(--client-color-text);
+
+  transform: translateX(-50%);
+}
+
+.ui-tooltip:hover .ui-tooltip__content,
+.ui-tooltip:has(:focus-visible) .ui-tooltip__content {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tooltip__content {
+    transition: none;
+  }
+}

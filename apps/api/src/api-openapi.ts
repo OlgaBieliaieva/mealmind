@@ -1,4 +1,5 @@
 import { productOpenApiPaths, productOpenApiSchemas } from "./modules/product/product-openapi.js";
+import { familyOpenApiPaths, familyOpenApiSchemas } from "./modules/family/family-openapi.js";
 import { referenceOpenApiDocument } from "./modules/reference/reference-openapi.js";
 import { recipeOpenApiPaths, recipeOpenApiSchemas } from "./modules/recipe/recipe-openapi.js";
 
@@ -33,8 +34,23 @@ export const apiOpenApiDocument = Object.freeze({
         },
       },
     },
+    "/api/v1/session": {
+      get: {
+        summary: "Отримати application session і сімейний контекст",
+        description:
+          "Повертає authenticated User, стан onboarding, власний профіль і єдину активну Family. Стан із кількома ACTIVE memberships повертає конфлікт.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Application session" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "409": { description: "Невалідний сімейний контекст" },
+          "429": { description: "Перевищено rate limit" },
+        },
+      },
+    },
     ...productOpenApiPaths,
     ...recipeOpenApiPaths,
+    ...familyOpenApiPaths,
   }),
   components: Object.freeze({
     ...referenceOpenApiDocument.components,
@@ -42,6 +58,7 @@ export const apiOpenApiDocument = Object.freeze({
       ...referenceOpenApiDocument.components.schemas,
       ...productOpenApiSchemas,
       ...recipeOpenApiSchemas,
+      ...familyOpenApiSchemas,
     }),
   }),
 });

@@ -10,6 +10,8 @@ import "./globals.css";
 import "@/shared/ui/ui.css";
 import "@/features/auth/auth.css";
 import "@/features/recipe-details/recipe-details.css";
+import "@/features/onboarding/onboarding.css";
+import "@/features/family/family.css";
 
 readWebEnv();
 

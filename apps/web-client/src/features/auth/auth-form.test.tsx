@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   updateUser: vi.fn(),
   bootstrapAccount: vi.fn(),
+  readApplicationSessionContext: vi.fn(),
 }));
 
 vi.mock("@/config/env", () => ({
@@ -33,6 +34,7 @@ vi.mock("@/shared/supabase/browser-client", () => ({
 
 vi.mock("@/shared/api/account", () => ({
   bootstrapAccount: mocks.bootstrapAccount,
+  readApplicationSessionContext: mocks.readApplicationSessionContext,
 }));
 
 function fillCredentials() {
@@ -48,6 +50,7 @@ describe("AuthForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
+    mocks.readApplicationSessionContext.mockResolvedValue({ onboardingCompleted: true });
   });
 
   it("shows check-email state when signup requires confirmation", async () => {
@@ -77,6 +80,20 @@ describe("AuthForm", () => {
 
     await waitFor(() => expect(mocks.bootstrapAccount).toHaveBeenCalledOnce());
     expect(navigate).toHaveBeenCalledWith("/recipes");
+  });
+
+  it("sends a new account to onboarding before returnTo", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: "token" } },
+      error: null,
+    });
+    mocks.bootstrapAccount.mockResolvedValue({ applicationRole: "USER" });
+    mocks.readApplicationSessionContext.mockResolvedValue({ onboardingCompleted: false });
+    const navigate = vi.fn();
+    render(<AuthForm mode="sign-in" returnTo="/recipes" navigate={navigate} />);
+    fillCredentials();
+    fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/onboarding"));
   });
 
   it("keeps password recovery response neutral", async () => {

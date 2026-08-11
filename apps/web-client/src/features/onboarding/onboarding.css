@@ -1,0 +1,46 @@
+.onboarding-page {
+  display: grid;
+  min-height: 100dvh;
+  padding: 1rem;
+  place-items: center;
+  background: linear-gradient(145deg, #ecfdf5, #f9fafb 60%);
+}
+.onboarding-card {
+  width: min(100%, 32rem);
+  padding: clamp(1.25rem, 5vw, 2rem);
+  border: 0.0625rem solid var(--client-color-border);
+  border-radius: 1.25rem;
+  background: var(--client-color-surface);
+  box-shadow: var(--client-shadow-card);
+}
+.onboarding-card h1 {
+  margin: 1rem 0 0.5rem;
+  line-height: 1.2;
+}
+.onboarding-progress p,
+.onboarding-privacy {
+  color: var(--client-color-text-muted);
+  font-size: 0.8125rem;
+}
+.onboarding-progress progress {
+  width: 100%;
+  accent-color: var(--client-color-primary);
+}
+.onboarding-explanation {
+  margin: 0 0 1.5rem;
+  color: var(--client-color-text-muted);
+}
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.onboarding-error {
+  color: #b91c1c;
+}
+.onboarding-privacy {
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--client-color-border);
+}
