@@ -1,4 +1,53 @@
 export const productOpenApiPaths = Object.freeze({
+  "/api/v1/products/search": {
+    get: {
+      summary: "Пошук активних продуктів",
+      description:
+        "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає мінімальні display-поля без nutrients, portions і media.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        query("search", { type: "string", minLength: 2, maxLength: 120 }),
+        query("page", { type: "integer", minimum: 1, default: 1 }),
+        query("pageSize", { type: "integer", minimum: 1, maximum: 50, default: 20 }),
+      ],
+      responses: {
+        "200": {
+          description: "Сторінка активних продуктів, що відповідають пошуку",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["data", "meta"],
+                properties: {
+                  data: {
+                    type: "object",
+                    required: ["items"],
+                    properties: {
+                      items: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/ProductSearchItem" },
+                      },
+                    },
+                  },
+                  meta: {
+                    type: "object",
+                    required: ["page", "pageSize", "total"],
+                    properties: {
+                      page: { type: "integer", minimum: 1 },
+                      pageSize: { type: "integer", minimum: 1 },
+                      total: { type: "integer", minimum: 0 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "400": { description: "Параметри пошуку не пройшли валідацію" },
+        "401": { $ref: "#/components/responses/AuthenticationRequired" },
+      },
+    },
+  },
   "/api/v1/admin/products": {
     get: {
       summary: "Переглянути й відфільтрувати продукти",
@@ -84,6 +133,17 @@ export const productOpenApiPaths = Object.freeze({
 });
 
 export const productOpenApiSchemas = Object.freeze({
+  ProductSearchItem: {
+    type: "object",
+    required: ["id", "name", "type", "categoryName", "brandName"],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      name: { type: "string" },
+      type: { type: "string", enum: ["GENERIC", "BRANDED"] },
+      categoryName: { type: "string" },
+      brandName: { type: ["string", "null"] },
+    },
+  },
   ProductNutrientWrite: {
     type: "object",
     required: ["nutrientId", "valuePer100g"],

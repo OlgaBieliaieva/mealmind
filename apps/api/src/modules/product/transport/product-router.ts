@@ -15,6 +15,8 @@ export function createProductRouter(
   const limiter = rateLimit(createApiRateLimitOptions());
   const authenticated = authenticate(authenticationService);
 
+  router.get("/products/search", limiter, authenticated, controller.search);
+
   router.get("/admin/products", limiter, authenticated, requireAdmin, controller.list);
   router.post("/admin/products", limiter, authenticated, requireAdmin, controller.create);
   router.get("/admin/products/:id", limiter, authenticated, requireAdmin, controller.get);

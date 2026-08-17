@@ -59,7 +59,12 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     secretKey: config.supabase.secretKey,
   });
   const recipeModule = createRecipeModule(database, authenticationService);
-  const familyModule = createFamilyModule(database, authenticationService);
+  const familyModule = createFamilyModule(
+    database,
+    authenticationService,
+    identityProvider,
+    config.invitations,
+  );
 
   const app = createApp({
     healthService,

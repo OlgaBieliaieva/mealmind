@@ -368,6 +368,66 @@
         }
       }
     },
+    "/api/v1/products/search": {
+      "get": {
+        "summary": "Пошук активних продуктів",
+        "description": "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає мінімальні display-поля без nutrients, portions і media.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": { "type": "string", "minLength": 2, "maxLength": 120 }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Сторінка активних продуктів, що відповідають пошуку",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": ["items"],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/ProductSearchItem" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "required": ["page", "pageSize", "total"],
+                      "properties": {
+                        "page": { "type": "integer", "minimum": 1 },
+                        "pageSize": { "type": "integer", "minimum": 1 },
+                        "total": { "type": "integer", "minimum": 0 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Параметри пошуку не пройшли валідацію" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" }
+        }
+      }
+    },
     "/api/v1/admin/products": {
       "get": {
         "summary": "Переглянути й відфільтрувати продукти",
@@ -851,7 +911,7 @@
           "409": { "description": "Onboarding або family context має конфліктний стан" },
           "429": { "description": "Перевищено rate limit" }
         },
-        "summary": "Оновити dependent-учасника",
+        "summary": "Оновити профіль учасника сім’ї як OWNER",
         "requestBody": {
           "required": true,
           "content": {
@@ -871,7 +931,15 @@
         "summary": "Архівувати dependent-учасника"
       }
     },
-    "/api/v1/profile/me": {
+    "/api/v1/family/members/{memberId}/account-invitation": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
       "get": {
         "security": [{ "bearerAuth": [] }],
         "responses": {
@@ -880,9 +948,49 @@
           "409": { "description": "Onboarding або family context має конфліктний стан" },
           "429": { "description": "Перевищено rate limit" }
         },
-        "summary": "Отримати власний профіль"
+        "summary": "Отримати стан запрошення dependent-учасника"
       },
-      "patch": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Запрошення створено й надіслано" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Надіслати запрошення для активації акаунта dependent-учасника",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AccountInvitationInput" }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Запрошення відкликано" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Відкликати pending-запрошення"
+      }
+    },
+    "/api/v1/family/members/{memberId}/account-invitation/resend": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "401": { "$ref": "#/components/responses/AuthenticationRequired" },
@@ -890,13 +998,1009 @@
           "409": { "description": "Onboarding або family context має конфліктний стан" },
           "429": { "description": "Перевищено rate limit" }
         },
-        "summary": "Оновити власний профіль",
+        "summary": "Перевипустити й повторно надіслати pending-запрошення"
+      }
+    },
+    "/api/v1/account-invitations/inspect": {
+      "post": {
+        "summary": "Без розкриття даних перевірити стан account invitation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AccountInvitationToken" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Стан запрошення" },
+          "400": { "description": "Невалідний token contract" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/account-invitations/claim": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Прив’язати existing dependent profile до authenticated verified User",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AccountInvitationToken" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Повний керований профіль учасника сім’ї",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Учасника або профіль не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Отримати повний профіль учасника сім’ї як OWNER"
+      },
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений керований профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Учасника або профіль не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Оновити базові дані профілю учасника сім’ї як OWNER",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": { "schema": { "$ref": "#/components/schemas/FamilyMemberPatch" } }
           }
         }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/meal-types": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька типів прийомів їжі недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити прийоми їжі профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/MealTypesInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/cuisines": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Одна або кілька кухонь недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити улюблені кухні профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CuisinePreferencesInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/disliked-products": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька продуктів недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити небажані продукти профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DislikedProductsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/dietary-restrictions": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Одне або кілька обмежень недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити дієтичні обмеження профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DietaryRestrictionsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/allergies": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька алергенів недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити алергії профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AllergiesInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/body-measurements": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з новим виміром",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Додати вимір тіла до історії профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BodyMeasurementInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/activity-periods": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з новим рівнем активності",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Період із таким effectiveFrom уже існує" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Додати період активності профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ActivityPeriodInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/weight-goals": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з новою ціллю ваги",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Нова ціль конфліктує з поточною" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Створити нову активну ціль ваги профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/WeightGoalInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/weight-goals/current/complete": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль після завершення цілі",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Активну ціль не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Завершити активну ціль ваги профілю учасника як OWNER"
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/weight-goals/current/cancel": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль після скасування цілі",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Активну ціль не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Скасувати активну ціль ваги профілю учасника як OWNER"
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/nutrient-targets": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з новим nutrition-target snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька нутрієнтів недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити nutrition-target snapshot профілю учасника як OWNER",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NutrientTargetsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/family/members/{memberId}/profile/nutrient-targets/calculate": {
+      "parameters": [
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з новим CALCULATED snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Недостатньо даних для автоматичного розрахунку" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Перерахувати nutrition targets профілю учасника як OWNER"
+      }
+    },
+    "/api/v1/profile/me": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Повний власний персональний профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Отримати повний власний профіль"
+      },
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Оновлений повний власний профіль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Оновити базові дані власного профілю",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/FamilyMemberPatch" } }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/meal-types": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з оновленим набором прийомів їжі",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька типів прийомів їжі недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити прийоми їжі поточного користувача",
+        "description": "Встановлює конкретні типи прийомів їжі, для яких MealMind має планувати харчування користувача.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/MealTypesInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/cuisines": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з оновленими вподобаннями кухонь",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Одна або кілька кухонь недоступні для вибору" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити кухні, яким надає перевагу поточний користувач",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CuisinePreferencesInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/disliked-products": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з оновленим списком небажаних продуктів",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька продуктів недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити список небажаних продуктів поточного користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DislikedProductsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/dietary-restrictions": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з оновленими дієтичними обмеженнями",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Одне або кілька дієтичних обмежень недоступні для вибору" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити дієтичні обмеження поточного користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DietaryRestrictionsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/allergies": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з оновленими алергіями",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька алергенів недоступні" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити активні алергії поточного користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AllergiesInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/body-measurements": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з новим поточним виміром тіла",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Додати новий вимір тіла до історії поточного користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BodyMeasurementInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/activity-periods": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з оновленим поточним рівнем активності",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Період активності з таким effectiveFrom уже існує" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Додати новий період рівня активності поточного користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ActivityPeriodInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/weight-goals": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Профіль з новою активною ціллю ваги",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Нова ціль конфліктує з поточною активною ціллю" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Створити нову активну ціль ваги та замінити попередню",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/WeightGoalInput" } }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/weight-goals/current/complete": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль без активної цілі після завершення",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Активну ціль ваги не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Позначити поточну активну ціль ваги як виконану"
+      }
+    },
+    "/api/v1/profile/me/weight-goals/current/cancel": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль без активної цілі після скасування",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Активну ціль ваги не знайдено" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Скасувати поточну активну ціль ваги"
+      }
+    },
+    "/api/v1/profile/me/nutrient-targets": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з новою MANUAL-версією поточного nutrition-target snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": { "description": "Один або кілька нутрієнтів недоступні для target management" },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Замінити поточний nutrition-target snapshot власного профілю",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NutrientTargetsInput" }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/me/nutrient-targets/calculate": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Профіль з новим CALCULATED nutrition-target snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/OwnProfile" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "409": { "description": "Onboarding або family context має конфліктний стан" },
+          "422": {
+            "description": "Профіль не містить достатніх даних для автоматичного розрахунку або користувачеві менше 18 років"
+          },
+          "429": { "description": "Перевищено rate limit" }
+        },
+        "summary": "Повторно розрахувати nutrition targets за актуальними даними профілю",
+        "description": "Створює новий CALCULATED nutrition-target snapshot, якщо поточний профіль містить усі required calculation inputs і користувачеві щонайменше 18 років."
       }
     }
   },
@@ -909,6 +2013,17 @@
         "type": "object",
         "description": "Набір полів залежить від resource. Точні обмеження наведені в документації reference-модуля.",
         "additionalProperties": true
+      },
+      "ProductSearchItem": {
+        "type": "object",
+        "required": ["id", "name", "type", "categoryName", "brandName"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["GENERIC", "BRANDED"] },
+          "categoryName": { "type": "string" },
+          "brandName": { "type": ["string", "null"] }
+        }
       },
       "ProductNutrientWrite": {
         "type": "object",
@@ -1077,12 +2192,10 @@
       },
       "OnboardingInput": {
         "type": "object",
-        "additionalProperties": false,
-        "required": ["firstName"],
         "properties": {
           "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
-          "lastName": { "type": "string", "maxLength": 100 },
-          "birthDate": { "type": "string", "format": "date" },
+          "lastName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "birthDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
           "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] },
           "heightCm": { "type": "number", "minimum": 50, "maximum": 260 },
           "weightKg": { "type": "number", "minimum": 15, "maximum": 500 },
@@ -1091,41 +2204,456 @@
             "enum": ["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"]
           },
           "weightGoalType": { "type": "string", "enum": ["MAINTAIN", "LOSE", "GAIN"] }
-        }
+        },
+        "required": ["firstName"],
+        "additionalProperties": false
       },
       "FamilyMemberInput": {
         "type": "object",
-        "additionalProperties": false,
-        "required": ["firstName"],
         "properties": {
           "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
-          "lastName": { "type": "string", "maxLength": 100 },
-          "birthDate": { "type": "string", "format": "date" },
+          "lastName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "birthDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
           "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] }
-        }
+        },
+        "required": ["firstName"],
+        "additionalProperties": false
       },
       "FamilyMemberPatch": {
         "type": "object",
-        "additionalProperties": false,
-        "minProperties": 1,
         "properties": {
           "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
-          "lastName": { "type": "string", "maxLength": 100 },
-          "birthDate": { "type": "string", "format": "date" },
-          "biologicalSex": { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] }
-        }
+          "lastName": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 100 }, { "type": "null" }]
+          },
+          "birthDate": {
+            "anyOf": [{ "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, { "type": "null" }]
+          },
+          "biologicalSex": {
+            "anyOf": [
+              { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] },
+              { "type": "null" }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
       },
       "FamilyPatch": {
         "type": "object",
-        "additionalProperties": false,
-        "minProperties": 1,
         "properties": {
           "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "timeZone": { "type": "string", "maxLength": 64 },
+          "timeZone": { "type": "string", "minLength": 1, "maxLength": 64 },
           "weekStartsOn": {
             "type": "string",
             "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
           }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "MealTypesInput": {
+        "type": "object",
+        "properties": {
+          "mealTypeIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": ["mealTypeIds"],
+        "additionalProperties": false
+      },
+      "NutrientTargetsInput": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nutrientId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "minimumValue": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1000000 },
+                    { "type": "null" }
+                  ]
+                },
+                "targetValue": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1000000 },
+                    { "type": "null" }
+                  ]
+                },
+                "maximumValue": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1000000 },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": ["nutrientId"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "CuisinePreferencesInput": {
+        "type": "object",
+        "properties": {
+          "cuisineIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": ["cuisineIds"],
+        "additionalProperties": false
+      },
+      "DislikedProductsInput": {
+        "type": "object",
+        "properties": {
+          "productIds": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": ["productIds"],
+        "additionalProperties": false
+      },
+      "DietaryRestrictionsInput": {
+        "type": "object",
+        "properties": {
+          "dietaryTagIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": ["dietaryTagIds"],
+        "additionalProperties": false
+      },
+      "AllergiesInput": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "allergenId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "severity": { "type": "string", "enum": ["UNKNOWN", "MILD", "MODERATE", "SEVERE"] }
+              },
+              "required": ["allergenId", "severity"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "BodyMeasurementInput": {
+        "type": "object",
+        "properties": {
+          "heightCm": { "type": "number", "minimum": 50, "maximum": 260 },
+          "weightKg": { "type": "number", "minimum": 15, "maximum": 500 },
+          "measuredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivityPeriodInput": {
+        "type": "object",
+        "properties": {
+          "activityLevel": {
+            "type": "string",
+            "enum": ["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"]
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["activityLevel"],
+        "additionalProperties": false
+      },
+      "WeightGoalInput": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["MAINTAIN", "LOSE", "GAIN"] },
+          "targetWeightKg": {
+            "anyOf": [{ "type": "number", "minimum": 15, "maximum": 500 }, { "type": "null" }]
+          },
+          "targetRateKgPerWeek": {
+            "anyOf": [{ "type": "number", "exclusiveMinimum": 0, "maximum": 5 }, { "type": "null" }]
+          },
+          "targetDate": {
+            "anyOf": [{ "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, { "type": "null" }]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      },
+      "AccountInvitationInput": {
+        "type": "object",
+        "properties": {
+          "recipientEmail": {
+            "type": "string",
+            "maxLength": 320,
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          }
+        },
+        "required": ["recipientEmail"],
+        "additionalProperties": false
+      },
+      "AccountInvitationToken": {
+        "type": "object",
+        "properties": { "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } },
+        "required": ["token"],
+        "additionalProperties": false
+      },
+      "ProfileReference": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "code", "name"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "ProfileProduct": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "name": { "type": "string" } }
+      },
+      "ProfileAllergy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "allergen", "severity"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "allergen": { "$ref": "#/components/schemas/ProfileReference" },
+          "severity": { "type": "string", "enum": ["UNKNOWN", "MILD", "MODERATE", "SEVERE"] }
+        }
+      },
+      "ProfileBodyMeasurement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "heightCm", "weightKg", "measuredAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "heightCm": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "weightKg": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "measuredAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProfileActivity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "activityLevel", "effectiveFrom"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "activityLevel": {
+            "type": "string",
+            "enum": ["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"]
+          },
+          "effectiveFrom": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProfileWeightGoal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "status",
+          "targetWeightKg",
+          "targetRateKgPerWeek",
+          "targetDate",
+          "startsAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["MAINTAIN", "LOSE", "GAIN"] },
+          "status": {
+            "type": "string",
+            "enum": ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED", "SUPERSEDED"]
+          },
+          "targetWeightKg": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "targetRateKgPerWeek": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "targetDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+          "startsAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProfileNutrient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "code", "name", "unit"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "unit": { "type": "string", "enum": ["KCAL", "G", "MG", "MCG"] }
+        }
+      },
+      "ProfileNutrientTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "nutrient", "minimumValue", "targetValue", "maximumValue", "source"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nutrient": { "$ref": "#/components/schemas/ProfileNutrient" },
+          "minimumValue": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "targetValue": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "maximumValue": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "source": { "type": "string", "enum": ["CALCULATED", "MANUAL"] }
+        }
+      },
+      "ProfileNutrientTargetSet": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "calculationPolicyVersion",
+          "restingEnergyKcal",
+          "maintenanceEnergyKcal",
+          "effectiveFrom",
+          "targets"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "source": { "type": "string", "enum": ["CALCULATED", "MANUAL", "MIXED", "IMPORTED"] },
+          "calculationPolicyVersion": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "restingEnergyKcal": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "maintenanceEnergyKcal": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "effectiveFrom": { "type": "string", "format": "date-time" },
+          "targets": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileNutrientTarget" }
+          }
+        }
+      },
+      "ProfileNutritionTargets": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current"],
+        "properties": {
+          "current": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/ProfileNutrientTargetSet" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "OwnProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "familyMemberId",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "biologicalSex",
+          "profileCompletedAt",
+          "mealTypes",
+          "cuisinePreferences",
+          "dislikedProducts",
+          "dietaryRestrictions",
+          "allergies",
+          "currentBodyMeasurement",
+          "currentActivity",
+          "currentWeightGoal",
+          "nutritionTargets"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "familyMemberId": { "type": "string", "format": "uuid" },
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lastName": { "anyOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }] },
+          "birthDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+          "biologicalSex": {
+            "anyOf": [
+              { "type": "string", "enum": ["MALE", "FEMALE", "UNSPECIFIED"] },
+              { "type": "null" }
+            ]
+          },
+          "profileCompletedAt": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+          },
+          "mealTypes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileReference" }
+          },
+          "cuisinePreferences": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileReference" }
+          },
+          "dislikedProducts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileProduct" }
+          },
+          "dietaryRestrictions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileReference" }
+          },
+          "allergies": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileAllergy" }
+          },
+          "currentBodyMeasurement": {
+            "anyOf": [{ "$ref": "#/components/schemas/ProfileBodyMeasurement" }, { "type": "null" }]
+          },
+          "currentActivity": {
+            "anyOf": [{ "$ref": "#/components/schemas/ProfileActivity" }, { "type": "null" }]
+          },
+          "currentWeightGoal": {
+            "anyOf": [{ "$ref": "#/components/schemas/ProfileWeightGoal" }, { "type": "null" }]
+          },
+          "nutritionTargets": { "$ref": "#/components/schemas/ProfileNutritionTargets" }
         }
       }
     },

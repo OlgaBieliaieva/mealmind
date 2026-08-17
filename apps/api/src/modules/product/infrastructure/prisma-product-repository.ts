@@ -6,6 +6,8 @@ import type {
   ProductListQuery,
   ProductMediaRecord,
   ProductRepository,
+  ProductSearchItem,
+  ProductSearchQuery,
   ProductSummary,
   ProductUpdate,
   ProductWrite,
@@ -27,7 +29,26 @@ const productInclude = {
   },
 } satisfies Prisma.ProductInclude;
 
+const productSearchSelect = {
+  id: true,
+  type: true,
+  nameUa: true,
+  nameEn: true,
+  category: {
+    select: {
+      nameUa: true,
+      nameEn: true,
+    },
+  },
+  brand: {
+    select: {
+      name: true,
+    },
+  },
+} satisfies Prisma.ProductSelect;
+
 type ProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
+type ProductSearchRow = Prisma.ProductGetPayload<{ select: typeof productSearchSelect }>;
 
 export function createPrismaProductRepository(database: DatabaseClient): ProductRepository {
   const repository: ProductRepository = {
@@ -46,6 +67,27 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
 
       return Object.freeze({
         items: Object.freeze(rows.map(mapProductSummary)),
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+      });
+    },
+
+    async searchActive(query) {
+      const where = productSearchWhere(query);
+      const [rows, total] = await database.$transaction([
+        database.product.findMany({
+          where,
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
+          orderBy: [{ nameUa: { sort: "asc", nulls: "last" } }, { nameEn: "asc" }, { id: "asc" }],
+          select: productSearchSelect,
+        }),
+        database.product.count({ where }),
+      ]);
+
+      return Object.freeze({
+        items: Object.freeze(rows.map(mapProductSearchItem)),
         page: query.page,
         pageSize: query.pageSize,
         total,
@@ -199,6 +241,28 @@ function productListWhere(query: ProductListQuery): Prisma.ProductWhereInput {
           ],
         }),
   };
+}
+
+function productSearchWhere(query: ProductSearchQuery): Prisma.ProductWhereInput {
+  return {
+    status: "ACTIVE",
+    OR: [
+      { nameEn: { contains: query.search, mode: "insensitive" } },
+      { nameUa: { contains: query.search, mode: "insensitive" } },
+      { gtin: { contains: query.search } },
+      { brand: { name: { contains: query.search, mode: "insensitive" } } },
+    ],
+  };
+}
+
+function mapProductSearchItem(row: ProductSearchRow): ProductSearchItem {
+  return Object.freeze({
+    id: row.id,
+    name: row.nameUa ?? row.nameEn,
+    type: row.type,
+    categoryName: row.category.nameUa ?? row.category.nameEn,
+    brandName: row.brand?.name ?? null,
+  });
 }
 
 function productCreateData(data: ProductWrite): Prisma.ProductCreateInput {

@@ -12,6 +12,10 @@ const validEnvironment: NodeJS.ProcessEnv = {
   SUPABASE_URL: "http://127.0.0.1:54321",
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
   SUPABASE_SECRET_KEY: "sb_secret_test",
+  INVITATION_APP_ORIGIN: "http://localhost:3000",
+  INVITATION_TTL_HOURS: "72",
+  RESEND_FROM_EMAIL: "MealMind <onboarding@resend.dev>",
+  RESEND_API_KEY: "re_test",
 };
 
 describe("parseApiEnv", () => {
@@ -34,11 +38,18 @@ describe("parseApiEnv", () => {
         publishableKey: "sb_publishable_test",
         secretKey: "sb_secret_test",
       },
+      invitations: {
+        appOrigin: "http://localhost:3000",
+        ttlHours: 72,
+        resendFromEmail: "MealMind <onboarding@resend.dev>",
+        resendApiKey: "re_test",
+      },
     });
 
     expect(Object.isFrozen(config)).toBe(true);
     expect(Object.isFrozen(config.corsAllowedOrigins)).toBe(true);
     expect(Object.isFrozen(config.supabase)).toBe(true);
+    expect(Object.isFrozen(config.invitations)).toBe(true);
   });
 
   it("converts PORT to a number", () => {

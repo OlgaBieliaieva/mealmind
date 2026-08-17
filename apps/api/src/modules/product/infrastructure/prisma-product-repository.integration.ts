@@ -96,6 +96,63 @@ try {
     ProductConflictError,
   );
 
+  const activeSearchTerm = `Selector-${crypto.randomUUID()}`;
+
+  const searchableActive = await repository.create({
+    type: "GENERIC",
+    nameEn: `${activeSearchTerm} Active`,
+    nameUa: `${activeSearchTerm} Активний`,
+    categoryId: category.id,
+    defaultMeasurementUnitId: unit.id,
+    foodState: "RAW",
+    status: "ACTIVE",
+    nutrients: [],
+    portions: [],
+  });
+  createdProductIds.push(searchableActive.id);
+
+  const searchableDraft = await repository.create({
+    type: "GENERIC",
+    nameEn: `${activeSearchTerm} Draft`,
+    nameUa: `${activeSearchTerm} Чернетка`,
+    categoryId: category.id,
+    defaultMeasurementUnitId: unit.id,
+    foodState: "RAW",
+    status: "DRAFT",
+    nutrients: [],
+    portions: [],
+  });
+  createdProductIds.push(searchableDraft.id);
+
+  const searchableArchived = await repository.create({
+    type: "GENERIC",
+    nameEn: `${activeSearchTerm} Archived`,
+    nameUa: `${activeSearchTerm} Архівний`,
+    categoryId: category.id,
+    defaultMeasurementUnitId: unit.id,
+    foodState: "RAW",
+    status: "ARCHIVED",
+    nutrients: [],
+    portions: [],
+  });
+  createdProductIds.push(searchableArchived.id);
+
+  const searchPage = await repository.searchActive({
+    search: activeSearchTerm,
+    page: 1,
+    pageSize: 20,
+  });
+
+  assert.equal(searchPage.total, 1);
+  assert.equal(searchPage.items.length, 1);
+  assert.deepEqual(searchPage.items[0], {
+    id: searchableActive.id,
+    name: searchableActive.nameUa ?? searchableActive.nameEn,
+    type: searchableActive.type,
+    categoryName: searchableActive.categoryName,
+    brandName: searchableActive.brandName,
+  });
+
   const page = await repository.list({ search: "Integration", page: 1, pageSize: 1 });
   assert.equal(page.items.length, 1);
   assert.ok(page.total >= 2);

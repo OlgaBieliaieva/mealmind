@@ -36,6 +36,15 @@ enum FamilyMembershipStatus {
   @@map("family_membership_status")
 }
 
+enum FamilyMemberAccountInvitationStatus {
+  PENDING  @map("pending")
+  ACCEPTED @map("accepted")
+  REVOKED  @map("revoked")
+  EXPIRED  @map("expired")
+
+  @@map("family_member_account_invitation_status")
+}
+
 enum BiologicalSex {
   MALE        @map("male")
   FEMALE      @map("female")
@@ -619,28 +628,29 @@ model User {
 
   personProfile              PersonProfile?
   memberships                FamilyMembership[]
-  familiesCreated            Family[]                    @relation("FamilyCreator")
-  uploadedProductMedia       ProductMedia[]              @relation("ProductMediaUploader")
-  assignedProductDietaryTags ProductDietaryTag[]         @relation("ProductDietaryTagAssigner")
-  verifiedProductDietaryTags ProductDietaryTag[]         @relation("ProductDietaryTagVerifier")
-  assignedProductAllergens   ProductAllergen[]           @relation("ProductAllergenAssigner")
-  verifiedProductAllergens   ProductAllergen[]           @relation("ProductAllergenVerifier")
-  createdRecipes             Recipe[]                    @relation("RecipeCreator")
-  authorProfile              Author?                     @relation("UserAuthorProfile")
-  createdAuthorRecords       Author[]                    @relation("AuthorCreatedBy")
-  verifiedAuthorExpertises   Author[]                    @relation("AuthorExpertiseVerifier")
-  validatedRecipeDietaryTags RecipeDietaryTag[]          @relation("RecipeDietaryTagValidator")
-  createdRecipeMedia         RecipeMedia[]               @relation("RecipeMediaCreator")
-  createdProductFavorites    ProductFavorite[]           @relation("ProductFavoriteCreator")
-  createdRecipeFavorites     RecipeFavorite[]            @relation("RecipeFavoriteCreator")
-  createdShoppingLists       ShoppingList[]              @relation("ShoppingListCreator")
-  createdShoppingListItems   ShoppingListItem[]          @relation("ShoppingListItemCreator")
-  cookingSessionsStarted     CookingSession[]            @relation("CookingSessionStarter")
-  cookingSessionsCompleted   CookingSession[]            @relation("CookingSessionCompleter")
-  recordedConsumptionEntries ConsumptionEntry[]          @relation("ConsumptionEntryRecorder")
-  resolvedMealConsumptions   MealConsumptionResolution[] @relation("MealConsumptionResolver")
-  cookingIngredientsResolved CookingSessionIngredient[]  @relation("CookingIngredientResolver")
-  cookingStepsResolved       CookingSessionStep[]        @relation("CookingStepResolver")
+  familiesCreated            Family[]                        @relation("FamilyCreator")
+  uploadedProductMedia       ProductMedia[]                  @relation("ProductMediaUploader")
+  assignedProductDietaryTags ProductDietaryTag[]             @relation("ProductDietaryTagAssigner")
+  verifiedProductDietaryTags ProductDietaryTag[]             @relation("ProductDietaryTagVerifier")
+  assignedProductAllergens   ProductAllergen[]               @relation("ProductAllergenAssigner")
+  verifiedProductAllergens   ProductAllergen[]               @relation("ProductAllergenVerifier")
+  createdRecipes             Recipe[]                        @relation("RecipeCreator")
+  authorProfile              Author?                         @relation("UserAuthorProfile")
+  createdAuthorRecords       Author[]                        @relation("AuthorCreatedBy")
+  verifiedAuthorExpertises   Author[]                        @relation("AuthorExpertiseVerifier")
+  validatedRecipeDietaryTags RecipeDietaryTag[]              @relation("RecipeDietaryTagValidator")
+  createdRecipeMedia         RecipeMedia[]                   @relation("RecipeMediaCreator")
+  createdProductFavorites    ProductFavorite[]               @relation("ProductFavoriteCreator")
+  createdRecipeFavorites     RecipeFavorite[]                @relation("RecipeFavoriteCreator")
+  createdShoppingLists       ShoppingList[]                  @relation("ShoppingListCreator")
+  createdShoppingListItems   ShoppingListItem[]              @relation("ShoppingListItemCreator")
+  cookingSessionsStarted     CookingSession[]                @relation("CookingSessionStarter")
+  cookingSessionsCompleted   CookingSession[]                @relation("CookingSessionCompleter")
+  recordedConsumptionEntries ConsumptionEntry[]              @relation("ConsumptionEntryRecorder")
+  resolvedMealConsumptions   MealConsumptionResolution[]     @relation("MealConsumptionResolver")
+  cookingIngredientsResolved CookingSessionIngredient[]      @relation("CookingIngredientResolver")
+  cookingStepsResolved       CookingSessionStep[]            @relation("CookingStepResolver")
+  familyAccountInvitations   FamilyMemberAccountInvitation[] @relation("FamilyAccountInvitationInviter")
 
   @@index([applicationRole])
   @@index([deletedAt])
@@ -660,17 +670,18 @@ model PersonProfile {
   updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   archivedAt         DateTime?      @map("archived_at") @db.Timestamptz(3)
 
-  user                User?                      @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  user                User?                           @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   familyMembers       FamilyMember[]
   bodyMeasurements    BodyMeasurement[]
   activityPeriods     PersonActivityPeriod[]
   weightGoals         PersonWeightGoal[]
   nutrientTargetSets  NutrientTargetSet[]
-  mealSetting         PersonMealSetting?
+  mealTypePreferences PersonMealTypePreference[]
   dietaryRestrictions PersonDietaryRestriction[]
   allergies           PersonAllergy[]
   dislikedProducts    PersonDislikedProduct[]
   cuisinePreferences  PersonCuisinePreference[]
+  accountInvitations  FamilyMemberAccountInvitation[]
 
   @@index([archivedAt])
   @@map("person_profiles")
@@ -745,6 +756,8 @@ model NutrientTargetSet {
   weightGoalId             String?                 @map("weight_goal_id") @db.Uuid
   source                   NutrientTargetSetSource
   calculationPolicyVersion String?                 @map("calculation_policy_version") @db.VarChar(100)
+  restingEnergyKcal        Decimal?                @map("resting_energy_kcal") @db.Decimal(14, 4)
+  maintenanceEnergyKcal    Decimal?                @map("maintenance_energy_kcal") @db.Decimal(14, 4)
   effectiveFrom            DateTime                @default(now()) @map("effective_from") @db.Timestamptz(3)
   effectiveTo              DateTime?               @map("effective_to") @db.Timestamptz(3)
   createdAt                DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -783,17 +796,20 @@ model NutrientTarget {
   @@map("nutrient_targets")
 }
 
-model PersonMealSetting {
+model PersonMealTypePreference {
   id              String   @id @default(uuid()) @db.Uuid
-  personProfileId String   @unique @map("person_profile_id") @db.Uuid
-  mainMealsPerDay Int      @default(3) @map("main_meals_per_day") @db.SmallInt
-  snacksPerDay    Int      @default(0) @map("snacks_per_day") @db.SmallInt
+  personProfileId String   @map("person_profile_id") @db.Uuid
+  mealTypeId      String   @map("meal_type_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   personProfile PersonProfile @relation(fields: [personProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@map("person_meal_settings")
+  mealType MealType @relation(fields: [mealTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([personProfileId, mealTypeId])
+  @@index([mealTypeId])
+  @@map("person_meal_type_preferences")
 }
 
 model PersonDietaryRestriction {
@@ -869,7 +885,7 @@ model Family {
   updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
   archivedAt      DateTime?    @map("archived_at") @db.Timestamptz(3)
 
-  creator                    User                        @relation("FamilyCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator                    User                            @relation("FamilyCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   memberships                FamilyMembership[]
   members                    FamilyMember[]
   mealPlans                  MealPlan[]
@@ -880,6 +896,7 @@ model Family {
   cookingSessions            CookingSession[]
   consumptionEntries         ConsumptionEntry[]
   mealConsumptionResolutions MealConsumptionResolution[]
+  accountInvitations         FamilyMemberAccountInvitation[]
 
   @@index([createdByUserId])
   @@index([archivedAt])
@@ -926,6 +943,32 @@ model FamilyMember {
   @@index([personProfileId, archivedAt])
   @@index([familyId, archivedAt])
   @@map("family_members")
+}
+
+model FamilyMemberAccountInvitation {
+  id              String                              @id @default(uuid()) @db.Uuid
+  familyId        String                              @map("family_id") @db.Uuid
+  personProfileId String                              @map("person_profile_id") @db.Uuid
+  invitedByUserId String                              @map("invited_by_user_id") @db.Uuid
+  recipientEmail  String                              @map("recipient_email") @db.VarChar(320)
+  tokenHash       String                              @unique @map("token_hash") @db.Char(64)
+  status          FamilyMemberAccountInvitationStatus @default(PENDING)
+  expiresAt       DateTime                            @map("expires_at") @db.Timestamptz(3)
+  sentAt          DateTime?                           @map("sent_at") @db.Timestamptz(3)
+  acceptedAt      DateTime?                           @map("accepted_at") @db.Timestamptz(3)
+  revokedAt       DateTime?                           @map("revoked_at") @db.Timestamptz(3)
+  createdAt       DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  personProfile PersonProfile @relation(fields: [personProfileId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  invitedByUser User          @relation("FamilyAccountInvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([familyId, status, expiresAt])
+  @@index([personProfileId, status])
+  @@index([recipientEmail, status])
+  @@index([invitedByUserId])
+  @@map("family_member_account_invitations")
 }
 
 //------------------ PRODUCTS --------------------------
@@ -2036,6 +2079,7 @@ model MealType {
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   mealEntries MealEntry[]
+  personPreferences PersonMealTypePreference[]
 
   @@index([kind, isActive, sortOrder])
   @@map("meal_types")

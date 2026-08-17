@@ -10,11 +10,13 @@ import {
   listProductsSchema,
   productMediaActionSchema,
   reserveProductMediaSchema,
+  searchProductsSchema,
   updateProductSchema,
 } from "./product-schema.js";
 
 export interface ProductController {
   readonly list: RequestHandler;
+  readonly search: RequestHandler;
   readonly get: RequestHandler;
   readonly create: RequestHandler;
   readonly update: RequestHandler;
@@ -28,6 +30,15 @@ export function createProductController(service: ProductService): ProductControl
   return Object.freeze({
     list: validateRequest(listProductsSchema, async (input, _request, response) => {
       const page = await service.list(input.query);
+      response.set("cache-control", "no-store");
+      response.status(200).json({
+        data: { items: page.items },
+        meta: { page: page.page, pageSize: page.pageSize, total: page.total },
+      });
+    }),
+
+    search: validateRequest(searchProductsSchema, async (input, _request, response) => {
+      const page = await service.search(input.query);
       response.set("cache-control", "no-store");
       response.status(200).json({
         data: { items: page.items },

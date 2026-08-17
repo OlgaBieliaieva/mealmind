@@ -47,6 +47,20 @@ function product(overrides: Partial<ProductDetailsView> = {}): ProductDetailsVie
 function productService(): ProductService {
   return {
     list: vi.fn(async () => ({ items: [], page: 1, pageSize: 20, total: 0 })),
+    search: vi.fn<ProductService["search"]>(async () => ({
+      items: [
+        {
+          id: productId,
+          name: "Яблуко",
+          type: "GENERIC",
+          categoryName: "Фрукти",
+          brandName: null,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    })),
     get: vi.fn(async () => product()),
     create: vi.fn(async () => product()),
     update: vi.fn(async () => product({ nameUa: "Червоне яблуко" })),
@@ -129,6 +143,74 @@ function createTestApp(service: ProductService, role: "USER" | "ADMIN") {
 }
 
 describe("product router", () => {
+  it("allows an authenticated regular user to search active products", async () => {
+    const service = productService();
+
+    const response = await request(createTestApp(service, "USER"))
+      .get("/api/v1/products/search")
+      .query({
+        search: "яб",
+        page: 1,
+        pageSize: 20,
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+
+    expect(service.search).toHaveBeenCalledWith({
+      search: "яб",
+      page: 1,
+      pageSize: 20,
+    });
+
+    expect(response.body).toEqual({
+      data: {
+        items: [
+          {
+            id: productId,
+            name: "Яблуко",
+            type: "GENERIC",
+            categoryName: "Фрукти",
+            brandName: null,
+          },
+        ],
+      },
+      meta: {
+        page: 1,
+        pageSize: 20,
+        total: 1,
+      },
+    });
+  });
+
+  it("rejects a product search shorter than two characters", async () => {
+    const service = productService();
+
+    const response = await request(createTestApp(service, "USER"))
+      .get("/api/v1/products/search")
+      .query({
+        search: "я",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(400);
+    expect(service.search).not.toHaveBeenCalled();
+  });
+
+  it("does not expose the admin list endpoint to a regular user", async () => {
+    const service = productService();
+
+    const response = await request(createTestApp(service, "USER"))
+      .get("/api/v1/admin/products")
+      .query({
+        search: "яб",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(403);
+    expect(service.list).not.toHaveBeenCalled();
+  });
+
   it("enforces administrator permission in the API", async () => {
     const service = productService();
     const response = await request(createTestApp(service, "USER"))

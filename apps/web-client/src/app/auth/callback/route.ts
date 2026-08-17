@@ -59,7 +59,9 @@ export async function GET(request: Request) {
     ? ((await sessionResponse.json()) as { data?: { onboardingCompleted?: boolean } })
     : null;
   const target =
-    next === "/auth/update-password" || sessionPayload?.data?.onboardingCompleted === true
+    next === "/auth/update-password" ||
+    next === "/account-activation" ||
+    sessionPayload?.data?.onboardingCompleted === true
       ? next
       : "/onboarding";
   return NextResponse.redirect(new URL(target, redirectOrigin));

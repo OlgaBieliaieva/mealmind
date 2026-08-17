@@ -7,6 +7,14 @@ import { Tooltip } from "@/shared/ui";
 
 import { clientNavigationItems } from "./client-routes";
 
+function isPathActive(pathname: string, activePath: string): boolean {
+  if (activePath === "/") {
+    return pathname === "/";
+  }
+
+  return pathname === activePath || pathname.startsWith(`${activePath}/`);
+}
+
 export function ClientNavigation() {
   const pathname = usePathname();
 
@@ -14,8 +22,9 @@ export function ClientNavigation() {
     <nav className="client-navigation-region" aria-label="Основна навігація">
       <ul className="client-navigation">
         {clientNavigationItems.map((item) => {
-          const isCurrent =
-            pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+          const isCurrent = item.activePaths.some((activePath) =>
+            isPathActive(pathname, activePath),
+          );
 
           const Icon = item.icon;
 

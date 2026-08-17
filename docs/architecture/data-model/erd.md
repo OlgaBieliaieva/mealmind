@@ -12,6 +12,9 @@ erDiagram
     Family ||--o{ FamilyMembership : "надає доступ"
     Family ||--o{ FamilyMember : "містить учасників"
     PersonProfile ||--o{ FamilyMember : "представляє особу"
+    User ||--o{ FamilyMemberAccountInvitation : "створює запрошення"
+    Family ||--o{ FamilyMemberAccountInvitation : "обмежує запрошення"
+    PersonProfile ||--o{ FamilyMemberAccountInvitation : "активується через"
     PersonProfile ||--o{ BodyMeasurement : "має вимірювання"
     PersonProfile ||--o{ PersonActivityPeriod : "має активність"
     PersonProfile ||--o{ PersonWeightGoal : "має цілі"
@@ -22,7 +25,8 @@ erDiagram
     PersonWeightGoal o|--o{ NutrientTargetSet : "обґрунтовує"
     NutrientTargetSet ||--o{ NutrientTarget : "містить"
     Nutrient ||--o{ NutrientTarget : "визначає показник"
-    PersonProfile ||--o| PersonMealSetting : "має налаштування"
+    PersonProfile ||--o{ PersonMealTypePreference : "обирає типи прийомів"
+    MealType ||--o{ PersonMealTypePreference : "класифікує"
     PersonProfile ||--o{ PersonDietaryRestriction : "має обмеження"
     DietaryTag ||--o{ PersonDietaryRestriction : "класифікує"
     PersonProfile ||--o{ PersonAllergy : "має алергії"
@@ -33,7 +37,7 @@ erDiagram
     Cuisine ||--o{ PersonCuisinePreference : "стосується"
 ```
 
-`FamilyMembership` описує доступ зареєстрованого `User`, а `FamilyMember` — участь `PersonProfile` у плануванні. Завдяки цьому залежний профіль може бути членом сім’ї без облікового запису.
+`FamilyMembership` описує доступ зареєстрованого `User`, а `FamilyMember` — участь `PersonProfile` у плануванні. Завдяки цьому залежний профіль може бути членом сім’ї без облікового запису. `FamilyMemberAccountInvitation` безпечно прив’язує нову verified identity до existing dependent profile, не створюючи нову людину або загальне multi-family invitation.
 
 ## Reference Data and Product Catalog
 
