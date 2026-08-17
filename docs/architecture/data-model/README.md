@@ -8,6 +8,9 @@
 
 - `packages/db/prisma/schema.prisma` — моделі, enum, relations, indexes і referential actions;
 - `packages/db/prisma/migrations/20260728135246_00_baseline/migration.sql` — фізична PostgreSQL-схема та правила, які неможливо повністю виразити у Prisma;
+- `packages/db/prisma/migrations/20260812120000_01_family_member_account_invitations/migration.sql` — forward migration для invitation lifecycle;
+- `packages/db/prisma/migrations/20260813112956_add_nutrient_target_energy_snapshot/migration.sql` — energy snapshots для versioned nutrient targets;
+- `packages/db/prisma/migrations/20260814073753_replace_meal_settings_with_meal_type_preferences/migration.sql` — заміна агрегованих meal settings на конкретні meal-type preferences;
 - `packages/db/prisma/seeds/reference` — детерміновані довідникові дані;
 - `packages/db/prisma/tests` — clean-database migration smoke test і перевірка ідемпотентності reference seed.
 
@@ -17,13 +20,13 @@
 
 | Характеристика                      | Значення |
 | ----------------------------------- | -------: |
-| Прикладні Prisma-моделі             |       56 |
-| Prisma enum                         |       71 |
-| Public tables після clean migration |       57 |
-| Прикладні baseline migrations       |        1 |
+| Прикладні Prisma-моделі             |       57 |
+| Prisma enum                         |       72 |
+| Public tables після clean migration |       58 |
+| Прикладні migrations                |        4 |
 | Детерміновані reference rows        |      181 |
 
-До 57 public tables входить службова таблиця Prisma `_prisma_migrations`; предметна модель складається з 56 прикладних таблиць.
+До 58 public tables входить службова таблиця Prisma `_prisma_migrations`; предметна модель складається з 57 прикладних таблиць.
 
 Persistence foundation охоплює весь MVP data scope, але наявність таблиці не означає завершену реалізацію відповідного HTTP або UI-сценарію. API та інтерфейси додаються окремими vertical slices.
 
@@ -129,7 +132,9 @@ npm run db:test:seed
 npm run db:test
 ```
 
-`db:test:migrations` відтворює чисту test database і застосовує baseline. `db:test:seed` повторно відтворює її, застосовує migration, запускає seed двічі та перевіряє counts, UUID/code uniqueness й незмінність timestamps.
+`db:test:migrations` відтворює чисту test database і застосовує всю Prisma migration history. `db:test:seed` повторно відтворює її, застосовує migrations, запускає seed двічі та перевіряє counts, UUID/code uniqueness й незмінність timestamps.
+
+Міграція заміни `PersonMealSetting` на `PersonMealTypePreference` свідомо не переносить `mainMealsPerDay` і `snacksPerDay`: ці значення неможливо однозначно перетворити на конкретні типи прийомів їжі. Для PR-012A підтверджено, що середовищ із важливими даними в `person_meal_settings` немає. Перед застосуванням цієї migration history до іншого середовища з даними потрібна окремо погоджена стратегія backfill.
 
 ## Дані та приватність
 
@@ -144,3 +149,9 @@ Application administrator не отримує автоматичного дос�
 - каталожні дані USDA імпортуються окремим контрольованим процесом, а не reference seed;
 - development fixtures мають окремий lifecycle і не запускаються в production;
 - ERD показує предметні зв’язки, але не замінює повну Prisma schema та reviewed SQL.
+
+# Межа профілю та облікового запису
+
+`User` є application identity та містить account/security властивості. `PersonProfile` описує людину й персоналізацію. `FamilyMembership` надає User доступ до Family, а `FamilyMember` пов’язує PersonProfile із Family. OWNER може керувати профілями своєї сім’ї, але не identity або security іншого User.
+
+`FamilyMemberAccountInvitation` активує лише existing dependent profile. Після claim nullable `PersonProfile.userId` отримує authenticated User, existing `FamilyMember` зберігається, а сервер створює `ACTIVE FamilyMembership` з роллю `MEMBER`. Invitation не є загальним запрошенням existing User і не обходить MVP-інваріант однієї active Family на User.

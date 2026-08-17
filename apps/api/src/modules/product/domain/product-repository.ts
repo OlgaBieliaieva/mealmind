@@ -164,6 +164,27 @@ export interface ProductPage {
   readonly total: number;
 }
 
+export interface ProductSearchQuery {
+  readonly search: string;
+  readonly page: number;
+  readonly pageSize: number;
+}
+
+export interface ProductSearchItem {
+  readonly id: string;
+  readonly name: string;
+  readonly type: ProductType;
+  readonly categoryName: string;
+  readonly brandName: string | null;
+}
+
+export interface ProductSearchPage {
+  readonly items: readonly ProductSearchItem[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+}
+
 export interface CreatePendingMediaInput {
   readonly id: string;
   readonly productId: string;
@@ -185,6 +206,7 @@ export interface ActivateMediaInput {
 
 export interface ProductRepository {
   list(query: ProductListQuery): Promise<ProductPage>;
+  searchActive(query: ProductSearchQuery): Promise<ProductSearchPage>;
   findById(id: string): Promise<ProductDetails | null>;
   create(data: ProductWrite): Promise<ProductDetails>;
   update(id: string, data: ProductUpdate): Promise<ProductDetails | null>;

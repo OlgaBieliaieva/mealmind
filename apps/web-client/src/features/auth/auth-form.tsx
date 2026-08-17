@@ -77,7 +77,11 @@ export function AuthForm({
         if (result.error !== null) throw result.error;
         await bootstrapAccount();
         const session = await readApplicationSessionContext();
-        navigate(session.onboardingCompleted ? safeReturnTo : "/onboarding");
+        navigate(
+          session.onboardingCompleted || safeReturnTo === "/account-activation"
+            ? safeReturnTo
+            : "/onboarding",
+        );
         return;
       }
 
@@ -94,7 +98,11 @@ export function AuthForm({
         if (result.data.session !== null) {
           await bootstrapAccount();
           const session = await readApplicationSessionContext();
-          navigate(session.onboardingCompleted ? safeReturnTo : "/onboarding");
+          navigate(
+            session.onboardingCompleted || safeReturnTo === "/account-activation"
+              ? safeReturnTo
+              : "/onboarding",
+          );
         } else {
           window.sessionStorage.setItem("mealmind.pending-confirmation-email", email.trim());
           navigate("/auth/check-email");

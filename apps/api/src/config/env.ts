@@ -47,6 +47,10 @@ const environmentSchema = z.object({
   SUPABASE_URL: httpUrlSchema,
   SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1),
   SUPABASE_SECRET_KEY: z.string().trim().min(1),
+  INVITATION_APP_ORIGIN: httpOriginSchema,
+  INVITATION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(72),
+  RESEND_FROM_EMAIL: z.string().trim().min(3).max(320),
+  RESEND_API_KEY: z.string().trim().min(1),
 });
 
 export interface ApiConfig {
@@ -59,6 +63,12 @@ export interface ApiConfig {
     readonly url: string;
     readonly publishableKey: string;
     readonly secretKey: string;
+  };
+  readonly invitations: {
+    readonly appOrigin: string;
+    readonly ttlHours: number;
+    readonly resendFromEmail: string;
+    readonly resendApiKey: string;
   };
 }
 
@@ -93,6 +103,12 @@ export function parseApiEnv(environment: NodeJS.ProcessEnv): ApiConfig {
       url: result.data.SUPABASE_URL,
       publishableKey: result.data.SUPABASE_PUBLISHABLE_KEY,
       secretKey: result.data.SUPABASE_SECRET_KEY,
+    }),
+    invitations: Object.freeze({
+      appOrigin: result.data.INVITATION_APP_ORIGIN,
+      ttlHours: result.data.INVITATION_TTL_HOURS,
+      resendFromEmail: result.data.RESEND_FROM_EMAIL,
+      resendApiKey: result.data.RESEND_API_KEY,
     }),
   };
 

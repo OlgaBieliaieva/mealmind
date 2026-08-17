@@ -1,171 +1,893 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import { z } from "zod";
 
-import type { AuthenticationService } from "../../../application/authentication/authentication-service.js";
+import type {
+  AuthenticationService,
+  IdentityProvider,
+} from "../../../application/authentication/authentication-service.js";
 import { getAuthenticatedUser } from "../../../http/auth/request-context.js";
+import { getVerifiedIdentity } from "../../../http/auth/verified-identity-context.js";
 import { authenticate } from "../../../http/middleware/authenticate.js";
 import { createApiRateLimitOptions } from "../../../http/middleware/rate-limit.js";
+import { verifyIdentity } from "../../../http/middleware/verify-identity.js";
 import { validateRequest } from "../../../http/validation/validate-request.js";
+import { invitationErrors } from "../application/account-invitation-errors.js";
+import type { AccountInvitationService } from "../application/account-invitation-service.js";
 import type { FamilyService } from "../application/family-service.js";
-
-const empty = z.object({}).strict();
-const noBody = z.undefined().optional();
-const date = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => {
-    const parsed = new Date(`${value}T00:00:00.000Z`);
-    return (
-      !Number.isNaN(parsed.valueOf()) &&
-      parsed.toISOString().slice(0, 10) === value &&
-      parsed <= new Date()
-    );
-  }, "Date must be a valid date that is not in the future");
-const profile = z
-  .object({
-    firstName: z.string().trim().min(1).max(100),
-    lastName: z.string().trim().min(1).max(100).optional(),
-    birthDate: date.optional(),
-    biologicalSex: z.enum(["MALE", "FEMALE", "UNSPECIFIED"]).optional(),
-  })
-  .strict();
-const onboarding = profile
-  .extend({
-    heightCm: z.number().min(50).max(260).optional(),
-    weightKg: z.number().min(15).max(500).optional(),
-    activityLevel: z.enum(["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"]).optional(),
-    weightGoalType: z.enum(["MAINTAIN", "LOSE", "GAIN"]).optional(),
-  })
-  .strict();
-const profilePatch = z
-  .object({
-    firstName: z.string().trim().min(1).max(100).optional(),
-    lastName: z.string().trim().min(1).max(100).nullable().optional(),
-    birthDate: date.nullable().optional(),
-    biologicalSex: z.enum(["MALE", "FEMALE", "UNSPECIFIED"]).nullable().optional(),
-  })
-  .strict()
-  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
-const familyPatch = z
-  .object({
-    name: z.string().trim().min(1).max(120).optional(),
-    timeZone: z
-      .string()
-      .trim()
-      .min(1)
-      .max(64)
-      .refine((value) => {
-        try {
-          new Intl.DateTimeFormat("uk-UA", { timeZone: value });
-          return true;
-        } catch {
-          return false;
-        }
-      }, "Time zone must be a valid IANA identifier")
-      .optional(),
-    weekStartsOn: z
-      .enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"])
-      .optional(),
-  })
-  .strict()
-  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
-function envelope<T extends z.ZodType>(body: T, params: z.ZodType = empty) {
-  return z.object({ params, query: empty, body });
-}
-const memberParams = z.object({ memberId: z.uuid() }).strict();
+import {
+  accountInvitationInputSchema,
+  accountInvitationTokenSchema,
+  activityPeriodInputSchema,
+  allergiesInputSchema,
+  bodyMeasurementInputSchema,
+  cuisinePreferencesInputSchema,
+  dietaryRestrictionsInputSchema,
+  dislikedProductsInputSchema,
+  familyPatchSchema,
+  mealTypesInputSchema,
+  memberParamsSchema,
+  noBodySchema,
+  nutrientTargetsInputSchema,
+  onboardingInputSchema,
+  profileInputSchema,
+  profilePatchSchema,
+  requestEnvelopeSchema,
+  weightGoalInputSchema,
+} from "./family-schemas.js";
 
 export function createFamilyRouter(
   service: FamilyService,
   authenticationService: AuthenticationService,
+  identityProvider?: IdentityProvider,
+  invitationService?: AccountInvitationService,
 ): Router {
   const router = Router();
-  const limiter = rateLimit(createApiRateLimitOptions({ windowMs: 60_000, limit: 30 }));
+
+  const limiter = rateLimit(
+    createApiRateLimitOptions({
+      windowMs: 60_000,
+      limit: 30,
+    }),
+  );
+
   const authenticated = authenticate(authenticationService);
+
   const userId = (request: Parameters<typeof getAuthenticatedUser>[0]) =>
     getAuthenticatedUser(request).userId;
+
   router.post(
     "/onboarding/complete",
     limiter,
     authenticated,
-    validateRequest(envelope(onboarding), async (input, request, response) => {
-      response
-        .status(200)
-        .json({ data: await service.completeOnboarding(userId(request), input.body) });
-    }),
+    validateRequest(
+      requestEnvelopeSchema(onboardingInputSchema),
+      async (input, request, response) => {
+        response.status(200).json({
+          data: await service.completeOnboarding(userId(request), input.body),
+        });
+      },
+    ),
   );
+
   router.get(
     "/family/current",
     limiter,
     authenticated,
-    validateRequest(envelope(noBody), async (_input, request, response) => {
-      response.status(200).json({ data: await service.readFamily(userId(request)) });
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      response.status(200).json({
+        data: await service.readFamily(userId(request)),
+      });
     }),
   );
+
   router.patch(
     "/family/current",
     limiter,
     authenticated,
-    validateRequest(envelope(familyPatch), async (input, request, response) => {
-      response.status(200).json({ data: await service.updateFamily(userId(request), input.body) });
+    validateRequest(requestEnvelopeSchema(familyPatchSchema), async (input, request, response) => {
+      response.status(200).json({
+        data: await service.updateFamily(userId(request), input.body),
+      });
     }),
   );
+
+  if (identityProvider !== undefined && invitationService !== undefined) {
+    const invitationLimiter = rateLimit(
+      createApiRateLimitOptions({
+        windowMs: 60_000,
+        limit: 10,
+      }),
+    );
+
+    router.post(
+      "/family/members/:memberId/account-invitation",
+      invitationLimiter,
+      authenticated,
+      validateRequest(
+        requestEnvelopeSchema(accountInvitationInputSchema, memberParamsSchema),
+        async (input, request, response) => {
+          const actorUserId = userId(request);
+
+          const data = await invitationService.create(
+            actorUserId,
+            input.params.memberId,
+            input.body.recipientEmail,
+          );
+
+          request.logger?.info(
+            {
+              actorUserId,
+              targetFamilyMemberId: input.params.memberId,
+              action: "FAMILY_ACCOUNT_INVITATION_CREATED",
+            },
+            "Family security action completed",
+          );
+
+          response.status(201).json({
+            data,
+          });
+        },
+      ),
+    );
+
+    router.get(
+      "/family/members/:memberId/account-invitation",
+      invitationLimiter,
+      authenticated,
+      validateRequest(
+        requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+        async (input, request, response) => {
+          response.status(200).json({
+            data: await invitationService.read(userId(request), input.params.memberId),
+          });
+        },
+      ),
+    );
+
+    router.post(
+      "/family/members/:memberId/account-invitation/resend",
+      invitationLimiter,
+      authenticated,
+      validateRequest(
+        requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+        async (input, request, response) => {
+          const actorUserId = userId(request);
+
+          const data = await invitationService.resend(actorUserId, input.params.memberId);
+
+          request.logger?.info(
+            {
+              actorUserId,
+              targetFamilyMemberId: input.params.memberId,
+              action: "FAMILY_ACCOUNT_INVITATION_RESENT",
+            },
+            "Family security action completed",
+          );
+
+          response.status(200).json({
+            data,
+          });
+        },
+      ),
+    );
+
+    router.delete(
+      "/family/members/:memberId/account-invitation",
+      invitationLimiter,
+      authenticated,
+      validateRequest(
+        requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+        async (input, request, response) => {
+          const actorUserId = userId(request);
+
+          await invitationService.revoke(actorUserId, input.params.memberId);
+
+          request.logger?.info(
+            {
+              actorUserId,
+              targetFamilyMemberId: input.params.memberId,
+              action: "FAMILY_ACCOUNT_INVITATION_REVOKED",
+            },
+            "Family security action completed",
+          );
+
+          response.status(204).send();
+        },
+      ),
+    );
+
+    router.post(
+      "/account-invitations/inspect",
+      invitationLimiter,
+      validateRequest(
+        requestEnvelopeSchema(accountInvitationTokenSchema),
+        async (input, _request, response) => {
+          response.status(200).json({
+            data: await invitationService.inspect(input.body.token),
+          });
+        },
+      ),
+    );
+
+    router.post(
+      "/account-invitations/claim",
+      invitationLimiter,
+      verifyIdentity(identityProvider),
+      authenticated,
+      validateRequest(
+        requestEnvelopeSchema(accountInvitationTokenSchema),
+        async (input, request, response) => {
+          const identity = getVerifiedIdentity(request);
+
+          if (!identity.emailVerified || identity.email === null) {
+            throw invitationErrors.emailUnverified();
+          }
+
+          const actorUserId = userId(request);
+
+          await invitationService.claim(input.body.token, actorUserId, identity.email);
+
+          request.logger?.info(
+            {
+              actorUserId,
+              action: "FAMILY_ACCOUNT_INVITATION_CLAIMED",
+            },
+            "Family security action completed",
+          );
+
+          response.status(200).json({
+            data: await service.readSession(actorUserId),
+          });
+        },
+      ),
+    );
+  }
+
   router.get(
     "/family/members",
     limiter,
     authenticated,
-    validateRequest(envelope(noBody), async (_input, request, response) => {
-      response.status(200).json({ data: { items: await service.listMembers(userId(request)) } });
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      response.status(200).json({
+        data: {
+          items: await service.listMembers(userId(request)),
+        },
+      });
     }),
   );
+
   router.post(
     "/family/members",
     limiter,
     authenticated,
-    validateRequest(envelope(profile), async (input, request, response) => {
-      response
-        .status(201)
-        .json({ data: await service.createDependent(userId(request), input.body) });
+    validateRequest(requestEnvelopeSchema(profileInputSchema), async (input, request, response) => {
+      response.status(201).json({
+        data: await service.createDependent(userId(request), input.body),
+      });
     }),
   );
+
   router.patch(
     "/family/members/:memberId",
     limiter,
     authenticated,
-    validateRequest(envelope(profilePatch, memberParams), async (input, request, response) => {
-      const params = input.params as { memberId: string };
-      response.status(200).json({
-        data: await service.updateDependent(userId(request), params.memberId, input.body),
-      });
-    }),
+    validateRequest(
+      requestEnvelopeSchema(profilePatchSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.updateDependent(actorUserId, input.params.memberId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.profileId,
+            action: "FAMILY_MEMBER_PROFILE_UPDATED",
+          },
+          "Family profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
   );
+
   router.delete(
     "/family/members/:memberId",
     limiter,
     authenticated,
-    validateRequest(envelope(noBody, memberParams), async (input, request, response) => {
-      const params = input.params as { memberId: string };
-      await service.archiveDependent(userId(request), params.memberId);
-      response.status(204).send();
-    }),
+    validateRequest(
+      requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+      async (input, request, response) => {
+        await service.archiveDependent(userId(request), input.params.memberId);
+
+        response.status(204).send();
+      },
+    ),
   );
+
+  router.get(
+    "/family/members/:memberId/profile",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+      async (input, request, response) => {
+        response.status(200).json({
+          data: await service.readManagedProfile(userId(request), input.params.memberId),
+        });
+      },
+    ),
+  );
+
+  router.patch(
+    "/family/members/:memberId/profile",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(profilePatchSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+        const data = await service.updateManagedProfile(
+          actorUserId,
+          input.params.memberId,
+          input.body,
+        );
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetFamilyMemberId: input.params.memberId,
+            targetPersonProfileId: data.id,
+            action: "MANAGED_PROFILE_UPDATED",
+          },
+          "Family profile action completed",
+        );
+
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/meal-types",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(mealTypesInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+        const data = await service.replaceManagedMealTypes(
+          actorUserId,
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/cuisines",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(cuisinePreferencesInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedCuisinePreferences(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/disliked-products",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(dislikedProductsInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedDislikedProducts(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/dietary-restrictions",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(dietaryRestrictionsInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedDietaryRestrictions(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/allergies",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(allergiesInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedAllergies(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/body-measurements",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(bodyMeasurementInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.appendManagedBodyMeasurement(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(201).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/activity-periods",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(activityPeriodInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.appendManagedActivityPeriod(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(201).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/weight-goals",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(weightGoalInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedWeightGoal(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(201).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/weight-goals/current/complete",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.completeManagedWeightGoal(
+          userId(request),
+          input.params.memberId,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/weight-goals/current/cancel",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.cancelManagedWeightGoal(userId(request), input.params.memberId);
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.put(
+    "/family/members/:memberId/profile/nutrient-targets",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(nutrientTargetsInputSchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.replaceManagedNutrientTargets(
+          userId(request),
+          input.params.memberId,
+          input.body,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
+  router.post(
+    "/family/members/:memberId/profile/nutrient-targets/calculate",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(noBodySchema, memberParamsSchema),
+      async (input, request, response) => {
+        const data = await service.recalculateManagedNutrientTargets(
+          userId(request),
+          input.params.memberId,
+        );
+        response.status(200).json({ data });
+      },
+    ),
+  );
+
   router.get(
     "/profile/me",
     limiter,
     authenticated,
-    validateRequest(envelope(noBody), async (_input, request, response) => {
-      response.status(200).json({ data: await service.readOwnProfile(userId(request)) });
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      response.status(200).json({
+        data: await service.readOwnProfile(userId(request)),
+      });
     }),
   );
+
   router.patch(
     "/profile/me",
     limiter,
     authenticated,
-    validateRequest(envelope(profilePatch), async (input, request, response) => {
-      response
-        .status(200)
-        .json({ data: await service.updateOwnProfile(userId(request), input.body) });
+    validateRequest(requestEnvelopeSchema(profilePatchSchema), async (input, request, response) => {
+      response.status(200).json({
+        data: await service.updateOwnProfile(userId(request), input.body),
+      });
     }),
   );
+
+  router.put(
+    "/profile/me/meal-types",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(mealTypesInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnMealTypes(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_MEAL_TYPES_UPDATED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.put(
+    "/profile/me/cuisines",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(cuisinePreferencesInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnCuisinePreferences(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_CUISINE_PREFERENCES_UPDATED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.put(
+    "/profile/me/disliked-products",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(dislikedProductsInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnDislikedProducts(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_DISLIKED_PRODUCTS_UPDATED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.put(
+    "/profile/me/dietary-restrictions",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(dietaryRestrictionsInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnDietaryRestrictions(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_DIETARY_RESTRICTIONS_UPDATED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.put(
+    "/profile/me/allergies",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(allergiesInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnAllergies(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_ALLERGIES_UPDATED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.post(
+    "/profile/me/body-measurements",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(bodyMeasurementInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.appendOwnBodyMeasurement(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_BODY_MEASUREMENT_ADDED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(201).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.post(
+    "/profile/me/activity-periods",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(activityPeriodInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.appendOwnActivityPeriod(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_ACTIVITY_PERIOD_ADDED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(201).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.post(
+    "/profile/me/weight-goals",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(weightGoalInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnWeightGoal(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_WEIGHT_GOAL_REPLACED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(201).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.post(
+    "/profile/me/weight-goals/current/complete",
+    limiter,
+    authenticated,
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      const actorUserId = userId(request);
+
+      const data = await service.completeOwnWeightGoal(actorUserId);
+
+      request.logger?.info(
+        {
+          actorUserId,
+          targetPersonProfileId: data.id,
+          action: "OWN_PROFILE_WEIGHT_GOAL_COMPLETED",
+        },
+        "Profile action completed",
+      );
+
+      response.status(200).json({
+        data,
+      });
+    }),
+  );
+
+  router.post(
+    "/profile/me/weight-goals/current/cancel",
+    limiter,
+    authenticated,
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      const actorUserId = userId(request);
+
+      const data = await service.cancelOwnWeightGoal(actorUserId);
+
+      request.logger?.info(
+        {
+          actorUserId,
+          targetPersonProfileId: data.id,
+          action: "OWN_PROFILE_WEIGHT_GOAL_CANCELLED",
+        },
+        "Profile action completed",
+      );
+
+      response.status(200).json({
+        data,
+      });
+    }),
+  );
+
+  router.put(
+    "/profile/me/nutrient-targets",
+    limiter,
+    authenticated,
+    validateRequest(
+      requestEnvelopeSchema(nutrientTargetsInputSchema),
+      async (input, request, response) => {
+        const actorUserId = userId(request);
+
+        const data = await service.replaceOwnNutrientTargets(actorUserId, input.body);
+
+        request.logger?.info(
+          {
+            actorUserId,
+            targetPersonProfileId: data.id,
+            action: "OWN_PROFILE_NUTRIENT_TARGETS_REPLACED",
+          },
+          "Profile action completed",
+        );
+
+        response.status(200).json({
+          data,
+        });
+      },
+    ),
+  );
+
+  router.post(
+    "/profile/me/nutrient-targets/calculate",
+    limiter,
+    authenticated,
+    validateRequest(requestEnvelopeSchema(noBodySchema), async (_input, request, response) => {
+      const actorUserId = userId(request);
+
+      const data = await service.recalculateOwnNutrientTargets(actorUserId);
+
+      request.logger?.info(
+        {
+          actorUserId,
+
+          targetPersonProfileId: data.id,
+
+          action: "OWN_PROFILE_NUTRIENT_TARGETS_RECALCULATED",
+        },
+        "Profile action completed",
+      );
+
+      response.status(200).json({
+        data,
+      });
+    }),
+  );
+
   return router;
 }

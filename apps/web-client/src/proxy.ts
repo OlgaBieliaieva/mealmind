@@ -10,6 +10,9 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/auth/auth-code-error",
   "/auth/forgot-password",
   "/auth/update-password",
+  "/account-activation",
+  "/account-activation/start",
+  "/api/account-activation",
 ]);
 
 function copyCookies(source: NextResponse, target: NextResponse): NextResponse {
@@ -39,6 +42,8 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated =
     claimsResult.error === null && claimsResult.data?.claims.sub !== undefined;
   const pathname = request.nextUrl.pathname;
+  const isAccountActivation =
+    pathname === "/account-activation" || pathname === "/api/account-activation";
   const isEntryPage = pathname === "/auth/sign-in" || pathname === "/auth/sign-up";
 
   if (!isAuthenticated && !isEntryPage && !PUBLIC_AUTH_PATHS.has(pathname)) {
@@ -86,7 +91,7 @@ export async function proxy(request: NextRequest) {
       data?: { onboardingCompleted?: boolean };
     };
     const onboardingCompleted = payload.data?.onboardingCompleted === true;
-    if (!onboardingCompleted && pathname !== "/onboarding") {
+    if (!onboardingCompleted && pathname !== "/onboarding" && !isAccountActivation) {
       return copyCookies(response, NextResponse.redirect(new URL("/onboarding", request.url)));
     }
     if (onboardingCompleted && pathname === "/onboarding") {

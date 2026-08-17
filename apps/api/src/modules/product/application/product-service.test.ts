@@ -80,6 +80,7 @@ function media(overrides: Partial<ProductMediaRecord> = {}): ProductMediaRecord 
 function repository(): ProductRepository {
   return {
     list: vi.fn(async () => ({ items: [], page: 1, pageSize: 20, total: 0 })),
+    searchActive: vi.fn(async () => ({ items: [], page: 1, pageSize: 20, total: 0 })),
     findById: vi.fn(async () => product()),
     create: vi.fn(async (data) =>
       product({
@@ -134,6 +135,52 @@ describe("product service", () => {
   beforeEach(() => {
     productRepository = repository();
     mediaStorage = storage();
+  });
+
+  it("delegates authenticated product selector search to the active-product repository query", async () => {
+    vi.mocked(productRepository.searchActive).mockResolvedValue({
+      items: [
+        {
+          id: productId,
+          name: "Яблуко",
+          type: "GENERIC",
+          categoryName: "Фрукти",
+          brandName: null,
+        },
+      ],
+      page: 2,
+      pageSize: 10,
+      total: 21,
+    });
+
+    const service = createProductService(productRepository, mediaStorage);
+
+    const result = await service.search({
+      search: "яб",
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(productRepository.searchActive).toHaveBeenCalledWith({
+      search: "яб",
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: productId,
+          name: "Яблуко",
+          type: "GENERIC",
+          categoryName: "Фрукти",
+          brandName: null,
+        },
+      ],
+      page: 2,
+      pageSize: 10,
+      total: 21,
+    });
   });
 
   it("rejects brand fields on a generic product", async () => {

@@ -127,6 +127,16 @@ export const listProductsSchema = z.object({
   body: z.unknown().optional(),
 });
 
+export const searchProductsSchema = z.object({
+  params: z.object({}),
+  query: z.object({
+    search: z.string().trim().min(2).max(120),
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(20),
+  }),
+  body: z.unknown().optional(),
+});
+
 export const getProductSchema = envelopeWithId(z.unknown().optional());
 export const createProductSchema = z.object({
   params: z.object({}),
