@@ -2,8 +2,27 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { completeOnboarding, type OnboardingPayload } from "@/shared/api/family";
+import {
+  completeOnboarding,
+  readOwnProfile,
+  type OnboardingPayload,
+  type OwnProfile,
+  type ProfileNutrientTarget,
+} from "@/shared/api/family";
 import { Button, SelectField, TextInput } from "@/shared/ui";
+
+const CALCULATION_MINIMUM_DURATION_MS = 2_200;
+const CALCULATION_COMPLETION_DELAY_MS = 300;
+
+type CompletionPhase = "questions" | "calculating" | "recommendations" | "insufficient";
+
+interface NutritionSummary {
+  readonly restingEnergyKcal: string;
+  readonly maintenanceEnergyKcal: string;
+  readonly protein: ProfileNutrientTarget;
+  readonly carbohydrate: ProfileNutrientTarget;
+  readonly totalFat: ProfileNutrientTarget;
+}
 
 const steps = [
   "firstName",
@@ -41,7 +60,7 @@ const copy: Record<Step, { title: string; explanation: string; optional: boolean
   birthDate: {
     title: "Коли ви народилися?",
     explanation:
-      "Вік потрібен лише для майбутнього точнішого розрахунку харчових потреб і рекомендацій.",
+      "Вік потрібен для автоматичного розрахунку базових енергетичних і харчових потреб.",
     optional: true,
   },
   biologicalSex: {
@@ -205,12 +224,199 @@ function payload(draft: Draft): OnboardingPayload {
       : {}),
   };
 }
+
+function isAdult(birthDate: string): boolean {
+  if (birthDate.length === 0) {
+    return false;
+  }
+
+  const birth = new Date(`${birthDate}T00:00:00`);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const beforeBirthday =
+    today.getMonth() < birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate());
+
+  if (beforeBirthday) {
+    age -= 1;
+  }
+
+  return age >= 18;
+}
+
+function canCalculateNutrition(draft: Draft): boolean {
+  return (
+    isAdult(draft.birthDate) &&
+    (draft.biologicalSex === "MALE" || draft.biologicalSex === "FEMALE") &&
+    draft.heightCm.length > 0 &&
+    draft.weightKg.length > 0 &&
+    draft.activityLevel.length > 0
+  );
+}
+
+function nutritionSummary(profile: OwnProfile): NutritionSummary | null {
+  const current = profile.nutritionTargets.current;
+
+  if (
+    current === null ||
+    current.restingEnergyKcal === null ||
+    current.maintenanceEnergyKcal === null
+  ) {
+    return null;
+  }
+
+  const byCode = (code: string) => current.targets.find((target) => target.nutrient.code === code);
+  const protein = byCode("protein");
+  const carbohydrate = byCode("carbohydrate");
+  const totalFat = byCode("total_fat");
+
+  if (protein === undefined || carbohydrate === undefined || totalFat === undefined) {
+    return null;
+  }
+
+  return {
+    restingEnergyKcal: current.restingEnergyKcal,
+    maintenanceEnergyKcal: current.maintenanceEnergyKcal,
+    protein,
+    carbohydrate,
+    totalFat,
+  };
+}
+
+function formatEnergy(value: string): string {
+  return `${Number(value).toLocaleString("uk-UA", { maximumFractionDigits: 0 })} ккал/день`;
+}
+
+function formatMacro(target: ProfileNutrientTarget): string {
+  const format = (value: string) =>
+    Number(value).toLocaleString("uk-UA", {
+      maximumFractionDigits: Number(value) < 10 ? 1 : 0,
+    });
+
+  if (target.minimumValue !== null && target.maximumValue !== null) {
+    return `${format(target.minimumValue)}–${format(target.maximumValue)} г/день`;
+  }
+
+  if (target.targetValue !== null) {
+    return `${format(target.targetValue)} г/день`;
+  }
+
+  return "Не визначено";
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function CalculationProgress({ progress }: { readonly progress: number }) {
+  return (
+    <section className="onboarding-card" aria-labelledby="onboarding-calculation-title">
+      <div className="onboarding-calculation">
+        <div className="onboarding-calculation__indicator" aria-hidden="true" />
+        <h1 id="onboarding-calculation-title">Розраховуємо ваші базові норми</h1>
+        <p className="onboarding-explanation" role="status">
+          Аналізуємо вік, стать, зріст, вагу та рівень активності. Це займе лише кілька секунд.
+        </p>
+        <div className="onboarding-calculation__progress">
+          <span>{progress}%</span>
+          <progress max={100} value={progress} aria-label="Прогрес розрахунку">
+            {progress}%
+          </progress>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompletionResult({
+  summary,
+  loadFailed,
+  onStart,
+}: {
+  readonly summary: NutritionSummary | null;
+  readonly loadFailed: boolean;
+  readonly onStart: () => void;
+}) {
+  const available = summary !== null;
+
+  return (
+    <section className="onboarding-card" aria-labelledby="onboarding-result-title">
+      <div className="onboarding-result">
+        <p className="onboarding-result__eyebrow" role="status">
+          {available ? "Розрахунок завершено" : "Профіль створено"}
+        </p>
+        <h1 id="onboarding-result-title">
+          {available
+            ? "Ваші рекомендовані базові норми"
+            : loadFailed
+              ? "Профіль успішно налаштовано"
+              : "Поки що недостатньо даних"}
+        </h1>
+        {available ? (
+          <>
+            <p className="onboarding-explanation">
+              Це орієнтовні стартові значення MealMind, а не медичне призначення.
+            </p>
+            <dl className="onboarding-recommendations">
+              <div>
+                <dt>Енергія у стані спокою</dt>
+                <dd>{formatEnergy(summary.restingEnergyKcal)}</dd>
+              </div>
+              <div>
+                <dt>Енергія з урахуванням активності</dt>
+                <dd>{formatEnergy(summary.maintenanceEnergyKcal)}</dd>
+              </div>
+              <div>
+                <dt>Білки</dt>
+                <dd>{formatMacro(summary.protein)}</dd>
+              </div>
+              <div>
+                <dt>Вуглеводи</dt>
+                <dd>{formatMacro(summary.carbohydrate)}</dd>
+              </div>
+              <div>
+                <dt>Жири</dt>
+                <dd>{formatMacro(summary.totalFat)}</dd>
+              </div>
+            </dl>
+            <p className="onboarding-result__note">
+              Ви можете змінити ці норми або перерахувати їх пізніше в особистому профілі.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="onboarding-explanation">
+              {loadFailed
+                ? "Не вдалося завантажити результати розрахунку на цьому екрані. Ваші дані вже збережено."
+                : "Для автоматичного розрахунку потрібні дата народження, стать для розрахунків, зріст, вага, рівень активності та вік від 18 років."}
+            </p>
+            <p className="onboarding-result__note">
+              {loadFailed
+                ? "Перегляньте цільові показники в особистому профілі або повторіть розрахунок там."
+                : "Ви можете доповнити інформацію в особистому профілі й запустити розрахунок у будь-який момент."}
+            </p>
+          </>
+        )}
+        <div className="onboarding-actions">
+          <Button type="button" onClick={onStart}>
+            Розпочати
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function OnboardingWizard() {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [phase, setPhase] = useState<CompletionPhase>("questions");
+  const [calculationProgress, setCalculationProgress] = useState(0);
+  const [summary, setSummary] = useState<NutritionSummary | null>(null);
+  const [resultLoadFailed, setResultLoadFailed] = useState(false);
   const step = steps[index]!;
   const current = copy[step];
   const last = index === steps.length - 1;
@@ -226,15 +432,77 @@ export function OnboardingWizard() {
       return;
     }
     setSubmitting(true);
+    const calculate = canCalculateNutrition(draft);
+    let progressTimer: number | undefined;
+    let onboardingCompleted = false;
+
+    if (calculate) {
+      setCalculationProgress(0);
+      setPhase("calculating");
+      progressTimer = window.setInterval(() => {
+        setCalculationProgress((value) => Math.min(value + 4, 92));
+      }, 80);
+    }
+
     try {
       await completeOnboarding(payload(draft));
-      router.replace("/");
-      router.refresh();
+      onboardingCompleted = true;
+
+      if (!calculate) {
+        setResultLoadFailed(false);
+        setPhase("insufficient");
+        return;
+      }
+
+      const [profile] = await Promise.all([
+        readOwnProfile(),
+        wait(CALCULATION_MINIMUM_DURATION_MS),
+      ]);
+
+      setCalculationProgress(100);
+      await wait(CALCULATION_COMPLETION_DELAY_MS);
+
+      const calculatedSummary = nutritionSummary(profile);
+      setSummary(calculatedSummary);
+      setResultLoadFailed(false);
+      setPhase(calculatedSummary === null ? "insufficient" : "recommendations");
     } catch {
-      setError("Не вдалося завершити налаштування. Дані не збережено — повторіть спробу.");
+      if (onboardingCompleted) {
+        setSummary(null);
+        setResultLoadFailed(true);
+        setPhase("insufficient");
+      } else {
+        setError("Не вдалося завершити налаштування. Дані не збережено — повторіть спробу.");
+        setPhase("questions");
+      }
+    } finally {
+      if (progressTimer !== undefined) {
+        window.clearInterval(progressTimer);
+      }
+
       setSubmitting(false);
     }
   }
+
+  function startUsingMealMind(): void {
+    router.replace("/");
+    router.refresh();
+  }
+
+  if (phase === "calculating") {
+    return <CalculationProgress progress={calculationProgress} />;
+  }
+
+  if (phase === "recommendations" || phase === "insufficient") {
+    return (
+      <CompletionResult
+        summary={summary}
+        loadFailed={resultLoadFailed}
+        onStart={startUsingMealMind}
+      />
+    );
+  }
+
   return (
     <section className="onboarding-card" aria-labelledby="onboarding-title">
       <div className="onboarding-progress">
