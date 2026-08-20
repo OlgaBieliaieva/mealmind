@@ -12,4 +12,7 @@ self-service registration.
 
 Proxy перевіряє Supabase identity та актуальну application role перед
 відображенням захищених маршрутів. Password recovery працює у власному admin
-origin, а паролі й recovery codes не передаються до MealMind API або logs.
+origin. Callback негайно повертає session cookies після PKCE-обміну, а перевірку
+ролі `ADMIN` виконує Proxy на наступному запиті. Повторний callback приймається
+лише за наявності вже валідної сесії. Паролі й recovery codes не передаються до
+MealMind API або logs.
