@@ -10,6 +10,9 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/auth/auth-code-error",
   "/auth/forgot-password",
   "/auth/update-password",
+  "/account-activation",
+  "/account-activation/start",
+  "/api/account-activation",
 ]);
 
 function copyCookies(source: NextResponse, target: NextResponse): NextResponse {
@@ -39,12 +42,9 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated =
     claimsResult.error === null && claimsResult.data?.claims.sub !== undefined;
   const pathname = request.nextUrl.pathname;
+  const isAccountActivation =
+    pathname === "/account-activation" || pathname === "/api/account-activation";
   const isEntryPage = pathname === "/auth/sign-in" || pathname === "/auth/sign-up";
-
-  if (isAuthenticated && isEntryPage) {
-    const target = sanitizeReturnTo(request.nextUrl.searchParams.get("returnTo"));
-    return copyCookies(response, NextResponse.redirect(new URL(target, request.url)));
-  }
 
   if (!isAuthenticated && !isEntryPage && !PUBLIC_AUTH_PATHS.has(pathname)) {
     const signInUrl = new URL("/auth/sign-in", request.url);
@@ -53,6 +53,54 @@ export async function proxy(request: NextRequest) {
       sanitizeReturnTo(`${pathname}${request.nextUrl.search}`),
     );
     return copyCookies(response, NextResponse.redirect(signInUrl));
+  }
+
+  if (isAuthenticated && !PUBLIC_AUTH_PATHS.has(pathname)) {
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session?.access_token;
+    if (session.error !== null || accessToken === undefined) {
+      return copyCookies(response, NextResponse.redirect(new URL("/auth/sign-in", request.url)));
+    }
+    const apiBase = config.apiUrl.replace(/\/+$/, "");
+    const headers = {
+      accept: "application/json",
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    };
+    const bootstrap = await fetch(`${apiBase}/api/v1/account/bootstrap`, {
+      method: "POST",
+      headers,
+      body: "{}",
+      cache: "no-store",
+    });
+    if (!bootstrap.ok)
+      return copyCookies(
+        response,
+        NextResponse.redirect(new URL("/auth/auth-code-error", request.url)),
+      );
+    const applicationSession = await fetch(`${apiBase}/api/v1/session`, {
+      headers,
+      cache: "no-store",
+    });
+    if (!applicationSession.ok)
+      return copyCookies(
+        response,
+        NextResponse.redirect(new URL("/auth/auth-code-error", request.url)),
+      );
+    const payload = (await applicationSession.json()) as {
+      data?: { onboardingCompleted?: boolean };
+    };
+    const onboardingCompleted = payload.data?.onboardingCompleted === true;
+    if (!onboardingCompleted && pathname !== "/onboarding" && !isAccountActivation) {
+      return copyCookies(response, NextResponse.redirect(new URL("/onboarding", request.url)));
+    }
+    if (onboardingCompleted && pathname === "/onboarding") {
+      return copyCookies(response, NextResponse.redirect(new URL("/", request.url)));
+    }
+    if (isEntryPage) {
+      const target = sanitizeReturnTo(request.nextUrl.searchParams.get("returnTo"));
+      return copyCookies(response, NextResponse.redirect(new URL(target, request.url)));
+    }
   }
 
   return response;

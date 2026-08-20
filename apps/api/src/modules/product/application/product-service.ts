@@ -10,6 +10,8 @@ import type {
   ProductMediaRecord,
   ProductPage,
   ProductRepository,
+  ProductSearchPage,
+  ProductSearchQuery,
   ProductStatus,
   ProductSummary,
   ProductUpdate,
@@ -72,6 +74,7 @@ export interface ProductMediaCleanupResult {
 
 export interface ProductService {
   list(query: ProductListQuery): Promise<ProductPageView>;
+  search(query: ProductSearchQuery): Promise<ProductSearchPage>;
   get(id: string): Promise<ProductDetailsView>;
   create(input: CreateProductInput): Promise<ProductDetailsView>;
   update(id: string, input: ProductUpdate): Promise<ProductDetailsView>;
@@ -111,6 +114,10 @@ export function createProductService(
       );
 
       return Object.freeze({ ...page, items: Object.freeze(items) });
+    },
+
+    async search(query) {
+      return repository.searchActive(query);
     },
 
     async get(id) {
@@ -422,7 +429,6 @@ async function presentMedia(
     storage.createReadUrl(thumbnailObjectPath(media.storageObjectPath)),
   ]);
 
-  // TTL is intentionally owned by the storage adapter; the constant documents the API contract.
   void READ_URL_TTL_SECONDS;
   return Object.freeze({ ...media, url, thumbnailUrl });
 }

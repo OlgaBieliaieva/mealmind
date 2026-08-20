@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
-import { bootstrapAccount } from "@/shared/api/account";
+import { bootstrapAccount, readApplicationSessionContext } from "@/shared/api/account";
 import { getBrowserSupabaseClient } from "@/shared/supabase/browser-client";
 import { readWebEnv } from "@/config/env";
 
@@ -76,7 +76,12 @@ export function AuthForm({
         });
         if (result.error !== null) throw result.error;
         await bootstrapAccount();
-        navigate(safeReturnTo);
+        const session = await readApplicationSessionContext();
+        navigate(
+          session.onboardingCompleted || safeReturnTo === "/account-activation"
+            ? safeReturnTo
+            : "/onboarding",
+        );
         return;
       }
 
@@ -92,7 +97,12 @@ export function AuthForm({
 
         if (result.data.session !== null) {
           await bootstrapAccount();
-          navigate(safeReturnTo);
+          const session = await readApplicationSessionContext();
+          navigate(
+            session.onboardingCompleted || safeReturnTo === "/account-activation"
+              ? safeReturnTo
+              : "/onboarding",
+          );
         } else {
           window.sessionStorage.setItem("mealmind.pending-confirmation-email", email.trim());
           navigate("/auth/check-email");

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { readWebEnv } from "@/config/env";
 import { readServerWebEnv } from "@/config/server-env";
 import { resolveCallbackOrigin } from "@/features/auth/callback-origin";
 import { sanitizeReturnTo } from "@/features/auth/safe-return-to";
@@ -17,36 +16,24 @@ export async function GET(request: Request) {
     process.env.NODE_ENV === "development",
   );
 
-  if (code === null) {
-    return NextResponse.redirect(new URL("/auth/auth-code-error", redirectOrigin));
-  }
-
   const supabase = await createServerSupabaseClient();
-  const exchange = await supabase.auth.exchangeCodeForSession(code);
 
-  if (exchange.error !== null || exchange.data.session === null) {
-    return NextResponse.redirect(new URL("/auth/auth-code-error", redirectOrigin));
+  if (code !== null) {
+    const exchange = await supabase.auth.exchangeCodeForSession(code);
+
+    if (exchange.error === null && exchange.data.session !== null) {
+      // Return immediately so the browser persists the PKCE session before
+      // application bootstrap and authorization run in proxy.ts.
+      return NextResponse.redirect(new URL(next, redirectOrigin));
+    }
   }
 
-  const apiConfig = readWebEnv();
-  const bootstrapResponse = await fetch(
-    `${apiConfig.apiUrl.replace(/\/+$/, "")}/api/v1/account/bootstrap`,
-    {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${exchange.data.session.access_token}`,
-        "content-type": "application/json",
-      },
-      body: "{}",
-      cache: "no-store",
-    },
-  );
-
-  if (!bootstrapResponse.ok) {
-    await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/auth/auth-code-error", redirectOrigin));
+  // A confirmation URL can be retried after its one-time code was consumed.
+  // Continue only when this browser already owns a verified session.
+  const claims = await supabase.auth.getClaims();
+  if (claims.error === null && claims.data?.claims.sub !== undefined) {
+    return NextResponse.redirect(new URL(next, redirectOrigin));
   }
 
-  return NextResponse.redirect(new URL(next, redirectOrigin));
+  return NextResponse.redirect(new URL("/auth/auth-code-error", redirectOrigin));
 }

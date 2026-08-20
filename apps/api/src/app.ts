@@ -12,7 +12,10 @@ import { errorHandler } from "./http/middleware/error-handler.js";
 import { notFoundHandler } from "./http/middleware/not-found-handler.js";
 import { createApiRateLimitOptions } from "./http/middleware/rate-limit.js";
 import { createRequestContextMiddleware } from "./http/middleware/request-context.js";
-import { createSessionRouter } from "./http/routes/session-router.js";
+import {
+  createSessionRouter,
+  type ApplicationSessionReader,
+} from "./http/routes/session-router.js";
 
 export interface AppDependencies {
   readonly healthService: HealthService;
@@ -22,6 +25,8 @@ export interface AppDependencies {
   readonly referenceRouter?: Router;
   readonly productRouter?: Router;
   readonly recipeRouter?: Router;
+  readonly familyRouter?: Router;
+  readonly sessionReader?: ApplicationSessionReader;
   readonly logger: AppLogger;
   readonly corsAllowedOrigins: readonly string[];
 }
@@ -64,7 +69,10 @@ export function createApp(dependencies: AppDependencies): Express {
     response.status(200).json(apiOpenApiDocument);
   });
 
-  app.use("/api/v1", createSessionRouter(dependencies.authenticationService));
+  app.use(
+    "/api/v1",
+    createSessionRouter(dependencies.authenticationService, dependencies.sessionReader),
+  );
 
   if (dependencies.accountRouter !== undefined) {
     app.use("/api/v1", dependencies.accountRouter);
@@ -80,6 +88,10 @@ export function createApp(dependencies: AppDependencies): Express {
 
   if (dependencies.recipeRouter !== undefined) {
     app.use("/api/v1", dependencies.recipeRouter);
+  }
+
+  if (dependencies.familyRouter !== undefined) {
+    app.use("/api/v1", dependencies.familyRouter);
   }
 
   app.use(notFoundHandler);

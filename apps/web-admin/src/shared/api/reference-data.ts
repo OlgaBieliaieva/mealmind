@@ -77,3 +77,13 @@ export function updateReferenceData(
     data,
   );
 }
+
+export function archiveReferenceData(
+  apiClient: ApiClient,
+  resource: ReferenceResource,
+  id: string,
+) {
+  return apiClient.delete<{ readonly data: ReferenceItem }>(
+    `/api/v1/admin/reference/${resource}/${encodeURIComponent(id)}`,
+  );
+}

@@ -1,0 +1,137 @@
+.onboarding-page {
+  display: grid;
+  min-height: 100dvh;
+  padding: 1rem;
+  place-items: center;
+  background: linear-gradient(145deg, #ecfdf5, #f9fafb 60%);
+}
+.onboarding-card {
+  width: min(100%, 32rem);
+  padding: clamp(1.25rem, 5vw, 2rem);
+  border: 0.0625rem solid var(--client-color-border);
+  border-radius: 1.25rem;
+  background: var(--client-color-surface);
+  box-shadow: var(--client-shadow-card);
+}
+.onboarding-card h1 {
+  margin: 1rem 0 0.5rem;
+  line-height: 1.2;
+}
+.onboarding-progress p,
+.onboarding-privacy {
+  color: var(--client-color-text-muted);
+  font-size: 0.8125rem;
+}
+.onboarding-progress progress {
+  width: 100%;
+  accent-color: var(--client-color-primary);
+}
+.onboarding-explanation {
+  margin: 0 0 1.5rem;
+  color: var(--client-color-text-muted);
+}
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.onboarding-error {
+  color: #b91c1c;
+}
+.onboarding-privacy {
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--client-color-border);
+}
+
+.onboarding-calculation,
+.onboarding-result {
+  text-align: center;
+}
+
+.onboarding-calculation__indicator {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  border: 0.25rem solid #d1fae5;
+  border-top-color: var(--client-color-primary);
+  border-radius: 50%;
+  animation: onboarding-spin 0.9s linear infinite;
+}
+
+.onboarding-calculation__progress {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  color: var(--client-color-primary);
+  font-weight: 700;
+}
+
+.onboarding-calculation__progress progress {
+  width: 100%;
+  height: 0.75rem;
+  accent-color: var(--client-color-primary);
+}
+
+.onboarding-result__eyebrow {
+  margin: 0;
+  color: var(--client-color-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.onboarding-recommendations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.onboarding-recommendations > div {
+  padding: 0.875rem;
+  border: 0.0625rem solid var(--client-color-border);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.onboarding-recommendations dt {
+  color: var(--client-color-text-muted);
+  font-size: 0.75rem;
+}
+
+.onboarding-recommendations dd {
+  margin: 0.35rem 0 0;
+  font-weight: 700;
+}
+
+.onboarding-result__note {
+  margin: 1.5rem 0 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  color: #065f46;
+  text-align: left;
+}
+
+@keyframes onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 30rem) {
+  .onboarding-recommendations {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-calculation__indicator {
+    animation: none;
+    border-color: var(--client-color-primary);
+  }
+}

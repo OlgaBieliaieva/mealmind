@@ -155,4 +155,24 @@ describe("reference service", () => {
       service.update("product-categories", "root", { isActive: false }),
     ).rejects.toMatchObject({ code: "INVALID_REFERENCE_RELATION", statusCode: 400 });
   });
+
+  it("maps delete semantics to resource-specific archival fields", async () => {
+    const updates: Array<{ resource: string; data: ReferenceRecord }> = [];
+    const repository = repositoryWith([]);
+    repository.update = async (resource, id, data) => {
+      updates.push({ resource, data: { id, ...data } });
+      return { id, ...data };
+    };
+    const service = createReferenceService(repository);
+
+    await service.archive("brands", "brand-id");
+    await service.archive("authors", "author-id");
+    await service.archive("nutrients", "nutrient-id");
+
+    expect(updates).toEqual([
+      { resource: "brands", data: { id: "brand-id", status: "ARCHIVED" } },
+      { resource: "authors", data: { id: "author-id", isActive: false } },
+      { resource: "nutrients", data: { id: "nutrient-id", isActive: false } },
+    ]);
+  });
 });

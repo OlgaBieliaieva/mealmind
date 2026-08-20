@@ -1,10 +1,10 @@
-import { deployMigrations } from "./helpers/prisma-migrations.js";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config as loadEnvironment } from "dotenv";
 import { Client } from "pg";
 
+import { deployMigrations } from "./helpers/prisma-migrations.js";
 import {
   recreateTestDatabase,
   resolveTestDatabaseTarget,
@@ -15,7 +15,12 @@ const testDirectory = dirname(fileURLToPath(import.meta.url));
 
 const repositoryRoot = resolve(testDirectory, "../../../..");
 
-const EXPECTED_BASELINE = "20260728135246_00_baseline";
+const EXPECTED_MIGRATIONS = [
+  "20260728135246_00_baseline",
+  "20260812120000_01_family_member_account_invitations",
+  "20260813112956_add_nutrient_target_energy_snapshot",
+  "20260814073753_replace_meal_settings_with_meal_type_preferences",
+] as const;
 
 loadEnvironment({
   path: resolve(repositoryRoot, ".env"),
@@ -28,23 +33,23 @@ async function main(): Promise<void> {
 
   await recreateTestDatabase(target);
 
-  console.info("Applying Prisma baseline migration...");
+  console.info("Applying Prisma migrations...");
 
   await deployMigrations(target);
 
-  const report = await verifyAppliedBaseline(target);
+  const report = await verifyAppliedMigrations(target);
 
   console.info("Migration smoke test passed.");
-  console.info(`migration=${report.migrationName}`);
+  console.info(`migrations=${report.migrationNames.join(",")}`);
   console.info(`publicTables=${report.publicTableCount}`);
 }
 
 interface MigrationVerificationReport {
-  readonly migrationName: string;
+  readonly migrationNames: readonly string[];
   readonly publicTableCount: number;
 }
 
-async function verifyAppliedBaseline(
+async function verifyAppliedMigrations(
   target: TestDatabaseTarget,
 ): Promise<MigrationVerificationReport> {
   const client = new Client({
@@ -69,30 +74,22 @@ async function verifyAppliedBaseline(
       ORDER BY started_at
     `);
 
-    if (migrationResult.rows.length !== 1) {
-      throw new Error(`Expected exactly one migration, received ${migrationResult.rows.length}`);
+    if (migrationResult.rows.length !== EXPECTED_MIGRATIONS.length) {
+      throw new Error(
+        `Expected ${EXPECTED_MIGRATIONS.length} migrations, received ${migrationResult.rows.length}`,
+      );
     }
 
-    const migration = migrationResult.rows[0];
+    for (const [index, migration] of migrationResult.rows.entries()) {
+      if (migration.migration_name !== EXPECTED_MIGRATIONS[index]) {
+        throw new Error(
+          `Unexpected migration applied at position ${index}: ${migration.migration_name}`,
+        );
+      }
 
-    if (!migration) {
-      throw new Error("Baseline migration record is missing");
-    }
-
-    if (migration.migration_name !== EXPECTED_BASELINE) {
-      throw new Error(`Unexpected migration applied: ${migration.migration_name}`);
-    }
-
-    if (!migration.finished) {
-      throw new Error("Baseline migration is not marked as finished");
-    }
-
-    if (migration.rolled_back) {
-      throw new Error("Baseline migration is marked as rolled back");
-    }
-
-    if (migration.applied_steps_count !== 1) {
-      throw new Error("Baseline migration has an unexpected applied step count");
+      if (!migration.finished || migration.rolled_back || migration.applied_steps_count !== 1) {
+        throw new Error(`Migration has an invalid applied state: ${migration.migration_name}`);
+      }
     }
 
     const tableResult = await client.query<{
@@ -115,11 +112,11 @@ async function verifyAppliedBaseline(
      * Exact application table coverage will be verified separately.
      */
     if (publicTableCount <= 1) {
-      throw new Error("Baseline migration did not create application tables");
+      throw new Error("Applied migrations did not create application tables");
     }
 
     return {
-      migrationName: migration.migration_name,
+      migrationNames: migrationResult.rows.map((migration) => migration.migration_name),
       publicTableCount,
     };
   } finally {

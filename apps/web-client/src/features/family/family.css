@@ -1,0 +1,1139 @@
+.family-page {
+  display: grid;
+  gap: 2rem;
+}
+
+.family-page__header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.family-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.family-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.family-form__header {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.family-members {
+  display: grid;
+  gap: 0.75rem;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.family-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.family-member__info {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.family-member__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ==========================================================================
+   Profile page
+   ========================================================================== */
+
+.profile-page {
+  display: grid;
+  gap: 2rem;
+
+  width: 100%;
+}
+
+.profile-page__header {
+  display: grid;
+  gap: 0.5rem;
+
+  max-width: 48rem;
+}
+
+.profile-page__sections {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* ==========================================================================
+   Generic profile section
+   ========================================================================== */
+
+.profile-section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.profile-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.profile-section__heading {
+  display: grid;
+  gap: 0.375rem;
+
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.profile-section__header > button {
+  flex-shrink: 0;
+}
+
+.profile-subsection {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Values
+   ========================================================================== */
+
+.profile-values {
+  display: grid;
+
+  margin: 0;
+}
+
+.profile-value-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+
+  padding-block: 0.875rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-value-row:first-child {
+  padding-top: 0;
+}
+
+.profile-value-row:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.profile-value-row__label {
+  min-width: 0;
+
+  color: var(--ui-color-text-muted);
+
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.profile-value-row__value {
+  min-width: 0;
+
+  margin: 0;
+
+  color: var(--ui-color-text);
+
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.profile-value-row__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  min-width: 0;
+}
+
+.profile-value-row__text {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+.profile-value-row__action {
+  display: inline-flex;
+
+  flex-shrink: 0;
+}
+
+.profile-value-row__action .ui-button {
+  min-height: 2.25rem;
+
+  padding: 0.4375rem 0.75rem;
+}
+
+.profile-empty-value {
+  color: var(--ui-color-text-muted);
+
+  font-weight: 400;
+}
+
+/* ==========================================================================
+   Body & activity
+   ========================================================================== */
+
+.profile-body-activity-grid {
+  display: grid;
+  gap: 2rem;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-body-activity-grid .profile-values {
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-body-activity-grid .profile-value-row {
+  grid-template-columns: minmax(12rem, 0.35fr) minmax(0, 1fr);
+}
+
+/* ==========================================================================
+   Profile edit forms
+   ========================================================================== */
+
+.profile-edit-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-form-context {
+  display: grid;
+  gap: 0.25rem;
+
+  padding: 0.75rem 1rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface-muted);
+}
+
+/* ==========================================================================
+   Empty states
+   ========================================================================== */
+
+.profile-empty-state {
+  display: grid;
+  gap: 0.375rem;
+
+  padding: 1rem;
+
+  border: 1px dashed var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface-muted);
+}
+
+/* ==========================================================================
+   Badges
+   ========================================================================== */
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: fit-content;
+  max-width: 100%;
+
+  padding: 0.25rem 0.625rem;
+
+  border-radius: 999px;
+
+  background: var(--ui-color-surface-muted);
+  color: var(--ui-color-text);
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+
+  white-space: nowrap;
+}
+
+.profile-badge--muted {
+  color: var(--ui-color-text-muted);
+
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Nutrition targets
+   ========================================================================== */
+
+.profile-nutrition-energy,
+.profile-nutrition-current {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-nutrition-energy {
+  padding-bottom: 1.5rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-nutrition-energy__heading {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.profile-nutrition-energy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-nutrition-current__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.profile-nutrition-current__heading {
+  display: grid;
+  gap: 0.375rem;
+
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.profile-nutrition-current__heading .profile-badge {
+  margin-top: 0.375rem;
+}
+
+.profile-nutrition-current__header > button {
+  flex-shrink: 0;
+}
+
+.profile-nutrition-missing {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-nutrition-missing ul {
+  display: grid;
+  gap: 0.375rem;
+
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.profile-nutrition-missing a {
+  width: fit-content;
+
+  color: var(--ui-color-text);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.profile-target-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.profile-target-summary > div {
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+
+  min-width: 10rem;
+
+  padding: 0.75rem 1rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface-muted);
+}
+
+.profile-target-list {
+  display: grid;
+}
+
+.profile-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+
+  min-width: 0;
+
+  padding-block: 0.875rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-target:first-child {
+  padding-top: 0;
+}
+
+.profile-target:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.profile-target > div {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.profile-target__value {
+  flex-shrink: 0;
+
+  color: var(--ui-color-text);
+
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Food preferences
+   ========================================================================== */
+
+.profile-preference-list {
+  display: grid;
+}
+
+.profile-preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+
+  min-width: 0;
+
+  padding-block: 1rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-preference-row:first-child {
+  padding-top: 0;
+}
+
+.profile-preference-row:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.profile-preference-row__content {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.profile-preference-row__content > * {
+  overflow-wrap: anywhere;
+}
+
+.profile-preference-row > button {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Family summary
+   ========================================================================== */
+
+.profile-family-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-family-heading__content {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.profile-family-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-family-members {
+  display: grid;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.profile-family-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  min-width: 0;
+
+  padding-block: 0.875rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-family-member:first-child {
+  padding-top: 0;
+}
+
+.profile-family-member:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.profile-family-member__info {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.profile-family-member__name {
+  color: var(--ui-color-text);
+
+  font-weight: 500;
+
+  overflow-wrap: anywhere;
+}
+
+.profile-family-member__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Account & security
+   ========================================================================== */
+
+.profile-account-section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.profile-account-section__content {
+  display: grid;
+  gap: 0.375rem;
+
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.profile-account-section > button {
+  justify-self: start;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 48rem) {
+  .profile-page {
+    gap: 1.5rem;
+  }
+
+  .profile-page__sections {
+    gap: 1rem;
+  }
+
+  .profile-section__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-section__header > button {
+    align-self: flex-start;
+  }
+
+  .profile-value-row {
+    grid-template-columns: minmax(7rem, 0.55fr) minmax(0, 1fr);
+  }
+
+  .profile-body-activity-grid .profile-value-row {
+    grid-template-columns: minmax(9rem, 0.4fr) minmax(0, 1fr);
+  }
+
+  .profile-target-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 32rem) {
+  .profile-page {
+    gap: 1.25rem;
+  }
+
+  .profile-section {
+    gap: 1.25rem;
+  }
+
+  .profile-value-row,
+  .profile-body-activity-grid .profile-value-row {
+    grid-template-columns: 1fr;
+    gap: 0.375rem;
+  }
+
+  .profile-value-row__content {
+    gap: 0.75rem;
+  }
+
+  .profile-target-summary {
+    display: grid;
+  }
+
+  .profile-target-summary > div {
+    min-width: 0;
+  }
+
+  .profile-target {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-target__value {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .profile-preference-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .profile-preference-row > button {
+    align-self: flex-start;
+  }
+
+  .profile-family-heading,
+  .profile-family-member {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-family-member__badges {
+    justify-content: flex-start;
+  }
+
+  .family-member {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 32rem) {
+  .profile-weight-goal-actions__buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .profile-weight-goal-actions__buttons > button {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   Weight goal
+   ========================================================================== */
+
+.profile-weight-goal-actions {
+  display: grid;
+  gap: 1rem;
+
+  padding-top: 1.25rem;
+
+  border-top: 1px solid var(--ui-color-border);
+}
+
+.profile-weight-goal-actions__content {
+  display: grid;
+  gap: 0.25rem;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-weight-goal-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  width: 100%;
+}
+
+/* ==========================================================================
+   Nutrition targets
+   ========================================================================== */
+
+.profile-nutrition-energy,
+.profile-nutrition-current {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-nutrition-energy {
+  padding-bottom: 1.5rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-nutrition-energy__heading,
+.profile-nutrition-current__heading {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.profile-nutrition-current__heading {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+}
+
+.profile-nutrition-energy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-nutrition-missing {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-nutrition-missing ul {
+  display: grid;
+  gap: 0.375rem;
+
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.profile-nutrition-missing a {
+  width: fit-content;
+
+  color: var(--ui-color-text);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ==========================================================================
+   Nutrition target form
+   ========================================================================== */
+
+.profile-nutrition-form {
+  gap: 2rem;
+}
+
+.profile-nutrition-form__section {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-nutrition-form__section > div:first-child {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.profile-nutrition-form__targets {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-nutrition-target-editor {
+  display: grid;
+  gap: 1rem;
+
+  padding: 1rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface);
+}
+
+.profile-nutrition-target-editor__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-nutrition-target-editor__header > div {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.profile-nutrition-target-editor__header > button {
+  flex-shrink: 0;
+}
+
+.profile-nutrition-target-editor__range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-nutrition-form__add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 48rem) {
+  .profile-nutrition-current__heading {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-nutrition-current__heading .profile-badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 32rem) {
+  .profile-nutrition-target-editor__header {
+    flex-direction: column;
+  }
+
+  .profile-nutrition-target-editor__header > button {
+    align-self: flex-start;
+  }
+
+  .profile-nutrition-target-editor__range {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-nutrition-form__add {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-nutrition-form__add > button {
+    width: 100%;
+  }
+}
+
+.profile-meal-types-form {
+  gap: 1.5rem;
+}
+
+.profile-meal-types-group {
+  display: grid;
+  gap: 0.75rem;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+}
+
+.profile-meal-types-group legend {
+  margin: 0 0 0.25rem;
+  padding: 0;
+}
+
+.profile-meal-types-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.profile-meal-type-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  padding: 0.75rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  cursor: pointer;
+}
+
+.profile-meal-type-option > input {
+  flex: 0 0 auto;
+}
+
+.profile-meal-type-option__content {
+  min-width: 0;
+}
+
+.profile-preference-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ==========================================================================
+   Allergies form
+   ========================================================================== */
+
+.profile-allergies-form {
+  gap: 1.25rem;
+}
+
+.profile-allergies-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-allergy-option {
+  display: grid;
+  gap: 0.875rem;
+
+  padding: 0.875rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface);
+}
+
+.profile-allergy-option__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  cursor: pointer;
+}
+
+.profile-allergy-option__checkbox > input {
+  flex: 0 0 auto;
+}
+
+.profile-allergy-option__severity {
+  padding-left: 1.75rem;
+}
+
+@media (max-width: 32rem) {
+  .profile-allergy-option__severity {
+    padding-left: 0;
+  }
+}
+
+/* ==========================================================================
+   Disliked products form
+   ========================================================================== */
+
+.profile-disliked-products-form {
+  gap: 1.5rem;
+}
+
+.profile-disliked-products-search {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.profile-disliked-products-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-disliked-products-selected,
+.profile-disliked-products-results {
+  display: grid;
+}
+
+.profile-disliked-products-selected__item,
+.profile-disliked-product-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  min-width: 0;
+
+  padding-block: 0.75rem;
+
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.profile-disliked-products-selected__item:first-child,
+.profile-disliked-product-result:first-child {
+  padding-top: 0;
+}
+
+.profile-disliked-products-selected__item:last-child,
+.profile-disliked-product-result:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.profile-disliked-products-selected__item > button,
+.profile-disliked-product-result > button {
+  flex-shrink: 0;
+}
+
+.profile-disliked-product-result__content {
+  display: grid;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+@media (max-width: 32rem) {
+  .profile-disliked-products-selected__item,
+  .profile-disliked-product-result {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-disliked-products-selected__item > button,
+  .profile-disliked-product-result > button {
+    align-self: flex-start;
+  }
+}
+
+/* ==========================================================================
+   Family management — role-aware workspace
+   ========================================================================== */
+
+.family-section__heading {
+  display: grid;
+  gap: 0.375rem;
+
+  max-width: 48rem;
+}
+
+.family-member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.family-member__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.family-member__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.family-member__actions .ui-button {
+  min-width: 2.5rem;
+}
+
+.family-form > .ui-button {
+  justify-self: start;
+}
+
+.family-invitation-status {
+  display: grid;
+  gap: 0.25rem;
+
+  padding: 0.875rem 1rem;
+
+  border: 1px solid var(--ui-color-border);
+  border-radius: 0.75rem;
+
+  background: var(--ui-color-surface-muted);
+}
+
+.family-invitation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-family-actions {
+  display: flex;
+  justify-content: flex-start;
+
+  padding-top: 0.25rem;
+}
+
+@media (max-width: 48rem) {
+  .family-member {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .family-member__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 32rem) {
+  .family-member {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .family-member__meta,
+  .family-member__actions {
+    justify-content: flex-start;
+  }
+
+  .family-invitation-actions {
+    display: grid;
+  }
+
+  .family-invitation-actions > button {
+    width: 100%;
+  }
+}

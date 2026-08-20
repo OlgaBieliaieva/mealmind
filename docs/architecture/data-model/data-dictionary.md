@@ -106,15 +106,15 @@ Optional ціль підтримання, зниження або збільше
 | Основні поля | `minimumValue`, `targetValue`, `maximumValue`, `source`               |
 | Інваріанти   | Має бути задана щонайменше одна межа; значення мають логічний порядок |
 
-### PersonMealSetting
+### PersonMealTypePreference
 
-One-to-one налаштування кількості основних прийомів їжі та перекусів.
+Вибраний профілем тип прийому їжі, який використовується для персоналізації плану.
 
-| Аспект       | Опис                                                                 |
-| ------------ | -------------------------------------------------------------------- |
-| Ключ         | Unique `personProfileId`                                             |
-| Основні поля | `mainMealsPerDay`, `snacksPerDay`                                    |
-| Інваріанти   | Значення є невід’ємними та обмежуються погодженим application policy |
+| Аспект     | Опис                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------- |
+| Ключ       | Unique `(personProfileId, mealTypeId)`                                                 |
+| Зв’язки    | `PersonProfile` → `MealType`                                                           |
+| Інваріанти | Доступні лише active `MealType`; повна заміна набору є ідемпотентною profile operation |
 
 ### PersonDietaryRestriction
 
@@ -184,6 +184,17 @@ Authorization-зв’язок зареєстрованого користува�
 | Ключ         | Unique `(familyId, personProfileId)`                                  |
 | Основні поля | `joinedAt`, `archivedAt`                                              |
 | Інваріанти   | Дозволяє залежному профілю брати участь у плані без облікового запису |
+
+### FamilyMemberAccountInvitation
+
+Одноразове запрошення для активації власного облікового запису existing dependent-профілю.
+
+| Аспект        | Опис                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| Ownership     | `Family`, target `PersonProfile`, `invitedByUserId`                                           |
+| Основні поля  | normalized `recipientEmail`, unique SHA-256 `tokenHash`, `status`, expiration і timestamps    |
+| Інваріанти    | Одне `PENDING` invitation на profile; raw secret не зберігається; claim завжди створює MEMBER |
+| Життєвий цикл | `PENDING → ACCEPTED`, `REVOKED` або `EXPIRED`; resend перевипускає secret                     |
 
 ## Reference Data
 

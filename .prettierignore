@@ -21,3 +21,4 @@ docs/migration-ledger.md
 docs/pull-requests/
 
 packages/db/src/generated/prisma/
+packages/db/scripts/usda/data/

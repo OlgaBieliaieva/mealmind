@@ -19,3 +19,9 @@ export const listReferenceSchema = z.object({
   }),
   body: emptyBodySchema,
 });
+
+export const archiveReferenceSchema = z.object({
+  params: z.object({ resource: z.enum(REFERENCE_RESOURCES), id: z.uuid() }),
+  query: z.object({}),
+  body: emptyBodySchema,
+});

@@ -122,6 +122,11 @@ Auth unit/component tests окремо перевіряють identity-only boot
 role injection, password schemas, нейтральні recovery states, same-origin
 `returnTo`, admin role gate та HTML/axe semantics auth forms.
 
+Family/onboarding tests окремо перевіряють verified identity, заборону injection
+userId/familyId/role, атомарний та ідемпотентний family bootstrap, рівно одну
+ACTIVE membership, OWNER policy, tenant isolation, dependent-профіль без User,
+soft archive і покрокову доступну форму без проміжного збереження відповідей.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -178,6 +183,12 @@ apps/web-client/src/test/ui-quality.test.tsx
 
 Тести розташовуються поруч із кодом, коли вони перевіряють окремий модуль або компонент. Окремі test-директорії використовуються лише для integration- та E2E-сценаріїв зі спільним середовищем або fixtures.
 
+Для адміністративних довідників component tests перевіряють нормалізацію
+типізованих полів, незмінність seeded code, field-level validation та доступність
+generic create/edit form. API tests окремо перевіряють ADMIN policy і
+resource-specific soft-delete mapping; фізичне видалення reference records у
+тестових сценаріях не вважається підтримуваною поведінкою.
+
 ## Тестові дані та безпека
 
 - тести не використовують production data, production credentials або персональні дані реальних користувачів;
@@ -202,6 +213,7 @@ npm run db:test:seed
 npm run db:test
 npm run api:test:products:db
 npm run api:test:accounts:db
+npm run api:test:families:db
 npm run api:test:recipes:db
 npm run check
 npm run test:ui-quality

@@ -41,6 +41,13 @@ export function createReferenceRouter(
     requireAdmin,
     controller.update,
   );
+  router.delete(
+    "/admin/reference/:resource/:id",
+    referenceRateLimiter,
+    authenticated,
+    requireAdmin,
+    controller.archive,
+  );
 
   return router;
 }

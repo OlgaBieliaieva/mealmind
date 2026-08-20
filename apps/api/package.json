@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:products:db": "tsx src/modules/product/infrastructure/prisma-product-repository.integration.ts",
     "test:accounts:db": "tsx src/modules/account/infrastructure/prisma-account-repository.integration.ts",
+    "test:families:db": "tsx src/modules/family/infrastructure/prisma-family-repository.integration.ts",
     "test:recipes:db": "tsx src/modules/recipe/infrastructure/prisma-recipe-repository.integration.ts",
     "test:coverage": "vitest run --coverage",
     "openapi:export": "tsx src/scripts/export-openapi.ts",
@@ -28,6 +29,7 @@
     "express": "5.2.1",
     "express-rate-limit": "8.6.1",
     "pino": "10.3.1",
+    "resend": "^6.19.0",
     "sharp": "0.35.3",
     "zod": "4.4.3"
   },

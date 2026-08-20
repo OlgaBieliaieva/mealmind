@@ -40,6 +40,7 @@ describe("MealMind API application", () => {
         "Створити значення довідника",
       );
       expect(response.body.paths["/api/v1/admin/reference/{resource}/{id}"].patch).toBeDefined();
+      expect(response.body.paths["/api/v1/admin/reference/{resource}/{id}"].delete).toBeDefined();
       expect(response.body.paths["/api/v1/admin/products"].post.summary).toBe(
         "Створити generic або branded продукт",
       );
