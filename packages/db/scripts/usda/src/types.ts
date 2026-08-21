@@ -15,7 +15,14 @@ export type UsdaCommand =
   | "curate"
   | "nutrients"
   | "portions"
-  | "normalize-portions";
+  | "normalize-portions"
+  | "build-import-ready"
+  | "translation-source"
+  | "product-name-translation-input"
+  | "product-name-translation-batch"
+  | "import-product-name-translation-batch"
+  | "finalize"
+  | "validate-final";
 
 /**
  * Common shape of a CSV row returned by csv-parse

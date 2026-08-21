@@ -1,0 +1,888 @@
+export type ProductCategoryKind = "INGREDIENT" | "PREPARED_FOOD" | "GROUP" | "SOURCE_COLLECTION";
+
+export interface ProductCategoryReference {
+  readonly id: string;
+
+  readonly code: string;
+
+  readonly nameUa: string;
+
+  readonly nameEn: string;
+
+  readonly kind: ProductCategoryKind;
+
+  readonly parentCategoryId: string | null;
+
+  readonly isAssignable: boolean;
+
+  readonly isActive: boolean;
+
+  readonly sortOrder: number;
+}
+
+/**
+ * Stable MealMind ProductCategory reference snapshot used by the
+ * local USDA import pipeline.
+ *
+ * IMPORTANT:
+ *
+ * This file intentionally does not import Prisma types or the
+ * database seed module.
+ *
+ * The USDA pipeline has its own TypeScript rootDir and must remain
+ * independent from:
+ *
+ * packages/db/src/generated
+ * packages/db/prisma
+ *
+ * UUIDs and category codes must stay synchronized with the canonical
+ * MealMind ProductCategory reference seed.
+ */
+export const PRODUCT_CATEGORY_REFERENCES: readonly ProductCategoryReference[] = [
+  {
+    id: "006e4ce8-4f80-4178-be87-ed137a7f9ffd",
+    code: "alliums",
+    nameUa: "Цибулеві",
+    nameEn: "Alliums",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 110,
+  },
+
+  {
+    id: "036094fb-989d-4e4d-971d-ea31f9a74d21",
+    code: "peas",
+    nameUa: "Горох",
+    nameEn: "Peas",
+    kind: "INGREDIENT",
+    parentCategoryId: "c064cc37-e2cf-401d-a6f4-04a2aa1ad692",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 220,
+  },
+
+  {
+    id: "0436f681-8a03-4168-afe4-7d60d6b7126a",
+    code: "eggs",
+    nameUa: "Яйця",
+    nameEn: "Eggs",
+    kind: "INGREDIENT",
+    parentCategoryId: "edaec1c0-9289-48a8-aac4-292bc4f50984",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 370,
+  },
+
+  {
+    id: "04b45f82-764c-4fea-aaa6-819b0dd9ef3a",
+    code: "chocolate",
+    nameUa: "Шоколад",
+    nameEn: "Chocolate",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "e31c6b52-8c8e-4879-be30-2cf4d2286ed0",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 430,
+  },
+
+  {
+    id: "0558f4fb-04c5-4ba6-9200-7a7d0ca79a7a",
+    code: "squash_gourds",
+    nameUa: "Кабачкові та гарбузові",
+    nameEn: "Squash & gourds",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 130,
+  },
+
+  {
+    id: "0857066a-bdff-4bbf-a7d8-80f0491f30f7",
+    code: "yogurt",
+    nameUa: "Йогурт",
+    nameEn: "Yogurt",
+    kind: "INGREDIENT",
+    parentCategoryId: "edaec1c0-9289-48a8-aac4-292bc4f50984",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 360,
+  },
+
+  {
+    id: "09fa2e3c-70e0-4ef3-a0a1-79686a0daddf",
+    code: "tea_coffee",
+    nameUa: "Чай та кава",
+    nameEn: "Tea & Coffee",
+    kind: "INGREDIENT",
+    parentCategoryId: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 490,
+  },
+
+  {
+    id: "1367c5d9-b1ca-4ece-b3c0-4a83e21adc0d",
+    code: "apples_pears",
+    nameUa: "Яблука та груші",
+    nameEn: "Apples & pears",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 50,
+  },
+
+  {
+    id: "173e1521-c366-4de8-a82c-36e2c659936e",
+    code: "fish_seafood",
+    nameUa: "Риба та морепродукти",
+    nameEn: "Fish & Seafood",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 290,
+  },
+
+  {
+    id: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    code: "grains_cereals",
+    nameUa: "Крупи та зернові",
+    nameEn: "Grains & cereals",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 140,
+  },
+
+  {
+    id: "3275f55c-930e-4049-909e-b2f8146ac54b",
+    code: "lamb_goat",
+    nameUa: "Ягня / коза",
+    nameEn: "Lamb & goat",
+    kind: "INGREDIENT",
+    parentCategoryId: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 280,
+  },
+
+  {
+    id: "3dd71090-2870-4ccd-b638-40ff86d17a93",
+    code: "rice",
+    nameUa: "Рис",
+    nameEn: "Rice",
+    kind: "INGREDIENT",
+    parentCategoryId: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 150,
+  },
+
+  {
+    id: "42a73634-c351-4387-86c3-ab798a88d9bc",
+    code: "chips_crisps",
+    nameUa: "Чіпси",
+    nameEn: "Chips & Crisps",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "e31c6b52-8c8e-4879-be30-2cf4d2286ed0",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 450,
+  },
+
+  {
+    id: "5c35523f-529e-4238-aede-08295014c9d3",
+    code: "fats_oils",
+    nameUa: "Жири та олії",
+    nameEn: "Fats & Oils",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 380,
+  },
+
+  {
+    id: "5e968a00-0771-4c6d-83c0-f0730869e7ee",
+    code: "vegetable_oils",
+    nameUa: "Рослинні олії",
+    nameEn: "Vegetable oils",
+    kind: "INGREDIENT",
+    parentCategoryId: "5c35523f-529e-4238-aede-08295014c9d3",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 400,
+  },
+
+  {
+    id: "630d89c0-5bc2-4da1-8859-f3a10a10f458",
+    code: "nuts_seeds",
+    nameUa: "Горіхи та насіння",
+    nameEn: "Nuts & seeds",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 410,
+  },
+
+  {
+    id: "634c3956-e62d-4da3-881e-2794953e79dd",
+    code: "shellfish",
+    nameUa: "Молюски",
+    nameEn: "Shellfish",
+    kind: "INGREDIENT",
+    parentCategoryId: "173e1521-c366-4de8-a82c-36e2c659936e",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 320,
+  },
+
+  {
+    id: "67f6a226-b8e3-4e11-bdeb-af0e98503ea9",
+    code: "fatty_fish",
+    nameUa: "Жирна риба",
+    nameEn: "Fatty fish",
+    kind: "INGREDIENT",
+    parentCategoryId: "173e1521-c366-4de8-a82c-36e2c659936e",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 300,
+  },
+
+  {
+    id: "6c4a81b5-4085-40f5-a7fc-0d7906905a19",
+    code: "confectionery",
+    nameUa: "Цукерки",
+    nameEn: "Confectionery",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "e31c6b52-8c8e-4879-be30-2cf4d2286ed0",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 440,
+  },
+
+  {
+    id: "70123fa9-1559-4df9-9add-61bd1e255760",
+    code: "fresh_herbs",
+    nameUa: "Свіжі трави",
+    nameEn: "Fresh herbs",
+    kind: "INGREDIENT",
+    parentCategoryId: "91419d6c-52a1-4c21-8127-89bc8d01ebc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 540,
+  },
+
+  {
+    id: "70473624-ecf6-4e80-b4af-a87d989e4a07",
+    code: "beans",
+    nameUa: "Квасолеві",
+    nameEn: "Beans",
+    kind: "INGREDIENT",
+    parentCategoryId: "c064cc37-e2cf-401d-a6f4-04a2aa1ad692",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 200,
+  },
+
+  {
+    id: "7801eeac-e76c-465d-a251-0a1a0376947d",
+    code: "alcohol",
+    nameUa: "Алкоголь",
+    nameEn: "Alcohol",
+    kind: "INGREDIENT",
+    parentCategoryId: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 520,
+  },
+
+  {
+    id: "7aaaa745-5020-4753-8010-666c1abf3c74",
+    code: "tropical_fruits",
+    nameUa: "Тропічні фрукти",
+    nameEn: "Tropical fruits",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 60,
+  },
+
+  {
+    id: "7d681a5b-daa8-4407-b6e4-7c8f0d113fa6",
+    code: "juice",
+    nameUa: "Соки",
+    nameEn: "Juice",
+    kind: "INGREDIENT",
+    parentCategoryId: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 500,
+  },
+
+  {
+    id: "7e182f85-7a6d-4dc0-b311-f2a41a364ae8",
+    code: "berries",
+    nameUa: "Ягоди",
+    nameEn: "Berries",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 30,
+  },
+
+  {
+    id: "80ad6e98-f13c-41d2-a1c4-53544bfad278",
+    code: "dried_fruits",
+    nameUa: "Сухофрукти",
+    nameEn: "Dried fruits",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 570,
+  },
+
+  {
+    id: "8a53e8b6-46c1-4519-ae17-27b03397660a",
+    code: "cruciferous",
+    nameUa: "Хрестоцвітні",
+    nameEn: "Cruciferous",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 90,
+  },
+
+  {
+    id: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    code: "fruits",
+    nameUa: "Фрукти",
+    nameEn: "Fruits",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 10,
+  },
+
+  {
+    id: "91419d6c-52a1-4c21-8127-89bc8d01ebc7",
+    code: "herbs_spices",
+    nameUa: "Трави та спеції",
+    nameEn: "Herbs & Spices",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 530,
+  },
+
+  {
+    id: "99ab38e2-3c2e-40fc-8a79-36781e582755",
+    code: "nightshades",
+    nameUa: "Пасльонові",
+    nameEn: "Nightshades",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 120,
+  },
+
+  {
+    id: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    code: "vegetables",
+    nameUa: "Овочі",
+    nameEn: "Vegetables",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 70,
+  },
+
+  {
+    id: "a09da15e-e331-4164-ab37-aa4c2af79ec3",
+    code: "water",
+    nameUa: "Вода",
+    nameEn: "Water",
+    kind: "INGREDIENT",
+    parentCategoryId: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 480,
+  },
+
+  {
+    id: "a47859d9-bfe4-405e-9ca0-ca04c9272594",
+    code: "root_vegetables",
+    nameUa: "Коренеплоди",
+    nameEn: "Root vegetables",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 100,
+  },
+
+  {
+    id: "a4cf547f-8599-4a93-accc-c3f2207d274c",
+    code: "cookies_biscuits",
+    nameUa: "Печиво",
+    nameEn: "Cookies & biscuits",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "e31c6b52-8c8e-4879-be30-2cf4d2286ed0",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 460,
+  },
+
+  {
+    id: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    code: "meat_poultry",
+    nameUa: "М’ясо та птиця",
+    nameEn: "Meat & Poultry",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 230,
+  },
+
+  {
+    id: "b8d639d4-2979-4ce7-9a3a-bcf9bc13adad",
+    code: "leafy_greens",
+    nameUa: "Листяні",
+    nameEn: "Leafy greens",
+    kind: "INGREDIENT",
+    parentCategoryId: "9b33b7db-9279-4077-9a08-5c008d41abfc",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 80,
+  },
+
+  {
+    id: "bbc9331c-4afc-4469-ba5f-5e203bd8fe13",
+    code: "butter_margarine",
+    nameUa: "Масло та маргарин",
+    nameEn: "Butter & Margarine",
+    kind: "INGREDIENT",
+    parentCategoryId: "5c35523f-529e-4238-aede-08295014c9d3",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 390,
+  },
+
+  {
+    id: "bc07b290-8eaa-4a41-aa24-c3af1f465672",
+    code: "dried_herbs_spices",
+    nameUa: "Сухі спеції",
+    nameEn: "Dried herbs & spices",
+    kind: "INGREDIENT",
+    parentCategoryId: "91419d6c-52a1-4c21-8127-89bc8d01ebc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 550,
+  },
+
+  {
+    id: "c064cc37-e2cf-401d-a6f4-04a2aa1ad692",
+    code: "legumes",
+    nameUa: "Бобові",
+    nameEn: "Legumes",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 190,
+  },
+
+  {
+    id: "c4ae9684-0b52-418f-bdce-8ce8b52ae8a9",
+    code: "cheese",
+    nameUa: "Сир",
+    nameEn: "Cheese",
+    kind: "INGREDIENT",
+    parentCategoryId: "edaec1c0-9289-48a8-aac4-292bc4f50984",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 350,
+  },
+
+  {
+    id: "c7f38fc0-39a8-4dde-bb86-e916630f453a",
+    code: "pork",
+    nameUa: "Свинина",
+    nameEn: "Pork",
+    kind: "INGREDIENT",
+    parentCategoryId: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 250,
+  },
+
+  {
+    id: "d889ce24-47e8-45ba-9181-64eef08ff485",
+    code: "chicken",
+    nameUa: "Курка",
+    nameEn: "Chicken",
+    kind: "INGREDIENT",
+    parentCategoryId: "081318c0-ffd5-47db-bb7b-b68758b90307",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 260,
+  },
+
+  {
+    id: "e0836778-c59f-4740-9fc5-814a23ec2f71",
+    code: "milk",
+    nameUa: "Молоко",
+    nameEn: "Milk",
+    kind: "INGREDIENT",
+    parentCategoryId: "edaec1c0-9289-48a8-aac4-292bc4f50984",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 340,
+  },
+
+  {
+    id: "e31c6b52-8c8e-4879-be30-2cf4d2286ed0",
+    code: "snacks_sweets",
+    nameUa: "Закуски та солодощі",
+    nameEn: "Snacks & Sweets",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 420,
+  },
+
+  {
+    id: "e5257577-b8f9-47ca-b4ac-c2aafe24a761",
+    code: "miscellaneous",
+    nameUa: "Різне",
+    nameEn: "Miscellaneous",
+    kind: "SOURCE_COLLECTION",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 560,
+  },
+
+  {
+    id: "e7b66723-f83d-4f0d-901f-d1847f1da25e",
+    code: "wheat_pasta",
+    nameUa: "Пшениця та паста",
+    nameEn: "Wheat & pasta",
+    kind: "INGREDIENT",
+    parentCategoryId: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 160,
+  },
+
+  {
+    id: "e80ecb00-3a00-475c-8053-0b53db480e3c",
+    code: "citrus_fruits",
+    nameUa: "Цитрусові",
+    nameEn: "Citrus fruits",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 20,
+  },
+
+  {
+    id: "edaec1c0-9289-48a8-aac4-292bc4f50984",
+    code: "dairy_eggs",
+    nameUa: "Молочні продукти та яйця",
+    nameEn: "Dairy & Eggs",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 330,
+  },
+
+  {
+    id: "efa514b0-78ea-44e1-9b2b-6b24601e2d02",
+    code: "soft_drinks",
+    nameUa: "Газовані напої",
+    nameEn: "Soft drinks",
+    kind: "INGREDIENT",
+    parentCategoryId: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 510,
+  },
+
+  {
+    id: "f0eeec13-929b-4e6d-932e-8c3107df659f",
+    code: "stone_fruits",
+    nameUa: "Кісточкові",
+    nameEn: "Stone fruits",
+    kind: "INGREDIENT",
+    parentCategoryId: "8e8fe23c-6ca8-45de-a28e-03d02511cfc7",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 40,
+  },
+
+  {
+    id: "f6d7eab2-37cd-47f6-a568-2d6374f76ad4",
+    code: "turkey",
+    nameUa: "Індичка",
+    nameEn: "Turkey",
+    kind: "INGREDIENT",
+    parentCategoryId: "081318c0-ffd5-47db-bb7b-b68758b90307",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 270,
+  },
+
+  {
+    id: "f717bce7-f952-44fc-b015-6903317f3d6b",
+    code: "beef",
+    nameUa: "Яловичина",
+    nameEn: "Beef",
+    kind: "INGREDIENT",
+    parentCategoryId: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 240,
+  },
+
+  {
+    id: "fbbeacab-55e0-4626-a900-45e37846fed0",
+    code: "quinoa_other",
+    nameUa: "Кіноа та інші",
+    nameEn: "Quinoa & others",
+    kind: "INGREDIENT",
+    parentCategoryId: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 180,
+  },
+
+  {
+    id: "fc0bb76a-16bf-4db5-bf39-a14bd4442efe",
+    code: "oats_cereals",
+    nameUa: "Вівсянка та пластівці",
+    nameEn: "Oats & cereals",
+    kind: "INGREDIENT",
+    parentCategoryId: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 170,
+  },
+
+  {
+    id: "fcc031ca-8e9a-4d27-83c2-f1363baeab94",
+    code: "lean_fish",
+    nameUa: "Пісна риба",
+    nameEn: "Lean fish",
+    kind: "INGREDIENT",
+    parentCategoryId: "173e1521-c366-4de8-a82c-36e2c659936e",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 310,
+  },
+
+  {
+    id: "fe646c32-e13b-43bf-9cdf-fa10403bc79b",
+    code: "lentils",
+    nameUa: "Сочевиця",
+    nameEn: "Lentils",
+    kind: "INGREDIENT",
+    parentCategoryId: "c064cc37-e2cf-401d-a6f4-04a2aa1ad692",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 210,
+  },
+
+  {
+    id: "fffe9248-4651-4242-81a9-ca7d4ee6a1d5",
+    code: "beverages",
+    nameUa: "Напої",
+    nameEn: "Beverages",
+    kind: "INGREDIENT",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 470,
+  },
+
+  {
+    id: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    code: "prepared_foods",
+    nameUa: "Готові страви та харчові продукти",
+    nameEn: "Prepared foods",
+    kind: "GROUP",
+    parentCategoryId: null,
+    isAssignable: false,
+    isActive: true,
+    sortOrder: 570,
+  },
+
+  {
+    id: "081318c0-ffd5-47db-bb7b-b68758b90307",
+    code: "poultry",
+    nameUa: "Птиця",
+    nameEn: "Poultry",
+    kind: "INGREDIENT",
+    parentCategoryId: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 235,
+  },
+
+  {
+    id: "da29b905-fd7f-45fb-860a-ff658cfc188c",
+    code: "processed_meat",
+    nameUa: "Ковбасні вироби та оброблене м’ясо",
+    nameEn: "Processed meat",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "b02e7205-ac90-49c1-8eee-6f9bdcff38d5",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 290,
+  },
+
+  {
+    id: "da6cd714-5eb6-4cae-9bd8-b18bff266f51",
+    code: "baby_food",
+    nameUa: "Дитяче харчування",
+    nameEn: "Baby food",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 10,
+  },
+
+  {
+    id: "4c1b396f-cbec-4c4e-83a7-74f2d7ca0388",
+    code: "soups_sauces_gravies",
+    nameUa: "Супи, соуси та підливи",
+    nameEn: "Soups, sauces, and gravies",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 20,
+  },
+
+  {
+    id: "d237ac8c-3335-4a92-aefd-414c77183bd7",
+    code: "breakfast_cereals",
+    nameUa: "Сухі сніданки",
+    nameEn: "Breakfast cereals",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "2d27fa7e-5ada-48df-8f38-763e5746de00",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 190,
+  },
+
+  {
+    id: "a1bb7b6d-3f01-4753-8501-c108fe715421",
+    code: "baked_goods",
+    nameUa: "Хлібобулочні та печені вироби",
+    nameEn: "Baked goods",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 30,
+  },
+
+  {
+    id: "c9e5c929-b126-40ca-85b8-a2fb075ed943",
+    code: "fast_food",
+    nameUa: "Фастфуд",
+    nameEn: "Fast food",
+    kind: "SOURCE_COLLECTION",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 40,
+  },
+
+  {
+    id: "69769cd8-9930-479d-8d59-10e000b54d2e",
+    code: "prepared_meals_sides",
+    nameUa: "Готові страви та гарніри",
+    nameEn: "Prepared meals and side dishes",
+    kind: "PREPARED_FOOD",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 50,
+  },
+
+  {
+    id: "e87f0540-00ac-46e7-82fe-b28c3af9c5a5",
+    code: "restaurant_food",
+    nameUa: "Ресторанні страви",
+    nameEn: "Restaurant food",
+    kind: "SOURCE_COLLECTION",
+    parentCategoryId: "6e22c78f-bb53-4d4d-b7f7-cc47717801a8",
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 60,
+  },
+
+  {
+    id: "9d7d640b-0ec2-4ab2-b39f-3cc271603354",
+    code: "american_indian_alaska_native_foods",
+    nameUa: "Традиційні продукти корінних народів США",
+    nameEn: "American Indian and Alaska Native foods",
+    kind: "SOURCE_COLLECTION",
+    parentCategoryId: null,
+    isAssignable: true,
+    isActive: true,
+    sortOrder: 580,
+  },
+] as const;
+
+/**
+ * Fast lookup used by the USDA import pipeline.
+ */
+export const PRODUCT_CATEGORY_REFERENCE_BY_CODE = new Map<string, ProductCategoryReference>(
+  PRODUCT_CATEGORY_REFERENCES.map((category) => [category.code, category]),
+);
+
+export function getProductCategoryReference(code: string): ProductCategoryReference {
+  const category = PRODUCT_CATEGORY_REFERENCE_BY_CODE.get(code);
+
+  if (!category) {
+    throw new Error(`Unknown MealMind ProductCategory code "${code}".`);
+  }
+
+  return category;
+}
+
+export function getAssignableProductCategoryReference(code: string): ProductCategoryReference {
+  const category = getProductCategoryReference(code);
+
+  if (!category.isActive) {
+    throw new Error(`ProductCategory "${code}" is inactive.`);
+  }
+
+  if (!category.isAssignable) {
+    throw new Error(`ProductCategory "${code}" is not assignable.`);
+  }
+
+  return category;
+}

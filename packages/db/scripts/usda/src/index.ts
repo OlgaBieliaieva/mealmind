@@ -9,6 +9,14 @@ import { buildCuratedCatalog } from "./build-curated-catalog.js";
 import { runNutrientExtraction } from "./run-nutrient-extraction.js";
 import { runPortionExtraction } from "./run-portion-extraction.js";
 import { runPortionNormalization } from "./run-portion-normalization.js";
+import { generateImportReadyProducts } from "./generate-import-ready-products.js";
+import { generateTranslationSource } from "./generate-translation-source.js";
+import { generateProductNameTranslationInput } from "./generate-product-name-translation-input.js";
+import { generateProductNameTranslationBatch } from "./generate-product-name-translation-batch.js";
+import { importProductNameTranslationBatch } from "./import-product-name-translation-batch.js";
+import { generateFinalProducts } from "./generate-final-products.js";
+
+import { runFinalProductsValidation } from "./validate-final-products.js";
 import type {
   CatalogReviewDocument,
   NormalizedProductsDocument,
@@ -31,6 +39,10 @@ Usage:
   npm run usda -- nutrients
   npm run usda -- portions
   npm run usda -- normalize-portions
+  npm run usda -- translation-source
+  npm run usda -- product-name-translation-input
+  npm run usda -- finalize
+  npm run usda -- validate-final
 
 Available commands:
   check       Verify framework directories.
@@ -42,6 +54,15 @@ Available commands:
   portions    Extract USDA serving measures for nutrient-ready products.
   normalize-portions
             Normalize and filter extracted USDA portions.
+  translation-source
+            Extract unique translation inputs from import-ready products.
+  product-name-translation-input
+            Build contextual input for Ukrainian product-name translation.
+  finalize
+            Build fully localized final-products.json.
+
+  validate-final
+            Validate final-products.json before database seed.
 
 Options:
   --strict    Fail curate when NEEDS_REVIEW products remain.
@@ -79,6 +100,34 @@ function resolveCommand(argument: string | undefined): UsdaCommand {
 
   if (argument === "normalize-portions") {
     return "normalize-portions";
+  }
+
+  if (argument === "build-import-ready") {
+    return "build-import-ready";
+  }
+
+  if (argument === "translation-source") {
+    return "translation-source";
+  }
+
+  if (argument === "product-name-translation-input") {
+    return "product-name-translation-input";
+  }
+
+  if (argument === "product-name-translation-batch") {
+    return "product-name-translation-batch";
+  }
+
+  if (argument === "import-product-name-translation-batch") {
+    return "import-product-name-translation-batch";
+  }
+
+  if (argument === "finalize") {
+    return "finalize";
+  }
+
+  if (argument === "validate-final") {
+    return "validate-final";
   }
 
   throw new Error(`Unknown USDA command: "${argument}". Run "npm run usda -- --help" for usage.`);
@@ -252,6 +301,45 @@ async function main(): Promise<void> {
 
     case "normalize-portions":
       await runPortionNormalization();
+      return;
+
+    case "build-import-ready":
+      await generateImportReadyProducts();
+
+      return;
+
+    case "translation-source":
+      await generateTranslationSource();
+      return;
+
+    case "product-name-translation-input":
+      await generateProductNameTranslationInput();
+      return;
+
+    case "product-name-translation-batch": {
+      const rawBatchSize = process.argv[3];
+
+      if (rawBatchSize) {
+        await generateProductNameTranslationBatch(Number(rawBatchSize));
+      } else {
+        await generateProductNameTranslationBatch();
+      }
+
+      return;
+    }
+
+    case "import-product-name-translation-batch":
+      await importProductNameTranslationBatch();
+      return;
+
+    case "finalize":
+      await generateFinalProducts();
+
+      return;
+
+    case "validate-final":
+      await runFinalProductsValidation();
+
       return;
 
     default: {

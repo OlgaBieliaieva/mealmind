@@ -77,6 +77,7 @@ export const USDA_PATHS = {
     "work",
     "curated-product-nutrients.json",
   ),
+
   foodPortionFile: path.join(usdaRoot, "data", "raw", "food_portion.csv"),
 
   measureUnitFile: path.join(usdaRoot, "data", "raw", "measure_unit.csv"),
@@ -84,4 +85,38 @@ export const USDA_PATHS = {
   extractedPortionsFile: path.join(usdaRoot, "data", "work", "extracted-portions.json"),
 
   normalizedPortionsFile: path.join(usdaRoot, "data", "work", "normalized-portions.json"),
+
+  importReadyProductsFile: path.join(usdaRoot, "data", "work", "import-ready-products.json"),
+
+  translationSourceFile: path.join(usdaRoot, "data", "work", "translation-source.json"),
+
+  productNameTranslationInputFile: path.join(
+    usdaRoot,
+    "data",
+    "work",
+    "product-name-translation-input.json",
+  ),
+
+  productNameTranslationsFile: path.join(
+    usdaRoot,
+    "data",
+    "work",
+    "product-name-translations.json",
+  ),
+
+  productNameTranslationBatchFile: path.join(
+    usdaRoot,
+    "data",
+    "work",
+    "product-name-translation-batch.json",
+  ),
+
+  productNameTranslationBatchResultFile: path.join(
+    usdaRoot,
+    "data",
+    "work",
+    "product-name-translation-batch-result.json",
+  ),
+
+  finalProductsFile: path.join(usdaRoot, "data", "output", "final-products.json"),
 } as const;

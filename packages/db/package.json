@@ -36,7 +36,14 @@
     "usda:curate:strict": "tsx scripts/usda/src/index.ts curate --strict",
     "usda:nutrients": "tsx scripts/usda/src/index.ts nutrients",
     "usda:portions": "tsx scripts/usda/src/index.ts portions",
-    "usda:normalize-portions": "tsx scripts/usda/src/index.ts normalize-portions"
+    "usda:normalize-portions": "tsx scripts/usda/src/index.ts normalize-portions",
+    "usda:build-import-ready": "tsx scripts/usda/src/index.ts build-import-ready",
+    "usda:translation-source": "tsx scripts/usda/src/index.ts translation-source",
+    "usda:product-name-translation-input": "tsx scripts/usda/src/index.ts product-name-translation-input",
+    "usda:product-name-translation-batch": "tsx scripts/usda/src/index.ts product-name-translation-batch",
+    "usda:import-product-name-translation-batch": "tsx scripts/usda/src/index.ts import-product-name-translation-batch",
+    "usda:finalize": "tsx scripts/usda/src/index.ts finalize",
+    "usda:validate-final": "tsx scripts/usda/src/index.ts validate-final"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
