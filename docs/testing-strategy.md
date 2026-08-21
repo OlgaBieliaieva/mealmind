@@ -47,7 +47,7 @@ E2E-інфраструктура додається окремо після по
 - **axe-core** — автоматизована перевірка доступності React-компонентів і
   composition fixtures.
 
-Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, database smoke tests для baseline migration та reference seed, а також unit tests політики Sentry event sanitization і transport mocks для observability metadata. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
+Поточний базовий набір містить integration-тест `GET /health` для API, по одному component smoke test для Web Admin і Web Client, database smoke tests для baseline migration, reference seed та контрольованого USDA catalog import, а також unit tests політики Sentry event sanitization і transport mocks для observability metadata. USDA integration test працює лише з ізольованою локальною базою `mealmind_test`, перевіряє повторний імпорт без дублікатів і локальне очищення. E2E-тести будуть додані разом із завершеними наскрізними сценаріями.
 
 ## Валідність розмітки та доступність
 
