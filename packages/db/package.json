@@ -24,17 +24,44 @@
     "db:seed:reference": "npm run generate && prisma db seed",
     "db:test:migrations": "npm run generate && tsx prisma/tests/migration-smoke.ts",
     "db:test:seed": "npm run generate && tsx prisma/tests/reference-seed-idempotency.ts",
-    "db:test": "npm run db:test:migrations && npm run db:test:seed"
+    "db:test:usda-catalog": "npm run generate && tsx prisma/tests/usda-catalog-import.ts",
+    "db:test:usda-catalog:unit": "tsx --test prisma/seeds/catalog/*.test.ts",
+    "db:test": "npm run db:test:migrations && npm run db:test:seed",
+    "db:import:usda": "npm run generate && tsx prisma/seeds/catalog/cli.ts import",
+    "db:import:usda:dry-run": "npm run generate && tsx prisma/seeds/catalog/cli.ts import --dry-run",
+    "db:cleanup:usda:local": "npm run generate && tsx prisma/seeds/catalog/cli.ts cleanup",
+    "usda": "tsx scripts/usda/src/index.ts",
+    "usda:typecheck": "tsc --project scripts/usda/tsconfig.json",
+    "usda:check": "tsx scripts/usda/src/index.ts check",
+    "usda:test": "tsx --test scripts/usda/src/**/*.test.ts",
+    "usda:select": "tsx scripts/usda/src/index.ts select",
+    "usda:normalize": "tsx scripts/usda/src/index.ts normalize",
+    "usda:review": "tsx scripts/usda/src/index.ts review",
+    "usda:curate": "tsx scripts/usda/src/index.ts curate",
+    "usda:curate:strict": "tsx scripts/usda/src/index.ts curate --strict",
+    "usda:nutrients": "tsx scripts/usda/src/index.ts nutrients",
+    "usda:portions": "tsx scripts/usda/src/index.ts portions",
+    "usda:normalize-portions": "tsx scripts/usda/src/index.ts normalize-portions",
+    "usda:build-import-ready": "tsx scripts/usda/src/index.ts build-import-ready",
+    "usda:translation-source": "tsx scripts/usda/src/index.ts translation-source",
+    "usda:product-name-translation-input": "tsx scripts/usda/src/index.ts product-name-translation-input",
+    "usda:product-name-translation-batch": "tsx scripts/usda/src/index.ts product-name-translation-batch",
+    "usda:import-product-name-translation-batch": "tsx scripts/usda/src/index.ts import-product-name-translation-batch",
+    "usda:finalize": "tsx scripts/usda/src/index.ts finalize",
+    "usda:validate-final": "tsx scripts/usda/src/index.ts validate-final"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
-    "pg": "8.22.0"
+    "csv-parse": "^7.0.2",
+    "pg": "8.22.0",
+    "uuid": "^14.0.1"
   },
   "devDependencies": {
+    "@types/node": "^26.1.2",
     "@types/pg": "8.20.0",
     "dotenv": "17.4.2",
     "prisma": "7.9.1",
-    "tsx": "4.23.1"
+    "tsx": "^4.23.1"
   }
 }

@@ -147,6 +147,12 @@ Application administrator не отримує автоматичного дос�
 - Supabase Auth users та Storage objects не створюються Prisma migration;
 - Row Level Security і Storage policies належать platform-specific integration;
 - каталожні дані USDA імпортуються окремим контрольованим процесом, а не reference seed;
+- USDA importer використовує versioned manifest, стабільну зовнішню ідентичність
+  `provider + dataset + FDC ID`, пакетні транзакції та політику
+  `GENERIC + ACTIVE + UNVERIFIED`; локальний snapshot має `sourceRelease`
+  `2026-08-21`;
+- повторний USDA import синхронізує належні джерелу поля, нутрієнти й порції;
+  destructive cleanup дозволено лише для local database з явним підтвердженням;
 - development fixtures мають окремий lifecycle і не запускаються в production;
 - ERD показує предметні зв’язки, але не замінює повну Prisma schema та reviewed SQL.
 

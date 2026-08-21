@@ -150,3 +150,13 @@ docs/migration-ledger.md
 # Turborepo
 .turbo/
 postman/.dependencies/
+
+# Local USDA source and generated working files
+packages/db/scripts/usda/data/raw/*
+packages/db/scripts/usda/data/work/*
+packages/db/scripts/usda/data/output/*
+
+# Preserve directory structure
+!packages/db/scripts/usda/data/raw/.gitkeep
+!packages/db/scripts/usda/data/work/.gitkeep
+!packages/db/scripts/usda/data/output/.gitkeep

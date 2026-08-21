@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "catalog": "usda-foundation-sr-legacy",
+  "sourceRelease": "2026-08-21",
+  "sourceFile": "scripts/usda/data/output/final-products.json",
+  "sourceFileSha256": "8264ec44f2731ca64993eadb685820df4c763bb6d68d5cdebde1ae812f1d0d82",
+  "sourceFileSizeBytes": 67462144,
+  "statistics": {
+    "products": 5460,
+    "nutrientValues": 163020,
+    "portions": 5028
+  },
+  "importPolicy": {
+    "productType": "GENERIC",
+    "productStatus": "ACTIVE",
+    "verificationStatus": "UNVERIFIED"
+  }
+}
