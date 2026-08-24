@@ -94,7 +94,24 @@ export interface RecipeDetails extends RecipeSummary {
     readonly durationSec: number | null;
     readonly sortOrder: number;
   }[];
+  readonly images: readonly RecipeImage[];
   readonly nutrients: readonly RecipeNutrient[];
+}
+
+export interface RecipeImage {
+  readonly id: string;
+  readonly recipeId: string;
+  readonly status: "PENDING" | "ACTIVE" | "FAILED" | "ARCHIVED";
+  readonly storageObjectPath: string;
+  readonly mimeType: string | null;
+  readonly byteSize: string | null;
+  readonly widthPx: number | null;
+  readonly heightPx: number | null;
+  readonly altTextUa: string | null;
+  readonly altTextEn: string | null;
+  readonly isPrimary: boolean;
+  readonly url: string | null;
+  readonly thumbnailUrl: string | null;
 }
 
 export interface RecipeNutrient {
@@ -163,5 +180,36 @@ export function previewRecipeNutrition(api: ApiClient, ingredients: RecipeWrite[
   return api.post<{ readonly data: RecipeNutritionPreview }>(
     "/api/v1/admin/recipes/nutrition-preview",
     { ingredients },
+  );
+}
+
+export function reserveRecipeMedia(
+  api: ApiClient,
+  recipeId: string,
+  data: {
+    readonly mimeType: "image/jpeg" | "image/png" | "image/webp";
+    readonly byteSize: number;
+    readonly altTextUa?: string;
+  },
+) {
+  return api.post<{
+    readonly data: {
+      readonly media: { readonly id: string; readonly storageObjectPath: string };
+      readonly uploadUrl: string;
+      readonly token: string;
+    };
+  }>(`/api/v1/admin/recipes/${encodeURIComponent(recipeId)}/media/uploads`, data);
+}
+
+export function completeRecipeMedia(api: ApiClient, recipeId: string, mediaId: string) {
+  return api.post<{ readonly data: RecipeImage }>(
+    `/api/v1/admin/recipes/${encodeURIComponent(recipeId)}/media/${encodeURIComponent(mediaId)}/complete`,
+    {},
+  );
+}
+
+export function deleteRecipeMedia(api: ApiClient, recipeId: string, mediaId: string) {
+  return api.delete<void>(
+    `/api/v1/admin/recipes/${encodeURIComponent(recipeId)}/media/${encodeURIComponent(mediaId)}`,
   );
 }

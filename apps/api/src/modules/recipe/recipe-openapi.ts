@@ -1,5 +1,11 @@
 const bearer = [{ bearerAuth: [] }];
 const id = { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+const mediaId = {
+  name: "mediaId",
+  in: "path",
+  required: true,
+  schema: { type: "string", format: "uuid" },
+};
 const jsonBody = (schema: string) => ({
   required: true,
   content: { "application/json": { schema: { $ref: schema } } },
@@ -71,6 +77,34 @@ export const recipeOpenApiPaths = Object.freeze({
       parameters: [id],
       requestBody: jsonBody("#/components/schemas/RecipeStatusChange"),
       responses: { "200": { description: "Статус змінено" }, ...errors },
+    },
+  },
+  "/api/v1/admin/recipes/{id}/media/uploads": {
+    post: {
+      summary: "Зарезервувати безпечне завантаження зображення рецепта",
+      security: bearer,
+      parameters: [id],
+      requestBody: jsonBody("#/components/schemas/RecipeMediaReservation"),
+      responses: {
+        "201": { description: "Повернуто short-lived upload token і server-generated object path" },
+        ...errors,
+      },
+    },
+  },
+  "/api/v1/admin/recipes/{id}/media/{mediaId}/complete": {
+    post: {
+      summary: "Перевірити зображення, створити thumbnail і активувати media",
+      security: bearer,
+      parameters: [id, mediaId],
+      responses: { "200": { description: "Зображення активовано" }, ...errors },
+    },
+  },
+  "/api/v1/admin/recipes/{id}/media/{mediaId}": {
+    delete: {
+      summary: "Видалити objects і архівувати зображення рецепта",
+      security: bearer,
+      parameters: [id, mediaId],
+      responses: { "204": { description: "Зображення видалено" }, ...errors },
     },
   },
   "/api/v1/recipes/{id}": {
@@ -146,5 +180,14 @@ export const recipeOpenApiSchemas = Object.freeze({
     type: "object",
     required: ["status"],
     properties: { status: { type: "string", enum: ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"] } },
+  },
+  RecipeMediaReservation: {
+    type: "object",
+    required: ["mimeType", "byteSize"],
+    properties: {
+      mimeType: { type: "string", enum: ["image/jpeg", "image/png", "image/webp"] },
+      byteSize: { type: "integer", minimum: 1, maximum: 5_242_880 },
+      altTextUa: { type: ["string", "null"], maxLength: 300 },
+    },
   },
 });

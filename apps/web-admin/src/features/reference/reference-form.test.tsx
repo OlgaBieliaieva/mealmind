@@ -57,4 +57,19 @@ describe("reference form", () => {
       isActive: true,
     });
   });
+
+  it("shows expertise only when an expert author is selected", () => {
+    render(
+      <ReferenceForm
+        config={REFERENCE_CONFIGS.authors}
+        mode="create"
+        onSubmit={vi.fn(async () => undefined)}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Сфера експертизи")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Тип автора/), { target: { value: "EXPERT" } });
+    expect(screen.getByLabelText(/Сфера експертизи/)).toBeInTheDocument();
+  });
 });

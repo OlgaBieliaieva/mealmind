@@ -23,25 +23,32 @@ const allergenCreate = z
   .strict();
 const allergenUpdate = allergenCreate.omit({ code: true }).partial().strict();
 
-const authorCreate = z
+const expertiseArea = z.enum(["CHEF", "PHYSICIAN", "DIETITIAN", "NUTRITIONIST", "OTHER"]);
+const authorCommonShape = {
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(180)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  displayName: name(160),
+  bio: z.string().trim().min(1).max(5000).nullable().optional(),
+  isActive: active,
+};
+const authorCreate = z.discriminatedUnion("type", [
+  z.object({ ...authorCommonShape, type: z.literal("MEALMIND") }).strict(),
+  z.object({ ...authorCommonShape, type: z.literal("BLOGGER") }).strict(),
+  z.object({ ...authorCommonShape, type: z.literal("EXPERT"), expertiseArea }).strict(),
+]);
+const authorUpdate = z
   .object({
-    type: z.enum(["MEALMIND", "EXPERT", "BLOGGER", "USER"]),
-    expertiseArea: z
-      .enum(["CHEF", "PHYSICIAN", "DIETITIAN", "NUTRITIONIST", "OTHER"])
-      .nullable()
-      .optional(),
-    slug: z
-      .string()
-      .trim()
-      .min(1)
-      .max(180)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-    displayName: name(160),
-    bio: z.string().trim().min(1).max(5000).nullable().optional(),
-    isActive: active,
+    slug: authorCommonShape.slug.optional(),
+    displayName: authorCommonShape.displayName.optional(),
+    bio: authorCommonShape.bio,
+    expertiseArea: expertiseArea.optional(),
+    isActive: z.boolean().optional(),
   })
   .strict();
-const authorUpdate = authorCreate.partial().strict();
 
 const brandCreate = z
   .object({

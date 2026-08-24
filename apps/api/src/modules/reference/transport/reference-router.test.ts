@@ -59,7 +59,15 @@ function referenceService(): ReferenceService {
 describe("reference router", () => {
   const createCases = [
     ["allergens", { code: "test_allergen", nameUa: "Алерген", nameEn: "Allergen" }],
-    ["authors", { type: "EXPERT", slug: "test-author", displayName: "Тестовий автор" }],
+    [
+      "authors",
+      {
+        type: "EXPERT",
+        expertiseArea: "DIETITIAN",
+        slug: "test-author",
+        displayName: "Тестовий автор",
+      },
+    ],
     ["brands", { name: "MealMind Foods" }],
     [
       "cuisines",

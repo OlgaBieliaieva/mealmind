@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClient } from "./api-client";
-import { buildProductListPath, listProducts } from "./products";
+import { buildProductListPath, listProducts, searchProducts } from "./products";
 
 describe("products API contract", () => {
   it("builds stable server-side filter and pagination parameters", () => {
@@ -23,5 +23,16 @@ describe("products API contract", () => {
 
     await expect(listProducts(apiClient, { page: 1, pageSize: 20 })).resolves.toBe(response);
     expect(get).toHaveBeenCalledWith("/api/v1/admin/products?page=1&pageSize=20");
+  });
+
+  it("encodes a lightweight active product search", async () => {
+    const response = { data: { items: [] }, meta: { page: 1, pageSize: 20, total: 0 } };
+    const get = vi.fn(async () => response);
+    const apiClient = { get } as unknown as ApiClient;
+
+    await expect(searchProducts(apiClient, "яблуко & груша")).resolves.toBe(response);
+    expect(get).toHaveBeenCalledWith(
+      "/api/v1/products/search?search=%D1%8F%D0%B1%D0%BB%D1%83%D0%BA%D0%BE+%26+%D0%B3%D1%80%D1%83%D1%88%D0%B0&page=1&pageSize=20",
+    );
   });
 });

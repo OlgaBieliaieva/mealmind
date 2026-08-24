@@ -1,6 +1,6 @@
 import type { ReferenceItem, ReferenceWriteData } from "@/shared/api/reference-data";
 
-import type { ReferenceConfig } from "./reference-config";
+import type { ReferenceConfig, ReferenceField } from "./reference-config";
 
 export type ReferenceFormValues = Record<string, string | boolean>;
 export type ReferenceFormErrors = Readonly<Record<string, string>>;
@@ -31,6 +31,7 @@ export function validateReferenceValues(
   const errors: Record<string, string> = {};
   for (const field of config.fields) {
     if (mode === "edit" && field.createOnly === true) continue;
+    if (!isReferenceFieldVisible(field, values)) continue;
     const value = values[field.name];
     if (field.required === true && (typeof value !== "string" || value.trim() === "")) {
       errors[field.name] = "Поле обов’язкове";
@@ -72,6 +73,7 @@ export function toReferenceWriteData(
   const entries: Array<[string, unknown]> = [];
   for (const field of config.fields) {
     if (mode === "edit" && field.createOnly === true) continue;
+    if (!isReferenceFieldVisible(field, values)) continue;
     const value = values[field.name];
     if (field.kind === "checkbox") {
       entries.push([field.name, value === true]);
@@ -92,6 +94,15 @@ export function toReferenceWriteData(
     ]);
   }
   return Object.fromEntries(entries);
+}
+
+export function isReferenceFieldVisible(
+  field: ReferenceField,
+  values: ReferenceFormValues,
+): boolean {
+  return (
+    field.visibleWhen === undefined || values[field.visibleWhen.field] === field.visibleWhen.equals
+  );
 }
 
 function defaultValue(field: string): string {

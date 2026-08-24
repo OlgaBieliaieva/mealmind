@@ -6,15 +6,14 @@ import type { AuthenticationService } from "../../../application/authentication/
 import { createNoopLogger } from "../../../application/logging/logger.js";
 import { errorHandler } from "../../../http/middleware/error-handler.js";
 import { createRequestContextMiddleware } from "../../../http/middleware/request-context.js";
-import type { RecipeDetails } from "../domain/recipe-repository.js";
-import type { RecipeService } from "../application/recipe-service.js";
+import type { RecipeDetailsView, RecipeService } from "../application/recipe-service.js";
 import { createRecipeController } from "./recipe-controller.js";
 import { createRecipeRouter } from "./recipe-router.js";
 
 const recipeId = "00000000-0000-4000-8000-000000000001";
 const productId = "00000000-0000-4000-8000-000000000002";
 
-function recipe(): RecipeDetails {
+function recipe(): RecipeDetailsView {
   return {
     id: recipeId,
     title: "Борщ",
@@ -63,6 +62,7 @@ function recipe(): RecipeDetails {
     cuisines: [],
     dietaryTags: [],
     videos: [],
+    images: [],
     nutrients: [],
   };
 }
@@ -94,6 +94,7 @@ function service(): RecipeService {
         cuisines: value.cuisines,
         dietaryTags: value.dietaryTags,
         videos: value.videos,
+        images: value.images,
         nutrients: value.nutrients,
       };
     }),
@@ -105,6 +106,9 @@ function service(): RecipeService {
     create: vi.fn(async () => recipe()),
     update: vi.fn(async () => recipe()),
     changeStatus: vi.fn(async (_id, status) => ({ ...recipe(), status })),
+    reserveMedia: vi.fn(),
+    completeMedia: vi.fn(),
+    deleteMedia: vi.fn(async () => undefined),
   };
 }
 
@@ -152,6 +156,26 @@ describe("recipe router", () => {
       .set("authorization", "Bearer token");
     expect(response.status).toBe(403);
     expect(recipes.list).not.toHaveBeenCalled();
+  });
+
+  it("protects recipe image mutations with the admin role", async () => {
+    const recipes = service();
+    const response = await request(app("USER", recipes))
+      .post(`/api/v1/admin/recipes/${recipeId}/media/uploads`)
+      .set("authorization", "Bearer token")
+      .send({ mimeType: "image/png", byteSize: 1024 });
+    expect(response.status).toBe(403);
+    expect(recipes.reserveMedia).not.toHaveBeenCalled();
+  });
+
+  it("validates recipe image MIME before calling the service", async () => {
+    const recipes = service();
+    const response = await request(app("ADMIN", recipes))
+      .post(`/api/v1/admin/recipes/${recipeId}/media/uploads`)
+      .set("authorization", "Bearer token")
+      .send({ mimeType: "image/svg+xml", byteSize: 1024 });
+    expect(response.status).toBe(400);
+    expect(recipes.reserveMedia).not.toHaveBeenCalled();
   });
 
   it("validates gram conversion before creating a recipe", async () => {

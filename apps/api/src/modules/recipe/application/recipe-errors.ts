@@ -17,3 +17,15 @@ export class RecipeConflictError extends AppError {
     super({ code: "RECIPE_CONFLICT", statusCode: 409, message });
   }
 }
+
+export class RecipeMediaNotFoundError extends AppError {
+  constructor() {
+    super({ code: "RECIPE_MEDIA_NOT_FOUND", statusCode: 404, message: "Recipe image not found" });
+  }
+}
+
+export class RecipeMediaProcessingError extends AppError {
+  constructor(message: string, cause?: unknown) {
+    super({ code: "RECIPE_MEDIA_PROCESSING_FAILED", statusCode: 422, message, cause });
+  }
+}

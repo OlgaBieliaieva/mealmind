@@ -111,6 +111,19 @@ export interface ProductPageResponse {
   readonly meta: { readonly page: number; readonly pageSize: number; readonly total: number };
 }
 
+export interface ProductSearchItem {
+  readonly id: string;
+  readonly name: string;
+  readonly type: ProductType;
+  readonly categoryName: string;
+  readonly brandName: string | null;
+}
+
+export interface ProductSearchResponse {
+  readonly data: { readonly items: readonly ProductSearchItem[] };
+  readonly meta: { readonly page: number; readonly pageSize: number; readonly total: number };
+}
+
 export function buildProductListPath(parameters: ProductListParameters): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
@@ -121,6 +134,11 @@ export function buildProductListPath(parameters: ProductListParameters): string 
 
 export function listProducts(apiClient: ApiClient, parameters: ProductListParameters) {
   return apiClient.get<ProductPageResponse>(buildProductListPath(parameters));
+}
+
+export function searchProducts(apiClient: ApiClient, search: string, pageSize = 20) {
+  const query = new URLSearchParams({ search, page: "1", pageSize: String(pageSize) });
+  return apiClient.get<ProductSearchResponse>(`/api/v1/products/search?${query.toString()}`);
 }
 
 export function getProduct(apiClient: ApiClient, id: string) {

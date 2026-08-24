@@ -16,6 +16,7 @@ export interface ReferenceField {
   readonly options?: readonly ReferenceOption[];
   readonly description?: string;
   readonly maxLength?: number;
+  readonly visibleWhen?: Readonly<{ field: string; equals: string }>;
 }
 
 export interface ReferenceConfig {
@@ -71,20 +72,22 @@ export const REFERENCE_CONFIGS: Readonly<Record<ReferenceResource, ReferenceConf
         label: "Тип автора",
         kind: "select",
         required: true,
+        createOnly: true,
+        description: "Тип визначається під час створення і надалі не змінюється.",
         options: [
           option("MEALMIND", "MealMind"),
           option("EXPERT", "Експерт"),
           option("BLOGGER", "Блогер"),
-          option("USER", "Користувач"),
         ],
       },
       {
         name: "expertiseArea",
         label: "Сфера експертизи",
         kind: "select",
-        nullable: true,
+        required: true,
+        visibleWhen: { field: "type", equals: "EXPERT" },
+        description: "Адміністратор, який створює експерта, фіксується як верифікатор.",
         options: [
-          option("", "Не вказано"),
           option("CHEF", "Шеф-кухар"),
           option("PHYSICIAN", "Лікар"),
           option("DIETITIAN", "Дієтолог"),

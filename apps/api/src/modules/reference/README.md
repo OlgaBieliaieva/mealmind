@@ -69,7 +69,7 @@ product category проходить hierarchy validation і відхиляєть
 | Ресурс               | Обов’язкові поля                                                                   |
 | -------------------- | ---------------------------------------------------------------------------------- |
 | `allergens`          | `code`, `nameUa`, `nameEn`                                                         |
-| `authors`            | `type`, `slug`, `displayName`                                                      |
+| `authors`            | `type`, `slug`, `displayName`; для `EXPERT` також `expertiseArea`                  |
 | `brands`             | `name`                                                                             |
 | `cuisines`           | `code`, `nameUa`, `nameEn`, `scope`, `sortOrder`                                   |
 | `dietary-tags`       | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
@@ -78,6 +78,12 @@ product category проходить hierarchy validation і відхиляєть
 | `nutrients`          | `code`, `nameUa`, `nameEn`, `group`, `unit`, `sortOrder`                           |
 | `product-categories` | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
 | `recipe-types`       | `code`, `nameUa`, `nameEn`, `sortOrder`                                            |
+
+Авторів типів `MEALMIND`, `BLOGGER` та `EXPERT` створює адміністратор. Для
+`EXPERT` API самостійно фіксує поточного адміністратора і час перевірки
+спеціалізації; клієнт не може передати ці audit-поля. Тип автора після створення
+не змінюється. Автор типу `USER` має бути пов’язаний із локальним акаунтом і не
+створюється через загальну форму довідників.
 
 Точні enum-значення, максимальні довжини й optional-поля визначені у
 `transport/reference-write-schema.ts`. Приклади тіл запитів доступні через
