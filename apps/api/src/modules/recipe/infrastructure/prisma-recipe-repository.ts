@@ -6,6 +6,7 @@ import type {
   RecipeDetails,
   RecipeIngredientInput,
   RecipeListQuery,
+  RecipeMediaRecord,
   RecipeMutationData,
   RecipeRepository,
   RecipeSummary,
@@ -34,7 +35,7 @@ const recipeInclude = {
     orderBy: { dietaryTag: { sortOrder: "asc" } },
   },
   media: {
-    where: { kind: "EXTERNAL_VIDEO", status: "ACTIVE" },
+    where: { status: "ACTIVE" },
     include: { author: { select: { displayName: true } } },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
   },
@@ -152,6 +153,94 @@ export function createPrismaRecipeRepository(database: DatabaseClient): RecipeRe
         if (isKnownPrismaError(error, "P2025")) return null;
         throw mapMutationError(error);
       }
+    },
+
+    async createPendingMedia(data) {
+      const row = await database.recipeMedia.create({
+        data: {
+          id: data.id,
+          recipeId: data.recipeId,
+          kind: "STORED_IMAGE",
+          status: "PENDING",
+          storageObjectPath: data.storageObjectPath,
+          mimeType: data.mimeType,
+          byteSize: BigInt(data.byteSize),
+          ...(data.altTextUa === undefined ? {} : { altTextUa: data.altTextUa }),
+          createdByUserId: data.actorUserId,
+          isPrimary: false,
+        },
+      });
+      return mapStoredImage(row);
+    },
+
+    async findMedia(id) {
+      const row = await database.recipeMedia.findUnique({ where: { id } });
+      return row === null || row.kind !== "STORED_IMAGE" ? null : mapStoredImage(row);
+    },
+
+    async activateMedia(id, data) {
+      return database.$transaction(async (transaction) => {
+        const current = await transaction.recipeMedia.findUnique({ where: { id } });
+        if (current === null || current.kind !== "STORED_IMAGE") return null;
+        const primaryCount = await transaction.recipeMedia.count({
+          where: {
+            recipeId: current.recipeId,
+            kind: "STORED_IMAGE",
+            status: "ACTIVE",
+            isPrimary: true,
+          },
+        });
+        const row = await transaction.recipeMedia.update({
+          where: { id },
+          data: {
+            status: "ACTIVE",
+            verifiedAt: new Date(),
+            widthPx: data.widthPx,
+            heightPx: data.heightPx,
+            checksumSha256: data.checksumSha256,
+            isPrimary: primaryCount === 0,
+          },
+        });
+        return mapStoredImage(row);
+      });
+    },
+
+    async markMediaFailed(id) {
+      await database.recipeMedia.updateMany({
+        where: { id, kind: "STORED_IMAGE", status: { not: "ARCHIVED" } },
+        data: { status: "FAILED", verifiedAt: null, isPrimary: false },
+      });
+    },
+
+    async archiveMedia(id) {
+      await database.$transaction(async (transaction) => {
+        const current = await transaction.recipeMedia.findUnique({ where: { id } });
+        if (current === null || current.kind !== "STORED_IMAGE") return;
+        await transaction.recipeMedia.update({
+          where: { id },
+          data: { status: "ARCHIVED", archivedAt: new Date(), isPrimary: false },
+        });
+        const primaryCount = await transaction.recipeMedia.count({
+          where: {
+            recipeId: current.recipeId,
+            kind: "STORED_IMAGE",
+            status: "ACTIVE",
+            isPrimary: true,
+          },
+        });
+        if (primaryCount > 0) return;
+        const replacement = await transaction.recipeMedia.findFirst({
+          where: { recipeId: current.recipeId, kind: "STORED_IMAGE", status: "ACTIVE" },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+          select: { id: true },
+        });
+        if (replacement !== null) {
+          await transaction.recipeMedia.update({
+            where: { id: replacement.id },
+            data: { isPrimary: true },
+          });
+        }
+      });
     },
   };
   return Object.freeze(repository);
@@ -513,16 +602,21 @@ function mapDetails(row: RecipeRow): RecipeDetails {
       })),
     ),
     videos: Object.freeze(
-      row.media.map((item) => ({
-        id: item.id,
-        platform: item.platform ?? "OTHER",
-        title: item.title,
-        externalUrl: item.externalUrl ?? "",
-        durationSec: item.durationSec,
-        authorId: item.authorId,
-        authorName: item.author?.displayName ?? null,
-        sortOrder: item.sortOrder,
-      })),
+      row.media
+        .filter((item) => item.kind === "EXTERNAL_VIDEO")
+        .map((item) => ({
+          id: item.id,
+          platform: item.platform ?? "OTHER",
+          title: item.title,
+          externalUrl: item.externalUrl ?? "",
+          durationSec: item.durationSec,
+          authorId: item.authorId,
+          authorName: item.author?.displayName ?? null,
+          sortOrder: item.sortOrder,
+        })),
+    ),
+    images: Object.freeze(
+      row.media.filter((item) => item.kind === "STORED_IMAGE").map(mapStoredImage),
     ),
     nutrients: Object.freeze(
       row.nutrients.map((item) => {
@@ -546,6 +640,43 @@ function mapDetails(row: RecipeRow): RecipeDetails {
         };
       }),
     ),
+  });
+}
+
+function mapStoredImage(row: {
+  readonly id: string;
+  readonly recipeId: string;
+  readonly status: "PENDING" | "ACTIVE" | "FAILED" | "ARCHIVED" | "UNAVAILABLE";
+  readonly storageObjectPath: string | null;
+  readonly mimeType: string | null;
+  readonly byteSize: bigint | null;
+  readonly widthPx: number | null;
+  readonly heightPx: number | null;
+  readonly checksumSha256: string | null;
+  readonly altTextUa: string | null;
+  readonly altTextEn: string | null;
+  readonly isPrimary: boolean;
+  readonly sortOrder: number;
+  readonly createdAt: Date;
+}): RecipeMediaRecord {
+  if (row.storageObjectPath === null || row.status === "UNAVAILABLE") {
+    throw new RecipeInvariantError("Stored recipe image has invalid persistence shape");
+  }
+  return Object.freeze({
+    id: row.id,
+    recipeId: row.recipeId,
+    status: row.status,
+    storageObjectPath: row.storageObjectPath,
+    mimeType: row.mimeType,
+    byteSize: row.byteSize?.toString() ?? null,
+    widthPx: row.widthPx,
+    heightPx: row.heightPx,
+    checksumSha256: row.checksumSha256,
+    altTextUa: row.altTextUa,
+    altTextEn: row.altTextEn,
+    isPrimary: row.isPrimary,
+    sortOrder: row.sortOrder,
+    createdAt: row.createdAt.toISOString(),
   });
 }
 

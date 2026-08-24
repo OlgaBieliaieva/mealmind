@@ -65,4 +65,22 @@ describe("reference form model", () => {
       sortOrder: expect.any(String),
     });
   });
+
+  it("requires expertise only for experts and omits hidden author fields", () => {
+    const config = REFERENCE_CONFIGS.authors;
+    const expert = {
+      ...initialReferenceValues(config),
+      type: "EXPERT",
+      slug: "expert",
+      displayName: "Експерт",
+    };
+
+    expect(validateReferenceValues(config, expert, "create")).toMatchObject({
+      expertiseArea: "Поле обов’язкове",
+    });
+
+    const blogger = { ...expert, type: "BLOGGER", expertiseArea: "CHEF" };
+    expect(validateReferenceValues(config, blogger, "create")).toEqual({});
+    expect(toReferenceWriteData(config, blogger, "create")).not.toHaveProperty("expertiseArea");
+  });
 });

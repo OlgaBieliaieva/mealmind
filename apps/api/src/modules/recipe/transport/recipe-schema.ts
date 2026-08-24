@@ -7,6 +7,10 @@ import {
   RECIPE_STATUSES,
   RECIPE_VISIBILITIES,
 } from "../domain/recipe-repository.js";
+import {
+  RECIPE_MEDIA_ALLOWED_MIME_TYPES,
+  RECIPE_MEDIA_MAX_BYTES,
+} from "../application/recipe-service.js";
 
 const uuid = z.string().uuid();
 const nullableText = (maximum: number) =>
@@ -147,6 +151,20 @@ export const previewRecipeNutritionSchema = z.object({
   params: z.object({}),
   query: z.object({}),
   body: z.object({ ingredients: z.array(ingredient).min(1).max(200) }),
+});
+export const reserveRecipeMediaSchema = z.object({
+  params: z.object({ id: uuid }),
+  query: z.object({}),
+  body: z.object({
+    mimeType: z.enum(RECIPE_MEDIA_ALLOWED_MIME_TYPES),
+    byteSize: z.number().int().min(1).max(RECIPE_MEDIA_MAX_BYTES),
+    altTextUa: nullableText(300),
+  }),
+});
+export const recipeMediaActionSchema = z.object({
+  params: z.object({ id: uuid, mediaId: uuid }),
+  query: z.object({}),
+  body: z.unknown().optional(),
 });
 
 function envelope<T extends z.ZodType>(body: T) {

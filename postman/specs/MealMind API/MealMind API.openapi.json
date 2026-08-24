@@ -143,6 +143,7 @@
                   "summary": "Автор",
                   "value": {
                     "type": "EXPERT",
+                    "expertiseArea": "DIETITIAN",
                     "slug": "test-author",
                     "displayName": "Тестовий автор"
                   }
@@ -786,6 +787,94 @@
         },
         "responses": {
           "200": { "description": "Статус змінено" },
+          "400": { "description": "Порушено validation або domain invariant" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Рецепт не знайдено" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/admin/recipes/{id}/media/uploads": {
+      "post": {
+        "summary": "Зарезервувати безпечне завантаження зображення рецепта",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RecipeMediaReservation" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Повернуто short-lived upload token і server-generated object path"
+          },
+          "400": { "description": "Порушено validation або domain invariant" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Рецепт не знайдено" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/admin/recipes/{id}/media/{mediaId}/complete": {
+      "post": {
+        "summary": "Перевірити зображення, створити thumbnail і активувати media",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Зображення активовано" },
+          "400": { "description": "Порушено validation або domain invariant" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Недостатньо прав" },
+          "404": { "description": "Рецепт не знайдено" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/admin/recipes/{id}/media/{mediaId}": {
+      "delete": {
+        "summary": "Видалити objects і архівувати зображення рецепта",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Зображення видалено" },
           "400": { "description": "Порушено validation або domain invariant" },
           "401": { "$ref": "#/components/responses/AuthenticationRequired" },
           "403": { "description": "Недостатньо прав" },
@@ -2188,6 +2277,15 @@
         "required": ["status"],
         "properties": {
           "status": { "type": "string", "enum": ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"] }
+        }
+      },
+      "RecipeMediaReservation": {
+        "type": "object",
+        "required": ["mimeType", "byteSize"],
+        "properties": {
+          "mimeType": { "type": "string", "enum": ["image/jpeg", "image/png", "image/webp"] },
+          "byteSize": { "type": "integer", "minimum": 1, "maximum": 5242880 },
+          "altTextUa": { "type": ["string", "null"], "maxLength": 300 }
         }
       },
       "OnboardingInput": {

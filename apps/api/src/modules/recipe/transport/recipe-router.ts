@@ -34,5 +34,26 @@ export function createRecipeRouter(
     requireAdmin,
     controller.changeStatus,
   );
+  router.post(
+    "/admin/recipes/:id/media/uploads",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.reserveMedia,
+  );
+  router.post(
+    "/admin/recipes/:id/media/:mediaId/complete",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.completeMedia,
+  );
+  router.delete(
+    "/admin/recipes/:id/media/:mediaId",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.deleteMedia,
+  );
   return router;
 }

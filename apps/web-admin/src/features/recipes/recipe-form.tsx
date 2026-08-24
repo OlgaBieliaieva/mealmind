@@ -2,31 +2,40 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import type { RecipeNutritionPreview } from "@/shared/api/recipes";
 import { Button, SelectField, TextInput } from "@/shared/ui";
 
 import { RECIPE_DIFFICULTY_LABELS } from "./recipe-labels";
 import { EMPTY_RECIPE_FORM, recipeFormSchema, type RecipeFormValues } from "./recipe-form-schema";
+import { ProductSearchCombobox } from "./product-search-combobox";
 import { useDirtyFormGuard } from "../products/use-dirty-form-guard";
+import { SearchableMultiSelect } from "./searchable-multi-select";
 
 export interface RecipeOption {
   readonly value: string;
   readonly label: string;
 }
+export interface RecipeProductOption extends RecipeOption {
+  readonly description?: string;
+}
+export interface RecipeNutrientOption extends RecipeOption {
+  readonly unit: string;
+}
 export interface RecipeFormProps {
   readonly mode: "create" | "edit";
   readonly initialValues?: RecipeFormValues;
-  readonly products: readonly RecipeOption[];
+  readonly products: readonly RecipeProductOption[];
   readonly recipeTypes: readonly RecipeOption[];
   readonly authors: readonly RecipeOption[];
   readonly cuisines: readonly RecipeOption[];
   readonly dietaryTags: readonly RecipeOption[];
-  readonly nutrients: readonly RecipeOption[];
+  readonly nutrients: readonly RecipeNutrientOption[];
   readonly preview: RecipeNutritionPreview | null;
   readonly isPreviewing?: boolean;
   readonly isSubmitting?: boolean;
+  readonly onSearchProducts: (query: string) => Promise<readonly RecipeProductOption[]>;
   readonly onSubmit: (values: RecipeFormValues) => Promise<void> | void;
   readonly onPreview: (values: RecipeFormValues) => Promise<void> | void;
 }
@@ -56,6 +65,7 @@ export function RecipeForm(props: RecipeFormProps) {
   });
   const preview = handleSubmit((values) => props.onPreview(values));
   const announce = (message: string) => setAnnouncement(message);
+  const previewRows = nutritionPreviewRows(props.preview, props.nutrients);
 
   return (
     <form className="recipe-form" onSubmit={submit} noValidate>
@@ -140,33 +150,30 @@ export function RecipeForm(props: RecipeFormProps) {
       <fieldset className="recipe-form__section">
         <legend>Кухні та дієтичні позначки</legend>
         <div className="recipe-form__grid">
-          <label className="ui-field">
-            <span className="ui-field__label">Кухні</span>
-            <select className="ui-control recipe-form__multi" multiple {...register("cuisineIds")}>
-              {props.cuisines.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <span className="ui-field__description">
-              Для вибору кількох значень використовуйте Ctrl або Command.
-            </span>
-          </label>
-          <label className="ui-field">
-            <span className="ui-field__label">Дієтичні позначки</span>
-            <select
-              className="ui-control recipe-form__multi"
-              multiple
-              {...register("dietaryTagIds")}
-            >
-              {props.dietaryTags.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Controller
+            control={control}
+            name="cuisineIds"
+            render={({ field }) => (
+              <SearchableMultiSelect
+                label="Кухні"
+                options={props.cuisines}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="dietaryTagIds"
+            render={({ field }) => (
+              <SearchableMultiSelect
+                label="Дієтичні позначки"
+                options={props.dietaryTags}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </div>
       </fieldset>
 
@@ -180,12 +187,20 @@ export function RecipeForm(props: RecipeFormProps) {
             <fieldset className="recipe-form__repeat" key={field.id}>
               <legend>Інгредієнт {index + 1}</legend>
               <div className="recipe-form__grid">
-                <SelectField
-                  label="Продукт"
-                  placeholder="Оберіть продукт"
-                  options={props.products}
-                  error={errors.ingredients?.[index]?.productId?.message}
-                  {...register(`ingredients.${index}.productId`)}
+                <Controller
+                  control={control}
+                  name={`ingredients.${index}.productId`}
+                  render={({ field: productField }) => (
+                    <ProductSearchCombobox
+                      value={productField.value}
+                      initialOptions={props.products}
+                      error={errors.ingredients?.[index]?.productId?.message}
+                      inputRef={productField.ref}
+                      onBlur={productField.onBlur}
+                      onChange={productField.onChange}
+                      onSearch={props.onSearchProducts}
+                    />
+                  )}
                 />
                 <TextInput
                   label="Вага, г"
@@ -349,30 +364,73 @@ export function RecipeForm(props: RecipeFormProps) {
       </fieldset>
 
       <section className="recipe-form__section" aria-labelledby="nutrition-preview-title">
-        <h2 id="nutrition-preview-title">Попередній розрахунок поживності</h2>
-        <Button
-          variant="secondary"
-          isLoading={props.isPreviewing ?? false}
-          loadingLabel="Розраховуємо…"
-          onClick={() => void preview()}
-        >
-          Розрахувати
-        </Button>
+        <div className="recipe-nutrition__header">
+          <div>
+            <h2 id="nutrition-preview-title">Попередній розрахунок поживності</h2>
+            <p className="recipe-form__hint">
+              Орієнтовна кількість нутрієнтів у всьому рецепті до приготування.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            isLoading={props.isPreviewing ?? false}
+            loadingLabel="Розраховуємо…"
+            onClick={() => void preview()}
+          >
+            Розрахувати
+          </Button>
+        </div>
         {props.preview === null ? (
           <p className="recipe-form__hint">Додайте валідні інгредієнти й запустіть розрахунок.</p>
         ) : (
-          <div aria-live="polite">
-            <p>Загальна вага обов’язкових інгредієнтів: {props.preview.totalIngredientWeightG} г</p>
-            <ul>
-              {props.preview.nutrients.map((item) => (
-                <li key={item.nutrientId}>
-                  {props.nutrients.find((option) => option.value === item.nutrientId)?.label ??
-                    item.nutrientId}
-                  : {item.valueTotal} (
-                  {item.completeness === "COMPLETE" ? "повні дані" : "часткові дані"})
-                </li>
-              ))}
-            </ul>
+          <div className="recipe-nutrition" aria-live="polite">
+            <div className="recipe-nutrition__weight">
+              <span>Загальна вага обов’язкових інгредієнтів</span>
+              <strong>{formatNutritionValue(props.preview.totalIngredientWeightG)} г</strong>
+            </div>
+
+            <div className="recipe-nutrition__explanation">
+              <strong>Що означає повнота даних?</strong>
+              <p>
+                <b>Повні</b> — значення нутрієнта відоме для всіх обов’язкових інгредієнтів.
+                <b> Часткові</b> — щонайменше для одного інгредієнта значення відсутнє, тому
+                показана лише відома частина, а фактична кількість може бути більшою.
+              </p>
+            </div>
+
+            {previewRows.length === 0 ? (
+              <p className="recipe-form__hint">Для вибраних інгредієнтів немає даних поживності.</p>
+            ) : (
+              <div className="recipe-nutrition__table-scroll">
+                <table className="recipe-nutrition__table">
+                  <caption className="sr-only">Поживність усього рецепта</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Нутрієнт</th>
+                      <th scope="col">Усього в рецепті</th>
+                      <th scope="col">Повнота</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.map((item) => (
+                      <tr key={item.nutrientId}>
+                        <th scope="row">{item.label}</th>
+                        <td className="recipe-nutrition__value">
+                          {formatNutritionValue(item.valueTotal)} {item.unit}
+                        </td>
+                        <td>
+                          <span
+                            className={`recipe-nutrition__status recipe-nutrition__status--${item.completeness.toLocaleLowerCase()}`}
+                          >
+                            {item.completeness === "COMPLETE" ? "Повні" : "Часткові"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -385,4 +443,40 @@ export function RecipeForm(props: RecipeFormProps) {
       </div>
     </form>
   );
+}
+
+const NUTRIENT_UNIT_LABELS: Readonly<Record<string, string>> = {
+  KCAL: "ккал",
+  G: "г",
+  MG: "мг",
+  MCG: "мкг",
+};
+
+function nutritionPreviewRows(
+  preview: RecipeNutritionPreview | null,
+  nutrients: readonly RecipeNutrientOption[],
+) {
+  if (preview === null) return [];
+  const optionById = new Map(nutrients.map((item, index) => [item.value, { ...item, index }]));
+  return preview.nutrients
+    .map((item) => {
+      const option = optionById.get(item.nutrientId);
+      return {
+        ...item,
+        label: option?.label ?? item.nutrientId,
+        unit: NUTRIENT_UNIT_LABELS[option?.unit ?? ""] ?? option?.unit ?? "",
+        sortOrder: option?.index ?? Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .sort(
+      (left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label),
+    );
+}
+
+function formatNutritionValue(value: string): string {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return value;
+  const absolute = Math.abs(number);
+  const maximumFractionDigits = absolute >= 100 ? 1 : absolute >= 10 ? 2 : absolute >= 1 ? 3 : 4;
+  return new Intl.NumberFormat("uk-UA", { maximumFractionDigits }).format(number);
 }

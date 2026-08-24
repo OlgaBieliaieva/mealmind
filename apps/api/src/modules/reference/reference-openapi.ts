@@ -168,7 +168,12 @@ function createReferenceExamples() {
     },
     author: {
       summary: "Автор",
-      value: { type: "EXPERT", slug: "test-author", displayName: "Тестовий автор" },
+      value: {
+        type: "EXPERT",
+        expertiseArea: "DIETITIAN",
+        slug: "test-author",
+        displayName: "Тестовий автор",
+      },
     },
     brand: { summary: "Бренд", value: { name: "Test Foods", status: "DRAFT" } },
     cuisine: {

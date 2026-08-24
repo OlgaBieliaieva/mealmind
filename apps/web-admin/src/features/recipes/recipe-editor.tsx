@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
 import {
@@ -19,11 +19,12 @@ import {
   updateRecipe,
   type RecipeNutritionPreview,
 } from "@/shared/api/recipes";
-import { listProducts } from "@/shared/api/products";
+import { searchProducts } from "@/shared/api/products";
 import { showErrorToast } from "@/shared/feedback/error-toast";
 import { PageState } from "@/shared/ui";
 import { InlineAuthorForm } from "./inline-author-form";
-import { RecipeForm, type RecipeOption } from "./recipe-form";
+import { RecipeForm, type RecipeNutrientOption, type RecipeOption } from "./recipe-form";
+import { RecipeImageUploader } from "./recipe-image-uploader";
 import { EMPTY_RECIPE_FORM, mapRecipeFormToWrite, mapRecipeToForm } from "./recipe-form-schema";
 import { RecipeStatusActions } from "./recipe-status-actions";
 export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
@@ -37,10 +38,6 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
     queryFn: () => getRecipe(api, recipeId as string),
     enabled: editing,
   });
-  const products = useQuery({
-    queryKey: ["admin-recipe-products"],
-    queryFn: () => listProducts(api, { status: "ACTIVE", pageSize: 100 }),
-  });
   const recipeTypes = useOptions("recipe-types");
   const authors = useOptions("authors");
   const cuisines = useOptions("cuisines");
@@ -49,6 +46,17 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
   const initial = useMemo(
     () => (recipe.data ? mapRecipeToForm(recipe.data.data) : EMPTY_RECIPE_FORM),
     [recipe.data],
+  );
+  const searchProductOptions = useCallback(
+    async (query: string) => {
+      const response = await searchProducts(api, query);
+      return response.data.items.map((item) => ({
+        value: item.id,
+        label: item.name,
+        description: [item.categoryName, item.brandName].filter(Boolean).join(" · "),
+      }));
+    },
+    [api],
   );
   const save = useMutation({
     mutationFn: (values: typeof initial) =>
@@ -95,7 +103,6 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
   });
   const pending =
     (editing && recipe.isPending) ||
-    products.isPending ||
     recipeTypes.isPending ||
     authors.isPending ||
     cuisines.isPending ||
@@ -103,7 +110,6 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
     nutrients.isPending;
   const failed =
     (editing && recipe.isError) ||
-    products.isError ||
     recipeTypes.isError ||
     authors.isError ||
     cuisines.isError ||
@@ -123,6 +129,16 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
       />
     );
   const current = recipe.data?.data;
+  const selectedProducts = current
+    ? Array.from(
+        new Map(
+          current.ingredients.map((item) => [
+            item.productId,
+            { value: item.productId, label: item.productName },
+          ]),
+        ).values(),
+      )
+    : [];
   const storedPreview = current
     ? {
         nutrients: current.nutrients.map((item) => ({
@@ -166,21 +182,38 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
       <RecipeForm
         mode={editing ? "edit" : "create"}
         initialValues={initial}
-        products={(products.data?.data.items ?? []).map((item) => ({
-          value: item.id,
-          label: item.nameUa ?? item.nameEn,
-        }))}
+        products={selectedProducts}
         recipeTypes={recipeTypes.options}
         authors={authors.options}
         cuisines={cuisines.options}
         dietaryTags={dietaryTags.options}
-        nutrients={nutrients.options}
+        nutrients={(nutrients.data?.data.items ?? []).map(nutrientOption)}
         preview={preview ?? storedPreview}
         isPreviewing={previewMutation.isPending}
         isSubmitting={save.isPending}
+        onSearchProducts={searchProductOptions}
         onPreview={(values) => previewMutation.mutateAsync(values).then(() => undefined)}
         onSubmit={(values) => save.mutateAsync(values).then(() => undefined)}
       />
+      {current ? (
+        <RecipeImageUploader
+          recipeId={current.id}
+          images={current.images}
+          onChanged={() =>
+            queryClient
+              .invalidateQueries({ queryKey: ["admin-recipe", current.id] })
+              .then(() => undefined)
+          }
+        />
+      ) : (
+        <section className="recipe-media" aria-labelledby="recipe-media-title">
+          <h2 id="recipe-media-title">Зображення рецепта</h2>
+          <p className="recipe-form__hint">
+            Спочатку створіть рецепт. Після збереження тут з’явиться безпечне завантаження
+            зображень.
+          </p>
+        </section>
+      )}
     </section>
   );
 }
@@ -202,4 +235,11 @@ function option(item: ReferenceItem): RecipeOption {
     if (typeof item[key] === "string") return { value: item.id, label: item[key] };
   }
   return { value: item.id, label: item.id };
+}
+
+function nutrientOption(item: ReferenceItem): RecipeNutrientOption {
+  return {
+    ...option(item),
+    unit: typeof item.unit === "string" ? item.unit : "",
+  };
 }

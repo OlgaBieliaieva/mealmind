@@ -120,6 +120,23 @@ export interface RecipeNutrientView {
   readonly coveredIngredientCount: number | null;
 }
 
+export interface RecipeMediaRecord {
+  readonly id: string;
+  readonly recipeId: string;
+  readonly status: "PENDING" | "ACTIVE" | "FAILED" | "ARCHIVED";
+  readonly storageObjectPath: string;
+  readonly mimeType: string | null;
+  readonly byteSize: string | null;
+  readonly widthPx: number | null;
+  readonly heightPx: number | null;
+  readonly checksumSha256: string | null;
+  readonly altTextUa: string | null;
+  readonly altTextEn: string | null;
+  readonly isPrimary: boolean;
+  readonly sortOrder: number;
+  readonly createdAt: string;
+}
+
 export interface RecipeDetails extends RecipeSummary {
   readonly summary: string | null;
   readonly description: string | null;
@@ -143,6 +160,7 @@ export interface RecipeDetails extends RecipeSummary {
     readonly id: string;
     readonly authorName: string | null;
   })[];
+  readonly images: readonly RecipeMediaRecord[];
   readonly nutrients: readonly RecipeNutrientView[];
 }
 
@@ -197,4 +215,20 @@ export interface RecipeRepository {
   create(data: RecipeMutationData, actorUserId: string): Promise<RecipeDetails>;
   update(id: string, data: RecipeUpdateData, actorUserId: string): Promise<RecipeDetails | null>;
   updateStatus(id: string, status: RecipeStatus): Promise<RecipeDetails | null>;
+  createPendingMedia(data: {
+    readonly id: string;
+    readonly recipeId: string;
+    readonly storageObjectPath: string;
+    readonly mimeType: string;
+    readonly byteSize: number;
+    readonly altTextUa?: string | null | undefined;
+    readonly actorUserId: string;
+  }): Promise<RecipeMediaRecord>;
+  findMedia(id: string): Promise<RecipeMediaRecord | null>;
+  activateMedia(
+    id: string,
+    data: { readonly widthPx: number; readonly heightPx: number; readonly checksumSha256: string },
+  ): Promise<RecipeMediaRecord | null>;
+  markMediaFailed(id: string): Promise<void>;
+  archiveMedia(id: string): Promise<void>;
 }

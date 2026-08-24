@@ -47,4 +47,12 @@ ARCHIVED -> DRAFT
 
 ## Автори, джерела й media
 
-Використовується єдина актуальна модель `Author`. Inline author creation проходить через адміністративний reference endpoint. `originalRecipeId` задає lineage похідного рецепта, а `RecipeSource` зберігає зовнішні джерела. У цьому PR recipe media охоплює перевірені HTTP(S) metadata зовнішніх відео; upload lifecycle зображень не дублює product media й потребує окремого storage flow.
+Використовується єдина актуальна модель `Author`. Inline author creation проходить через адміністративний reference endpoint. `originalRecipeId` задає lineage похідного рецепта, а `RecipeSource` зберігає зовнішні джерела.
+
+Зображення рецептів зберігаються у приватному bucket `recipe-media`. API видає лише короткоживий signed upload, після чого сервер повторно читає object, перевіряє фактичний MIME, розмір і dimensions, створює WebP thumbnail та лише тоді активує `RecipeMedia`. Перше активоване зображення автоматично стає основним; видалення спочатку переводить media у безпечний стан, видаляє objects і завершується архівацією запису.
+
+Bucket описано у `supabase/config.toml`. Storage adapter додатково виконує
+ідемпотентну перевірку перед першою reservation і створює приватний bucket через
+service-role client, якщо локальний або розгорнутий Supabase stack ще не
+застосував bucket configuration. Повторна перевірка після конфлікту підтримує
+одночасний запуск кількох API instances.

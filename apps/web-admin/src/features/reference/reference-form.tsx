@@ -8,6 +8,7 @@ import { Button, SelectField, TextInput } from "@/shared/ui";
 import type { ReferenceConfig, ReferenceOption } from "./reference-config";
 import {
   initialReferenceValues,
+  isReferenceFieldVisible,
   toReferenceWriteData,
   validateReferenceValues,
   type ReferenceFormErrors,
@@ -65,6 +66,7 @@ export function ReferenceForm({
       <div className="reference-form__grid">
         {config.fields.map((field) => {
           if (mode === "edit" && field.createOnly === true) return null;
+          if (!isReferenceFieldVisible(field, values)) return null;
           const value = values[field.name];
           const error = errors[field.name];
           const id = `reference-field-${field.name}`;
@@ -91,6 +93,7 @@ export function ReferenceForm({
                 key={field.name}
                 label={field.label}
                 {...(field.required === undefined ? {} : { required: field.required })}
+                {...(field.required === true ? { placeholder: "Оберіть значення" } : {})}
                 options={options}
                 value={typeof value === "string" ? value : ""}
                 {...(error === undefined ? {} : { error })}

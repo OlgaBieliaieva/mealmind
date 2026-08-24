@@ -147,9 +147,21 @@ function authorCreateData(
   actorUserId: string,
 ): Prisma.AuthorUncheckedCreateInput {
   const { isActive, ...fields } = data;
+  const verification =
+    fields.type === "EXPERT"
+      ? (() => {
+          const verifiedAt = new Date();
+          return {
+            createdAt: verifiedAt,
+            expertiseVerifiedByUserId: actorUserId,
+            expertiseVerifiedAt: verifiedAt,
+          };
+        })()
+      : {};
   return {
     ...(fields as unknown as Omit<Prisma.AuthorUncheckedCreateInput, "createdByUserId">),
     createdByUserId: actorUserId,
+    ...verification,
     archivedAt: isActive === false ? new Date() : null,
   };
 }
@@ -271,11 +283,27 @@ function mapMutationError(error: unknown, resource: ReferenceResource): unknown 
   if (isKnownPrismaError(error, "P2003")) {
     return new ReferenceRelationError("Пов’язаний запис довідника не існує");
   }
+  if (resource === "authors" && isCheckConstraintError(error)) {
+    return new ReferenceRelationError("Тип автора не відповідає заповненим полям");
+  }
   return error;
 }
 
 function isKnownPrismaError(error: unknown, code: string): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
+}
+
+function isCheckConstraintError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === "P2004") return true;
+
+  const databaseError = error.meta?.database_error;
+  return (
+    typeof databaseError === "object" &&
+    databaseError !== null &&
+    "code" in databaseError &&
+    databaseError.code === "23514"
+  );
 }
 
 function assertNever(value: never): never {

@@ -52,6 +52,7 @@ const recipe: RecipeDetails = {
   cuisines: [],
   dietaryTags: [],
   videos: [],
+  images: [],
   nutrients: [],
 };
 
@@ -64,6 +65,11 @@ function repository(): RecipeRepository {
     create: vi.fn(async () => recipe),
     update: vi.fn(async () => recipe),
     updateStatus: vi.fn(async (_id, status) => ({ ...recipe, status })),
+    createPendingMedia: vi.fn(),
+    findMedia: vi.fn(async () => null),
+    activateMedia: vi.fn(async () => null),
+    markMediaFailed: vi.fn(async () => undefined),
+    archiveMedia: vi.fn(async () => undefined),
   };
 }
 
@@ -79,7 +85,7 @@ describe("recipe service", () => {
     store.findPublicById = vi.fn(async () => published);
     const service = createRecipeService(store);
 
-    await expect(service.getAdmin(recipe.id)).resolves.toBe(published);
+    await expect(service.getAdmin(recipe.id)).resolves.toEqual(published);
     const publicRecipe = await service.getPublic(recipe.id);
     expect(publicRecipe).toMatchObject({ id: recipe.id, publishedAt: published.publishedAt });
     expect(publicRecipe).not.toHaveProperty("status");
@@ -108,7 +114,7 @@ describe("recipe service", () => {
     const store = repository();
     const service = createRecipeService(store);
 
-    await expect(service.changeStatus(recipe.id, recipe.status)).resolves.toBe(recipe);
+    await expect(service.changeStatus(recipe.id, recipe.status)).resolves.toEqual(recipe);
     expect(store.updateStatus).not.toHaveBeenCalled();
   });
 });

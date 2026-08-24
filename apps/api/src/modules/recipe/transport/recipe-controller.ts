@@ -9,6 +9,8 @@ import {
   getRecipeSchema,
   listRecipesSchema,
   previewRecipeNutritionSchema,
+  recipeMediaActionSchema,
+  reserveRecipeMediaSchema,
   updateRecipeSchema,
 } from "./recipe-schema.js";
 
@@ -20,6 +22,9 @@ export interface RecipeController {
   readonly create: RequestHandler;
   readonly update: RequestHandler;
   readonly changeStatus: RequestHandler;
+  readonly reserveMedia: RequestHandler;
+  readonly completeMedia: RequestHandler;
+  readonly deleteMedia: RequestHandler;
 }
 
 export function createRecipeController(service: RecipeService): RecipeController {
@@ -65,6 +70,26 @@ export function createRecipeController(service: RecipeService): RecipeController
       response
         .status(200)
         .json({ data: await service.changeStatus(input.params.id, input.body.status) });
+    }),
+    reserveMedia: validateRequest(reserveRecipeMediaSchema, async (input, request, response) => {
+      response.set("cache-control", "no-store");
+      response.status(201).json({
+        data: await service.reserveMedia(
+          input.params.id,
+          input.body,
+          getAuthenticatedUser(request).userId,
+        ),
+      });
+    }),
+    completeMedia: validateRequest(recipeMediaActionSchema, async (input, _request, response) => {
+      response.set("cache-control", "no-store");
+      response.status(200).json({
+        data: await service.completeMedia(input.params.id, input.params.mediaId),
+      });
+    }),
+    deleteMedia: validateRequest(recipeMediaActionSchema, async (input, _request, response) => {
+      await service.deleteMedia(input.params.id, input.params.mediaId);
+      response.status(204).send();
     }),
   });
 }
