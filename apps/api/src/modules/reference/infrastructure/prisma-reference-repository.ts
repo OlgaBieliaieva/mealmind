@@ -41,11 +41,31 @@ export function createPrismaReferenceRepository(database: DatabaseClient): Refer
                 type: true,
                 expertiseArea: true,
                 bio: true,
+                avatarObjectPath: true,
+                links: {
+                  select: { type: true, url: true },
+                  orderBy: { position: "asc" },
+                },
                 archivedAt: true,
               },
             })
-          ).map(({ archivedAt, ...author }) =>
-            toRecord({ ...author, isActive: archivedAt === null }),
+          ).map(({ archivedAt, links, ...author }) =>
+            toRecord({
+              ...author,
+              ...Object.fromEntries(
+                [
+                  ["instagramUrl", "INSTAGRAM"],
+                  ["youtubeUrl", "YOUTUBE"],
+                  ["tiktokUrl", "TIKTOK"],
+                  ["websiteUrl", "WEBSITE"],
+                  ["otherUrl", "OTHER"],
+                ].map(([field, type]) => [
+                  field,
+                  links.find((link) => link.type === type)?.url ?? null,
+                ]),
+              ),
+              isActive: archivedAt === null,
+            }),
           );
         case "brands":
           return mapRecords(

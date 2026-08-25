@@ -8,6 +8,10 @@ sign-in, sign-out і password recovery через Supabase Auth.
 - Callback обмінює одноразовий code на session і негайно повертає redirect,
   щоб браузер зберіг cookies до наступних application-запитів. Ідемпотентний
   account bootstrap та onboarding policy після цього виконує `proxy.ts`.
+- На звичайній навігації Proxy спочатку читає application session. Bootstrap
+  викликається лише для валідної Supabase identity, якій API повернув
+  `ACCOUNT_ACCESS_DENIED` через відсутність локального `User`; зміна сторінки
+  або query-параметрів не витрачає bootstrap rate limit.
 - Повторний callback продовжує навігацію лише за наявності вже валідної сесії;
   без валідного code або session показується стабільний error state.
 - Пароль ніколи не передається до MealMind API.

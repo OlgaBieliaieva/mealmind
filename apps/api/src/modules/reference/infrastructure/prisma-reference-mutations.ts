@@ -48,8 +48,26 @@ async function createRecord(
         data: data as unknown as Prisma.AllergenUncheckedCreateInput,
       });
     case "authors":
-      return database.author.create({
-        data: authorCreateData(data, actorUserId),
+      if (!splitAuthorData(data).hasLinkFields) {
+        return database.author.create({
+          data: authorCreateData(data, actorUserId),
+        });
+      }
+      return database.$transaction(async (transaction) => {
+        const { authorData, links } = splitAuthorData(data);
+        const author = await transaction.author.create({
+          data: authorCreateData(authorData, actorUserId),
+        });
+        if (links.length > 0) {
+          await transaction.authorLink.createMany({
+            data: links.map((link, index) => ({
+              ...link,
+              authorId: author.id,
+              position: index + 1,
+            })),
+          });
+        }
+        return { ...author, ...authorLinkFields(links) };
       });
     case "brands":
       return database.brand.create({ data: brandCreateData(data) });
@@ -99,7 +117,29 @@ async function updateRecord(
         data: data as unknown as Prisma.AllergenUncheckedUpdateInput,
       });
     case "authors":
-      return database.author.update({ where: { id }, data: authorUpdateData(data) });
+      return database.$transaction(async (transaction) => {
+        const { authorData, links, hasLinkFields } = splitAuthorData(data);
+        const author = await transaction.author.update({
+          where: { id },
+          data: authorUpdateData(authorData),
+        });
+        if (hasLinkFields) {
+          await transaction.authorLink.deleteMany({ where: { authorId: id } });
+          if (links.length > 0) {
+            await transaction.authorLink.createMany({
+              data: links.map((link, index) => ({ ...link, authorId: id, position: index + 1 })),
+            });
+          }
+        }
+        const currentLinks = hasLinkFields
+          ? links
+          : await transaction.authorLink.findMany({
+              where: { authorId: id },
+              select: { type: true, url: true },
+              orderBy: { position: "asc" },
+            });
+        return { ...author, ...authorLinkFields(currentLinks) };
+      });
     case "brands":
       return database.brand.update({ where: { id }, data: brandUpdateData(data) });
     case "cuisines":
@@ -174,6 +214,46 @@ function authorUpdateData(data: ReferenceWriteData): Prisma.AuthorUncheckedUpdat
   };
 }
 
+const AUTHOR_LINK_FIELDS = {
+  instagramUrl: "INSTAGRAM",
+  youtubeUrl: "YOUTUBE",
+  tiktokUrl: "TIKTOK",
+  websiteUrl: "WEBSITE",
+  otherUrl: "OTHER",
+} as const;
+
+function splitAuthorData(data: ReferenceWriteData) {
+  const authorData = { ...data };
+  const links: Array<{
+    type: (typeof AUTHOR_LINK_FIELDS)[keyof typeof AUTHOR_LINK_FIELDS];
+    url: string;
+  }> = [];
+  let hasLinkFields = false;
+  for (const [field, type] of Object.entries(AUTHOR_LINK_FIELDS) as Array<
+    [keyof typeof AUTHOR_LINK_FIELDS, (typeof AUTHOR_LINK_FIELDS)[keyof typeof AUTHOR_LINK_FIELDS]]
+  >) {
+    if (field in authorData) hasLinkFields = true;
+    const value = authorData[field];
+    delete authorData[field];
+    if (typeof value === "string" && value.length > 0) links.push({ type, url: value });
+  }
+  return { authorData, links, hasLinkFields };
+}
+
+function authorLinkFields(
+  links: readonly {
+    readonly type: (typeof AUTHOR_LINK_FIELDS)[keyof typeof AUTHOR_LINK_FIELDS];
+    readonly url: string;
+  }[],
+) {
+  return Object.fromEntries(
+    Object.entries(AUTHOR_LINK_FIELDS).map(([field, type]) => [
+      field,
+      links.find((link) => link.type === type)?.url ?? null,
+    ]),
+  );
+}
+
 function brandCreateData(data: ReferenceWriteData): Prisma.BrandUncheckedCreateInput {
   const status = data.status as "DRAFT" | "ACTIVE" | "ARCHIVED";
   return {
@@ -192,7 +272,15 @@ function brandUpdateData(data: ReferenceWriteData): Prisma.BrandUncheckedUpdateI
 
 const FIELDS: Readonly<Record<ReferenceResource, readonly string[]>> = {
   allergens: ["id", "code", "nameUa", "nameEn", "isActive"],
-  authors: ["id", "type", "expertiseArea", "slug", "displayName", "bio"],
+  authors: [
+    "id",
+    "type",
+    "expertiseArea",
+    "slug",
+    "displayName",
+    "bio",
+    ...Object.keys(AUTHOR_LINK_FIELDS),
+  ],
   brands: [
     "id",
     "name",

@@ -4,17 +4,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
+import { readWebEnv } from "@/config/env";
+
 import { getUserFacingErrorMessage } from "@/shared/api/api-error";
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
 import {
   archiveReferenceData,
+  completeAuthorAvatar,
   createReferenceData,
   listReferenceData,
+  reserveAuthorAvatar,
   updateReferenceData,
   type ReferenceItem,
   type ReferenceResource,
   type ReferenceWriteData,
 } from "@/shared/api/reference-data";
+import { getBrowserSupabaseClient } from "@/shared/supabase/browser-client";
 import { Button, Card, Modal, PageState, TextInput } from "@/shared/ui";
 
 import { REFERENCE_CONFIGS, REFERENCE_NAVIGATION, type ReferenceOption } from "./reference-config";
@@ -69,14 +74,47 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
   }
 
   const saveMutation = useMutation({
-    mutationFn: async (data: ReferenceWriteData) => {
+    mutationFn: async ({
+      data,
+      avatarFile,
+    }: {
+      readonly data: ReferenceWriteData;
+      readonly avatarFile?: File;
+    }) => {
       if (formState === null) throw new Error("Reference form is closed");
-      return formState.mode === "create"
-        ? createReferenceData(api, resource, data)
-        : updateReferenceData(api, resource, formState.item.id, data);
+      const response =
+        formState.mode === "create"
+          ? createReferenceData(api, resource, data)
+          : updateReferenceData(api, resource, formState.item.id, data);
+      const saved = await response;
+      let avatarUploaded = true;
+      if (resource === "authors" && avatarFile) {
+        try {
+          const reservation = await reserveAuthorAvatar(api, saved.data.id, {
+            mimeType: avatarFile.type,
+            byteSize: avatarFile.size,
+          });
+          const storage = getBrowserSupabaseClient(readWebEnv()).storage.from("author-avatars");
+          const { error } = await storage.uploadToSignedUrl(
+            reservation.data.objectPath,
+            reservation.data.token,
+            avatarFile,
+            { contentType: avatarFile.type },
+          );
+          if (error) throw new Error("Author avatar storage upload failed", { cause: error });
+          await completeAuthorAvatar(api, saved.data.id, reservation.data.objectPath);
+        } catch {
+          avatarUploaded = false;
+        }
+      }
+      return { saved, avatarUploaded };
     },
-    onSuccess: async () => {
-      const message = formState?.mode === "create" ? "Значення створено." : "Зміни збережено.";
+    onSuccess: async ({ avatarUploaded }) => {
+      const message = !avatarUploaded
+        ? "Автор збережений, але аватар завантажити не вдалося. Повторіть у режимі редагування."
+        : formState?.mode === "create"
+          ? "Значення створено."
+          : "Зміни збережено.";
       setFormState(null);
       await refresh(message);
     },
@@ -292,6 +330,7 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
           <ReferenceForm
             key={formState.mode === "edit" ? formState.item.id : `new-${resource}`}
             config={config}
+            resource={resource}
             mode={formState.mode}
             {...(formState.mode === "edit" ? { item: formState.item } : {})}
             categoryOptions={categoryOptions}
@@ -299,7 +338,11 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
             submitError={
               saveMutation.isError ? getUserFacingErrorMessage(saveMutation.error) : undefined
             }
-            onSubmit={(data) => saveMutation.mutateAsync(data).then(() => undefined)}
+            onSubmit={(data, avatarFile) =>
+              saveMutation
+                .mutateAsync({ data, ...(avatarFile ? { avatarFile } : {}) })
+                .then(() => undefined)
+            }
             onCancel={() => setFormState(null)}
           />
         )}

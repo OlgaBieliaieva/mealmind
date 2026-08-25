@@ -114,6 +114,7 @@ export function createRecipeService(
       const calculation = calculateRecipeNutrition(ingredients);
       const data: RecipeMutationData = {
         ...input,
+        yieldWeightG: input.yieldWeightG ?? totalIngredientWeight(ingredients),
         ingredients,
         nutrients: calculation.nutrients,
         ingredientFingerprint: calculation.inputFingerprint,
@@ -145,10 +146,16 @@ export function createRecipeService(
         const calculation = calculateRecipeNutrition(ingredients);
         data = {
           ...data,
+          ...(input.yieldWeightG === null ||
+          (input.yieldWeightG === undefined && existing.yieldWeightG === null)
+            ? { yieldWeightG: totalIngredientWeight(ingredients) }
+            : {}),
           ingredients,
           nutrients: calculation.nutrients,
           ingredientFingerprint: calculation.inputFingerprint,
         };
+      } else if (input.yieldWeightG === null) {
+        data = { ...data, yieldWeightG: totalIngredientWeight(existing.ingredients) };
       }
 
       const updated = await repository.update(id, data, actorUserId);
@@ -315,6 +322,12 @@ function detailsAsWrite(recipe: RecipeDetails): RecipeWrite {
 
 function decimalString(value: number): string {
   return value.toFixed(4).replace(/\.?0+$/, "");
+}
+
+function totalIngredientWeight(ingredients: readonly { readonly gramWeight: string }[]): string {
+  return decimalString(
+    ingredients.reduce((total, ingredient) => total + Number(ingredient.gramWeight), 0),
+  );
 }
 
 function presentPublicRecipe(recipe: RecipeDetailsView): PublicRecipeDetailsView {

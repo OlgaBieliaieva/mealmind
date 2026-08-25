@@ -194,6 +194,18 @@ export function createApiClient(options: CreateApiClientOptions) {
       });
     },
 
+    put<TResponse>(
+      path: string,
+      body: unknown,
+      options?: Omit<ApiRequestOptions, "method" | "body">,
+    ): Promise<TResponse> {
+      return request<TResponse>(path, {
+        ...options,
+        method: "PUT",
+        body,
+      });
+    },
+
     patch<TResponse>(
       path: string,
       body: unknown,

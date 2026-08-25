@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { readWebEnv } from "@/config/env";
 import { sanitizeReturnTo } from "@/features/auth/safe-return-to";
+import { readOrBootstrapApplicationSession } from "@/shared/auth/application-session";
 
 const PUBLIC_AUTH_PATHS = new Set([
   "/auth/callback",
@@ -61,27 +62,10 @@ export async function proxy(request: NextRequest) {
     if (session.error !== null || accessToken === undefined) {
       return copyCookies(response, NextResponse.redirect(new URL("/auth/sign-in", request.url)));
     }
-    const apiBase = config.apiUrl.replace(/\/+$/, "");
-    const headers = {
-      accept: "application/json",
-      authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
-    };
-    const bootstrap = await fetch(`${apiBase}/api/v1/account/bootstrap`, {
-      method: "POST",
-      headers,
-      body: "{}",
-      cache: "no-store",
-    });
-    if (!bootstrap.ok)
-      return copyCookies(
-        response,
-        NextResponse.redirect(new URL("/auth/auth-code-error", request.url)),
-      );
-    const applicationSession = await fetch(`${apiBase}/api/v1/session`, {
-      headers,
-      cache: "no-store",
-    });
+    const applicationSession = await readOrBootstrapApplicationSession(config.apiUrl, accessToken);
+    if (applicationSession.status === 401) {
+      return copyCookies(response, NextResponse.redirect(new URL("/auth/sign-in", request.url)));
+    }
     if (!applicationSession.ok)
       return copyCookies(
         response,

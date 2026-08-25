@@ -18,7 +18,12 @@ VOLUME та COUNT не конвертуються напряму без product 
 valueTotal = Σ(ingredient.gramWeight × product.valuePer100g / 100)
 ```
 
-Значення snapshot округлюється до 8 десяткових знаків. `valuePerServing` обчислюється з `valueTotal / baseServings`, а `valuePer100g` — лише за наявності `yieldWeightG`. Якщо нутрієнт відсутній хоча б в одного обов’язкового продукту, його completeness дорівнює `PARTIAL`; інакше — `COMPLETE`.
+Значення snapshot округлюється до 8 десяткових знаків. `valuePerServing`
+обчислюється з `valueTotal / baseServings`, а `valuePer100g` — з
+`valueTotal × 100 / yieldWeightG`. Якщо адміністратор не задав вихідну вагу,
+сервер зберігає суму `gramWeight` усіх інгредієнтів. Якщо нутрієнт відсутній хоча
+б в одного обов’язкового продукту, його completeness дорівнює `PARTIAL`; інакше
+— `COMPLETE`. Ця технічна ознака не показується кінцевому користувачу.
 
 Recipe nutrients є snapshot із calculator version та SHA-256 fingerprint входів. Вони перераховуються при кожній заміні ingredients. Зміни product nutrients не змінюють уже збережений рецепт до наступного його редагування.
 
@@ -31,6 +36,9 @@ external videos і nutrients атомарно. Update використовує p
 у request та зберігаються як `1..n` відповідно до baseline database constraints.
 
 ## Статуси й видимість
+
+Активне зовнішнє відео отримує однакові `createdAt` і `verifiedAt`, щоб запис
+відповідав timestamp constraint незалежно від різниці годинника API та PostgreSQL.
 
 Дозволені переходи:
 

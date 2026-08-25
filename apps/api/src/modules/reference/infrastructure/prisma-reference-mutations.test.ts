@@ -128,4 +128,56 @@ describe("Prisma reference mutations", () => {
       ),
     ).rejects.toMatchObject({ code: "INVALID_REFERENCE_RELATION", statusCode: 400 });
   });
+
+  it("stores author social links transactionally", async () => {
+    const create = vi.fn(async ({ data }: { data: Prisma.AuthorUncheckedCreateInput }) => ({
+      id: "author-id",
+      ...data,
+    }));
+    const createMany = vi.fn(async () => ({ count: 2 }));
+    const transaction = {
+      author: { create },
+      authorLink: { createMany },
+    };
+    const database = {
+      $transaction: vi.fn(async (callback: (client: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+      ),
+    } as unknown as DatabaseClient;
+
+    const result = await createPrismaReference(
+      database,
+      "authors",
+      {
+        type: "BLOGGER",
+        slug: "food-author",
+        displayName: "Автор",
+        instagramUrl: "https://instagram.com/author",
+        websiteUrl: "https://example.com",
+        isActive: true,
+      },
+      "admin-id",
+    );
+
+    expect(createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          authorId: "author-id",
+          position: 1,
+          type: "INSTAGRAM",
+          url: "https://instagram.com/author",
+        },
+        {
+          authorId: "author-id",
+          position: 2,
+          type: "WEBSITE",
+          url: "https://example.com",
+        },
+      ],
+    });
+    expect(result).toMatchObject({
+      instagramUrl: "https://instagram.com/author",
+      websiteUrl: "https://example.com",
+    });
+  });
 });

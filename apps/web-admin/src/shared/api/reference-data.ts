@@ -87,3 +87,30 @@ export function archiveReferenceData(
     `/api/v1/admin/reference/${resource}/${encodeURIComponent(id)}`,
   );
 }
+
+export function reserveAuthorAvatar(
+  apiClient: ApiClient,
+  authorId: string,
+  data: { readonly mimeType: string; readonly byteSize: number },
+) {
+  return apiClient.post<{
+    readonly data: {
+      readonly objectPath: string;
+      readonly uploadUrl: string;
+      readonly token: string;
+    };
+  }>(`/api/v1/admin/reference/authors/${encodeURIComponent(authorId)}/avatar/uploads`, data);
+}
+
+export function completeAuthorAvatar(apiClient: ApiClient, authorId: string, objectPath: string) {
+  return apiClient.post<{ readonly data: { readonly avatarUrl: string } }>(
+    `/api/v1/admin/reference/authors/${encodeURIComponent(authorId)}/avatar/complete`,
+    { objectPath },
+  );
+}
+
+export function deleteAuthorAvatar(apiClient: ApiClient, authorId: string) {
+  return apiClient.delete<void>(
+    `/api/v1/admin/reference/authors/${encodeURIComponent(authorId)}/avatar`,
+  );
+}

@@ -512,6 +512,7 @@ function dietaryTagData(ids: readonly string[], fingerprint: string, actorUserId
 }
 
 function videoData(item: RecipeMutationData["videos"][number], actorUserId: string) {
+  const timestamp = new Date();
   return {
     kind: "EXTERNAL_VIDEO" as const,
     status: "ACTIVE" as const,
@@ -522,7 +523,8 @@ function videoData(item: RecipeMutationData["videos"][number], actorUserId: stri
     ...(item.authorId ? { author: { connect: { id: item.authorId } } } : {}),
     createdByUser: { connect: { id: actorUserId } },
     sortOrder: item.sortOrder,
-    verifiedAt: new Date(),
+    createdAt: timestamp,
+    verifiedAt: timestamp,
   };
 }
 

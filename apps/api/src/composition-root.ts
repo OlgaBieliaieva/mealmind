@@ -13,6 +13,8 @@ import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
 import { createAccountModule } from "./modules/account/account-module.js";
 import { createFamilyModule } from "./modules/family/family-module.js";
+import { createFoodModule } from "./modules/food/food-module.js";
+import { createMealPlanModule } from "./modules/meal-plan/meal-plan-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
 import { createRecipeModule } from "./modules/recipe/recipe-module.js";
@@ -53,7 +55,10 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
 
   const accountModule = createAccountModule(database, identityProvider);
 
-  const referenceModule = createReferenceModule(database, authenticationService);
+  const referenceModule = createReferenceModule(database, authenticationService, {
+    url: config.supabase.url,
+    secretKey: config.supabase.secretKey,
+  });
   const productModule = createProductModule(database, authenticationService, {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
@@ -62,6 +67,11 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
   });
+  const foodModule = createFoodModule(database, authenticationService, {
+    url: config.supabase.url,
+    secretKey: config.supabase.secretKey,
+  });
+  const mealPlanModule = createMealPlanModule(database, authenticationService);
   const familyModule = createFamilyModule(
     database,
     authenticationService,
@@ -77,6 +87,8 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,
     recipeRouter: recipeModule.router,
+    foodRouter: foodModule.router,
+    mealPlanRouter: mealPlanModule.router,
     familyRouter: familyModule.router,
     sessionReader: familyModule.service,
     logger,

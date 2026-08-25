@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
 
 :root {
   color-scheme: light;
@@ -231,6 +232,10 @@ button {
 
 .client-main:focus {
   outline: none;
+}
+
+.client-main--immersive {
+  padding: 0;
 }
 
 .client-page {

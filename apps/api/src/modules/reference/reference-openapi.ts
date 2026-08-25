@@ -93,6 +93,59 @@ export const referenceOpenApiDocument = Object.freeze({
         },
       },
     },
+    "/api/v1/admin/reference/authors/{id}/avatar/uploads": {
+      post: {
+        summary: "Зарезервувати безпечне завантаження аватара автора",
+        description:
+          "Повертає короткочасні дані підписаного завантаження до приватного Storage bucket. Шлях об’єкта генерує сервер.",
+        security: [{ bearerAuth: [] }],
+        parameters: [idParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AuthorAvatarUploadRequest" },
+            },
+          },
+        },
+        responses: authorAvatarResponses("201", "Завантаження зарезервовано"),
+      },
+    },
+    "/api/v1/admin/reference/authors/{id}/avatar/complete": {
+      post: {
+        summary: "Завершити опрацювання аватара автора",
+        description:
+          "Перевіряє належність objectPath автору, декодує зображення та зберігає нормалізований WebP 512×512.",
+        security: [{ bearerAuth: [] }],
+        parameters: [idParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AuthorAvatarCompleteRequest" },
+            },
+          },
+        },
+        responses: {
+          ...authorAvatarResponses("200", "Аватар опрацьовано"),
+          "422": { $ref: "#/components/responses/AuthorAvatarProcessingFailed" },
+        },
+      },
+    },
+    "/api/v1/admin/reference/authors/{id}/avatar": {
+      delete: {
+        summary: "Видалити аватар автора",
+        security: [{ bearerAuth: [] }],
+        parameters: [idParameter()],
+        responses: {
+          "204": { description: "Аватар видалено" },
+          "400": { $ref: "#/components/responses/ValidationError" },
+          "401": { $ref: "#/components/responses/AuthenticationRequired" },
+          "403": { $ref: "#/components/responses/AdminRequired" },
+          "404": { description: "Автора не знайдено" },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -105,12 +158,30 @@ export const referenceOpenApiDocument = Object.freeze({
           "Набір полів залежить від resource. Точні обмеження наведені в документації reference-модуля.",
         additionalProperties: true,
       },
+      AuthorAvatarUploadRequest: {
+        type: "object",
+        required: ["mimeType", "byteSize"],
+        additionalProperties: false,
+        properties: {
+          mimeType: { type: "string", enum: ["image/jpeg", "image/png", "image/webp"] },
+          byteSize: { type: "integer", minimum: 1, maximum: 3 * 1024 * 1024 },
+        },
+      },
+      AuthorAvatarCompleteRequest: {
+        type: "object",
+        required: ["objectPath"],
+        additionalProperties: false,
+        properties: { objectPath: { type: "string", minLength: 1, maxLength: 1024 } },
+      },
     },
     responses: {
       ValidationError: { description: "Запит не пройшов валідацію" },
       AuthenticationRequired: { description: "Потрібна автентифікація користувача" },
       AdminRequired: { description: "Потрібна роль адміністратора" },
       ReferenceConflict: { description: "Порушено унікальність значення довідника" },
+      AuthorAvatarProcessingFailed: {
+        description: "Файл аватара не вдалося перевірити або опрацювати",
+      },
     },
   },
 });
@@ -121,6 +192,20 @@ function resourceParameter() {
     in: "path",
     required: true,
     schema: { type: "string", enum: resources },
+  };
+}
+
+function idParameter() {
+  return { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+}
+
+function authorAvatarResponses(successCode: "200" | "201", successDescription: string) {
+  return {
+    [successCode]: { description: successDescription },
+    "400": { $ref: "#/components/responses/ValidationError" },
+    "401": { $ref: "#/components/responses/AuthenticationRequired" },
+    "403": { $ref: "#/components/responses/AdminRequired" },
+    "404": { description: "Автора не знайдено" },
   };
 }
 
@@ -173,6 +258,8 @@ function createReferenceExamples() {
         expertiseArea: "DIETITIAN",
         slug: "test-author",
         displayName: "Тестовий автор",
+        instagramUrl: "https://instagram.com/test-author",
+        websiteUrl: "https://example.com/test-author",
       },
     },
     brand: { summary: "Бренд", value: { name: "Test Foods", status: "DRAFT" } },

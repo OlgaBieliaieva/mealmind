@@ -83,4 +83,22 @@ describe("reference form model", () => {
     expect(validateReferenceValues(config, blogger, "create")).toEqual({});
     expect(toReferenceWriteData(config, blogger, "create")).not.toHaveProperty("expertiseArea");
   });
+
+  it("normalizes optional author social links", () => {
+    const config = REFERENCE_CONFIGS.authors;
+    const values = {
+      ...initialReferenceValues(config),
+      type: "BLOGGER",
+      slug: "food-author",
+      displayName: "Автор",
+      instagramUrl: "https://instagram.com/author",
+      websiteUrl: "",
+    };
+
+    expect(validateReferenceValues(config, values, "create")).toEqual({});
+    expect(toReferenceWriteData(config, values, "create")).toMatchObject({
+      instagramUrl: "https://instagram.com/author",
+      websiteUrl: null,
+    });
+  });
 });

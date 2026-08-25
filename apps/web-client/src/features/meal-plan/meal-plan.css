@@ -1,0 +1,392 @@
+.plan-screen {
+  min-height: calc(100dvh - var(--client-navigation-height));
+  background: #f8faf9;
+}
+.plan-header {
+  border-bottom: 1px solid var(--client-color-border);
+  background: #fff;
+}
+.plan-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.5rem;
+}
+.plan-header__top h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.plan-header__top svg {
+  color: var(--client-color-primary);
+}
+.plan-calendar {
+  position: relative;
+}
+.plan-calendar__trigger {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.75rem;
+  color: var(--client-color-primary);
+  background: var(--client-color-primary-muted);
+  cursor: pointer;
+}
+.plan-calendar__trigger:hover {
+  background: #a7f3d0;
+}
+.plan-calendar__trigger:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--client-color-focus) 35%, transparent);
+  outline-offset: 2px;
+}
+.plan-calendar__popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--client-color-border);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--client-shadow-navigation);
+}
+.plan-calendar__popover .rdp-root {
+  margin: 0;
+  --rdp-accent-color: var(--client-color-primary);
+  --rdp-accent-background-color: var(--client-color-primary-muted);
+  --rdp-day_button-border-radius: 50%;
+  --rdp-selected-border: 0;
+}
+.plan-header__eyebrow {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.plan-week-navigation {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr 2.75rem;
+  align-items: center;
+  padding: 0 1rem 0.6rem;
+}
+.plan-week-navigation button {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+.plan-week-navigation > button:nth-child(2) {
+  display: grid;
+  gap: 0.05rem;
+  color: #111827;
+}
+.plan-week-navigation span {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+.plan-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  padding: 0 0.75rem 0.75rem;
+}
+.plan-days button {
+  display: grid;
+  gap: 0.15rem;
+  place-items: center;
+  min-width: 0;
+  padding: 0.45rem 0.15rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+}
+.plan-days button span {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+}
+.plan-days button strong {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.85rem;
+}
+.plan-days button[aria-pressed="true"] {
+  color: var(--client-color-primary);
+}
+.plan-days button[aria-pressed="true"] strong {
+  color: #fff;
+  background: var(--client-color-primary);
+  box-shadow: 0 0.2rem 0.6rem rgb(5 150 105 / 25%);
+}
+.plan-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--client-color-border);
+  background: #fff;
+}
+.plan-multi-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+.plan-multi-toggle input {
+  accent-color: var(--client-color-primary);
+}
+.plan-view-switch {
+  display: flex;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background: #f3f4f6;
+}
+.plan-view-switch button {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.plan-view-switch svg {
+  width: 0.9rem;
+}
+.plan-view-switch button[aria-pressed="true"] {
+  color: #047857;
+  background: #fff;
+  box-shadow: var(--client-shadow-card);
+}
+.plan-content {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1rem 2rem;
+}
+.plan-search-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.85rem;
+  color: #fff;
+  background: var(--client-color-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.plan-search-link svg {
+  width: 1.1rem;
+}
+.plan-empty {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 1rem;
+  background: #fff;
+}
+.plan-empty > span {
+  font-size: 3rem;
+}
+.plan-empty h2 {
+  margin: 0.8rem 0 0.35rem;
+  font-size: 1.05rem;
+}
+.plan-empty p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+.plan-empty .plan-search-link {
+  margin-top: 1.25rem;
+}
+.plan-day {
+  display: grid;
+  gap: 0.75rem;
+}
+.plan-day > h2 {
+  margin: 0.2rem 0;
+  text-transform: capitalize;
+  font-size: 1rem;
+}
+.plan-meal {
+  overflow: hidden;
+  border: 1px solid var(--client-color-border);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--client-shadow-card);
+}
+.plan-meal > h3 {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.plan-meal ul,
+.member-food-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-meal li + li {
+  border-top: 1px solid #f3f4f6;
+}
+.plan-meal li a {
+  display: grid;
+  grid-template-columns: 2.8rem 1fr 1.1rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+.plan-meal li svg {
+  width: 1rem;
+  color: #d1d5db;
+}
+.plan-meal li small,
+.plan-meal li strong {
+  display: block;
+}
+.plan-meal li small {
+  margin-top: 0.1rem;
+  color: #9ca3af;
+  font-size: 0.72rem;
+}
+.food-emoji {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: #f0fdf4;
+  font-size: 1.5rem;
+}
+.plan-meal__empty {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+.member-view {
+  display: grid;
+  gap: 1rem;
+}
+.member-card {
+  padding: 1rem;
+  border: 1px solid var(--client-color-border);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--client-shadow-card);
+}
+.member-card > header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.member-card h2,
+.member-card p {
+  margin: 0;
+}
+.member-card h2 {
+  font-size: 1rem;
+}
+.member-card header p {
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+.member-avatar {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #047857;
+  background: #d1fae5;
+  font-weight: 800;
+}
+.nutrition-summary {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  background: #f9fafb;
+}
+.nutrition-summary > div {
+  display: grid;
+  gap: 0.3rem;
+}
+.nutrition-summary span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #6b7280;
+  font-size: 0.7rem;
+}
+.nutrition-summary strong {
+  color: #374151;
+}
+.nutrition-summary progress {
+  width: 100%;
+  height: 0.4rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 99px;
+}
+.nutrition-summary progress::-webkit-progress-bar {
+  background: #e5e7eb;
+}
+.nutrition-summary progress::-webkit-progress-value {
+  background: var(--client-color-primary);
+}
+.nutrition-summary small,
+.nutrition-unavailable {
+  color: #9ca3af;
+  font-size: 0.7rem;
+}
+.member-food-list {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+.member-food-list li {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border-radius: 0.65rem;
+  background: #fff;
+}
+.member-card__empty,
+.nutrition-unavailable {
+  margin: 0.8rem 0 0;
+}
+.member-card__empty {
+  display: grid;
+  gap: 0.8rem;
+}
+.member-card__empty p {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+.food-emoji-placeholder {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #ecfdf5, #fefce8);
+  font-size: 3rem;
+}
