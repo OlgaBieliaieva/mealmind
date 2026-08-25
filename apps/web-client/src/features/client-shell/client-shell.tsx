@@ -15,6 +15,7 @@ export interface ClientShellProps {
 
 export function ClientShell({ children }: ClientShellProps) {
   const pathname = usePathname();
+  const immersive = pathname.startsWith("/plan") || pathname.startsWith("/food/");
 
   if (
     pathname.startsWith("/auth/") ||
@@ -40,38 +41,46 @@ export function ClientShell({ children }: ClientShellProps) {
       </a>
 
       <div className="client-shell">
-        <header className="client-header">
-          <div className="client-header__content">
-            <Link
-              className="client-brand"
-              href={clientRoutes.home}
-              aria-label="MealMind — на головну"
-            >
-              <span className="client-brand__mark" aria-hidden="true">
-                M
-              </span>
+        {immersive ? null : (
+          <header className="client-header">
+            <div className="client-header__content">
+              <Link
+                className="client-brand"
+                href={clientRoutes.home}
+                aria-label="MealMind — на головну"
+              >
+                <span className="client-brand__mark" aria-hidden="true">
+                  M
+                </span>
 
-              <span>
-                <span className="client-brand__name">MealMind</span>
-                <span className="client-brand__description">Сімейне планування харчування</span>
-              </span>
-            </Link>
+                <span>
+                  <span className="client-brand__name">MealMind</span>
+                  <span className="client-brand__description">Сімейне планування харчування</span>
+                </span>
+              </Link>
 
-            <SignOutButton />
-          </div>
-        </header>
+              <SignOutButton />
+            </div>
+          </header>
+        )}
 
         <div className="client-shell__body">
           <aside className="client-navigation-region" aria-label="Розділи застосунку">
             <ClientNavigation />
           </aside>
 
-          <main id="main-content" className="client-main" tabIndex={-1}>
+          <main
+            id="main-content"
+            className={immersive ? "client-main client-main--immersive" : "client-main"}
+            tabIndex={-1}
+          >
             {children}
           </main>
         </div>
 
-        <footer className="client-footer">MealMind · Планування харчування для родини</footer>
+        {immersive ? null : (
+          <footer className="client-footer">MealMind · Планування харчування для родини</footer>
+        )}
       </div>
     </>
   );

@@ -57,7 +57,6 @@ try {
       title: `Integration recipe ${crypto.randomUUID()}`,
       visibility: "PUBLIC",
       baseServings: 2,
-      yieldWeightG: "200",
       ingredients: [{ productId, quantity: "200", measurementUnitId: gram.id, isOptional: false }],
       steps: [{ instruction: "Перший крок" }, { instruction: "Другий крок", timerSeconds: 60 }],
       sources: [],
@@ -74,6 +73,7 @@ try {
   );
   assert.equal(created.nutrients[0]?.valueTotal, "104");
   assert.equal(created.nutrients[0]?.valuePerServing, "52");
+  assert.equal(created.yieldWeightG, "200");
 
   await assert.rejects(
     repository.update(
@@ -99,6 +99,14 @@ try {
     created.id,
     {
       steps: [{ instruction: "Оновлений перший" }, { instruction: "Оновлений другий" }],
+      videos: [
+        {
+          platform: "YOUTUBE",
+          title: "Відео приготування",
+          externalUrl: "https://www.youtube.com/watch?v=mealmind-test",
+          sortOrder: 0,
+        },
+      ],
     },
     userId,
   );
@@ -109,6 +117,7 @@ try {
       [2, "Оновлений другий"],
     ],
   );
+  assert.equal(updated.videos[0]?.title, "Відео приготування");
 
   const publishedAt = updated.publishedAt;
   assert.notEqual(publishedAt, null);
@@ -120,7 +129,10 @@ try {
 
   console.info("Recipe repository PostgreSQL integration test passed.");
 } finally {
-  if (recipeId !== undefined) await database.recipe.deleteMany({ where: { id: recipeId } });
+  if (recipeId !== undefined) {
+    await database.recipeMedia.deleteMany({ where: { recipeId } });
+    await database.recipe.deleteMany({ where: { id: recipeId } });
+  }
   await database.product.deleteMany({ where: { id: productId } });
   await database.user.deleteMany({ where: { id: userId } });
   await database.$disconnect();

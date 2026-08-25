@@ -65,4 +65,26 @@ describe("reference author write schema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts safe social links and rejects unsupported protocols", () => {
+    expect(
+      createAuthor({
+        type: "BLOGGER",
+        slug: "food-author",
+        displayName: "Автор",
+        instagramUrl: "https://instagram.com/author",
+        websiteUrl: "https://example.com",
+        isActive: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      createAuthor({
+        type: "BLOGGER",
+        slug: "unsafe-author",
+        displayName: "Автор",
+        websiteUrl: "javascript:alert(1)",
+        isActive: true,
+      }).success,
+    ).toBe(false);
+  });
 });

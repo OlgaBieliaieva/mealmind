@@ -2,6 +2,11 @@ import { productOpenApiPaths, productOpenApiSchemas } from "./modules/product/pr
 import { familyOpenApiPaths, familyOpenApiSchemas } from "./modules/family/family-openapi.js";
 import { referenceOpenApiDocument } from "./modules/reference/reference-openapi.js";
 import { recipeOpenApiPaths, recipeOpenApiSchemas } from "./modules/recipe/recipe-openapi.js";
+import { foodOpenApiPaths, foodOpenApiSchemas } from "./modules/food/food-openapi.js";
+import {
+  mealPlanOpenApiPaths,
+  mealPlanOpenApiSchemas,
+} from "./modules/meal-plan/meal-plan-openapi.js";
 
 export const apiOpenApiDocument = Object.freeze({
   ...referenceOpenApiDocument,
@@ -51,6 +56,8 @@ export const apiOpenApiDocument = Object.freeze({
     ...productOpenApiPaths,
     ...recipeOpenApiPaths,
     ...familyOpenApiPaths,
+    ...foodOpenApiPaths,
+    ...mealPlanOpenApiPaths,
   }),
   components: Object.freeze({
     ...referenceOpenApiDocument.components,
@@ -59,6 +66,8 @@ export const apiOpenApiDocument = Object.freeze({
       ...productOpenApiSchemas,
       ...recipeOpenApiSchemas,
       ...familyOpenApiSchemas,
+      ...foodOpenApiSchemas,
+      ...mealPlanOpenApiSchemas,
     }),
   }),
 });

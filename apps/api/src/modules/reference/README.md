@@ -36,6 +36,9 @@ GET   /api/v1/admin/reference/:resource
 POST  /api/v1/admin/reference/:resource
 PATCH /api/v1/admin/reference/:resource/:id
 DELETE /api/v1/admin/reference/:resource/:id
+POST  /api/v1/admin/reference/authors/:id/avatar/uploads
+POST  /api/v1/admin/reference/authors/:id/avatar/complete
+DELETE /api/v1/admin/reference/authors/:id/avatar
 ```
 
 Публічне для застосунків читання повертає лише активні значення. Адміністративне
@@ -85,6 +88,16 @@ product category проходить hierarchy validation і відхиляєть
 не змінюється. Автор типу `USER` має бути пов’язаний із локальним акаунтом і не
 створюється через загальну форму довідників.
 
+Форма автора також підтримує необов’язкові HTTP(S)-посилання Instagram,
+YouTube, TikTok, вебсайт та інше посилання. API транзакційно відображає ці поля
+на наявну таблицю author_links; URL з іншими протоколами відхиляються.
+
+Аватари авторів зберігаються у приватному bucket `author-avatars`. Адмін-панель
+отримує короткочасне підписане завантаження, а сервер перевіряє належність шляху
+конкретному автору, декодує файл і нормалізує його до квадратного WebP 512×512.
+Допустимі JPEG, PNG і WebP до 3 MiB. У read-моделях повертається лише
+короткочасний signed URL; внутрішній object path не входить до HTTP-відповіді.
+
 Точні enum-значення, максимальні довжини й optional-поля визначені у
 `transport/reference-write-schema.ts`. Приклади тіл запитів доступні через
 `GET /api/openapi.json`.
@@ -106,6 +119,7 @@ Repository додатково покладається на foreign key акту
 - `403 ACCOUNT_ACCESS_DENIED` — немає ролі адміністратора;
 - `404 REFERENCE_NOT_FOUND` — значення для PATCH не існує;
 - `409 REFERENCE_CONFLICT` — порушено unique constraint коду, символу, slug або USDA ID.
+- `422 AUTHOR_AVATAR_PROCESSING_FAILED` — файл аватара не пройшов перевірку або опрацювання.
 
 ## Сортування й безпека контракту
 

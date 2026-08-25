@@ -39,3 +39,9 @@ export class ReferenceRelationError extends AppError {
     });
   }
 }
+
+export class AuthorAvatarProcessingError extends AppError {
+  constructor(message: string, cause?: unknown) {
+    super({ code: "AUTHOR_AVATAR_PROCESSING_FAILED", statusCode: 422, message, cause });
+  }
+}

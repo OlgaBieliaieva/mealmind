@@ -24,6 +24,19 @@ const allergenCreate = z
 const allergenUpdate = allergenCreate.omit({ code: true }).partial().strict();
 
 const expertiseArea = z.enum(["CHEF", "PHYSICIAN", "DIETITIAN", "NUTRITIONIST", "OTHER"]);
+const httpUrl = z
+  .url()
+  .max(2048)
+  .refine((value) => ["http:", "https:"].includes(new URL(value).protocol), {
+    message: "Only HTTP(S) URLs are allowed",
+  });
+const authorLinks = {
+  instagramUrl: httpUrl.nullable().optional(),
+  youtubeUrl: httpUrl.nullable().optional(),
+  tiktokUrl: httpUrl.nullable().optional(),
+  websiteUrl: httpUrl.nullable().optional(),
+  otherUrl: httpUrl.nullable().optional(),
+};
 const authorCommonShape = {
   slug: z
     .string()
@@ -33,6 +46,7 @@ const authorCommonShape = {
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   displayName: name(160),
   bio: z.string().trim().min(1).max(5000).nullable().optional(),
+  ...authorLinks,
   isActive: active,
 };
 const authorCreate = z.discriminatedUnion("type", [
@@ -46,6 +60,7 @@ const authorUpdate = z
     displayName: authorCommonShape.displayName.optional(),
     bio: authorCommonShape.bio,
     expertiseArea: expertiseArea.optional(),
+    ...authorLinks,
     isActive: z.boolean().optional(),
   })
   .strict();

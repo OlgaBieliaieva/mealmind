@@ -7,6 +7,7 @@ import type {
 } from "../domain/reference-repository.js";
 import { buildCategoryTree, type CategoryTreeNode } from "./category-tree.js";
 import { ReferenceNotFoundError, ReferenceRelationError } from "./reference-errors.js";
+import type { AuthorAvatarStorage } from "../domain/author-avatar-storage.js";
 
 export interface ReferencePage {
   readonly items: readonly (ReferenceRecord | CategoryTreeNode)[];
@@ -35,10 +36,19 @@ export interface ReferenceService {
   archive(resource: ReferenceResource, id: string): Promise<ReferenceRecord>;
 }
 
-export function createReferenceService(repository: ReferenceRepository): ReferenceService {
+export function createReferenceService(
+  repository: ReferenceRepository,
+  authorAvatarStorage?: Pick<AuthorAvatarStorage, "createReadUrl">,
+): ReferenceService {
   return Object.freeze({
     async list(resource: ReferenceResource, options: ListReferenceOptions) {
-      const records = await repository.list(resource, options);
+      const sourceRecords = await repository.list(resource, options);
+      const records =
+        resource === "authors"
+          ? await Promise.all(
+              sourceRecords.map((record) => withAuthorAvatarUrl(record, authorAvatarStorage)),
+            )
+          : sourceRecords;
       const ordered = stableSort(records);
 
       if (resource === "product-categories") {
@@ -108,6 +118,20 @@ export function createReferenceService(repository: ReferenceRepository): Referen
       return record;
     },
   });
+}
+
+async function withAuthorAvatarUrl(
+  record: ReferenceRecord,
+  storage: Pick<AuthorAvatarStorage, "createReadUrl"> | undefined,
+): Promise<ReferenceRecord> {
+  if (!storage || typeof record.avatarObjectPath !== "string") {
+    return { ...record, avatarUrl: null };
+  }
+  try {
+    return { ...record, avatarUrl: await storage.createReadUrl(record.avatarObjectPath) };
+  } catch {
+    return { ...record, avatarUrl: null };
+  }
 }
 
 function archiveData(resource: ReferenceResource): ReferenceWriteData {

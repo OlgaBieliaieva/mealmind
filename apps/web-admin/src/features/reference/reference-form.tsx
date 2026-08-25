@@ -2,7 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { ReferenceItem, ReferenceWriteData } from "@/shared/api/reference-data";
+import type {
+  ReferenceItem,
+  ReferenceResource,
+  ReferenceWriteData,
+} from "@/shared/api/reference-data";
 import { Button, SelectField, TextInput } from "@/shared/ui";
 
 import type { ReferenceConfig, ReferenceOption } from "./reference-config";
@@ -17,17 +21,19 @@ import {
 
 export interface ReferenceFormProps {
   readonly config: ReferenceConfig;
+  readonly resource?: ReferenceResource;
   readonly mode: "create" | "edit";
   readonly item?: ReferenceItem;
   readonly categoryOptions?: readonly ReferenceOption[];
   readonly isSubmitting?: boolean;
   readonly submitError?: string | undefined;
-  readonly onSubmit: (data: ReferenceWriteData) => Promise<void>;
+  readonly onSubmit: (data: ReferenceWriteData, avatarFile?: File) => Promise<void>;
   readonly onCancel: () => void;
 }
 
 export function ReferenceForm({
   config,
+  resource = "allergens",
   mode,
   item,
   categoryOptions = [],
@@ -40,14 +46,18 @@ export function ReferenceForm({
     initialReferenceValues(config, item),
   );
   const [errors, setErrors] = useState<ReferenceFormErrors>({});
+  const [avatarFile, setAvatarFile] = useState<File>();
+  const [avatarError, setAvatarError] = useState<string>();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors = validateReferenceValues(config, values, mode);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0 || avatarError !== undefined) return;
     try {
-      await onSubmit(toReferenceWriteData(config, values, mode));
+      const data = toReferenceWriteData(config, values, mode);
+      if (avatarFile) await onSubmit(data, avatarFile);
+      else await onSubmit(data);
     } catch {
       // The parent mutation owns the stable API error state rendered below the form.
     }
@@ -151,6 +161,58 @@ export function ReferenceForm({
           );
         })}
       </div>
+
+      {resource === "authors" ? (
+        <div className="reference-avatar-field">
+          {typeof item?.avatarUrl === "string" ? (
+            // Signed URL points to a server-validated private avatar.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.avatarUrl}
+              alt={`Поточний аватар: ${String(item.displayName ?? "автор")}`}
+            />
+          ) : (
+            <div className="reference-avatar-field__placeholder" aria-hidden="true">
+              👤
+            </div>
+          )}
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor="reference-author-avatar">
+              Аватар автора
+            </label>
+            <input
+              id="reference-author-avatar"
+              className="ui-control"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                setAvatarError(undefined);
+                if (file === undefined) {
+                  setAvatarFile(undefined);
+                  return;
+                }
+                if (
+                  !new Set(["image/jpeg", "image/png", "image/webp"]).has(file.type) ||
+                  file.size > 3 * 1024 * 1024
+                ) {
+                  setAvatarFile(undefined);
+                  setAvatarError("Дозволено JPEG, PNG або WebP до 3 MiB");
+                  return;
+                }
+                setAvatarFile(file);
+              }}
+            />
+            <p className="ui-field__description">Зображення буде обрізано до квадрата 512 × 512.</p>
+            {avatarFile ? <p className="ui-field__description">Обрано: {avatarFile.name}</p> : null}
+            {avatarError ? (
+              <p className="ui-field__error" role="alert">
+                {avatarError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {submitError === undefined ? null : (
         <p className="reference-form__error" role="alert">

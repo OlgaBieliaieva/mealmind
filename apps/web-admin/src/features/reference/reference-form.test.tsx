@@ -72,4 +72,28 @@ describe("reference form", () => {
     fireEvent.change(screen.getByLabelText(/Тип автора/), { target: { value: "EXPERT" } });
     expect(screen.getByLabelText(/Сфера експертизи/)).toBeInTheDocument();
   });
+
+  it("accepts a validated avatar while creating an author", async () => {
+    const submit = vi.fn(async () => undefined);
+    render(
+      <ReferenceForm
+        resource="authors"
+        config={REFERENCE_CONFIGS.authors}
+        mode="create"
+        onSubmit={submit}
+        onCancel={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Тип автора/), { target: { value: "BLOGGER" } });
+    fireEvent.change(screen.getByLabelText(/Slug/), { target: { value: "avatar-author" } });
+    fireEvent.change(screen.getByLabelText(/Ім’я для відображення/), {
+      target: { value: "Автор з аватаром" },
+    });
+    const file = new File(["avatar"], "avatar.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Аватар автора"), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: "Створити" }));
+
+    expect(await screen.findByText("Обрано: avatar.png")).toBeVisible();
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ slug: "avatar-author" }), file);
+  });
 });

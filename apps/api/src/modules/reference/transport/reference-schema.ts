@@ -25,3 +25,28 @@ export const archiveReferenceSchema = z.object({
   query: z.object({}),
   body: emptyBodySchema,
 });
+
+export const reserveAuthorAvatarSchema = z.object({
+  params: z.object({ id: z.uuid() }),
+  query: z.object({}),
+  body: z.object({
+    mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+    byteSize: z
+      .number()
+      .int()
+      .min(1)
+      .max(3 * 1024 * 1024),
+  }),
+});
+
+export const completeAuthorAvatarSchema = z.object({
+  params: z.object({ id: z.uuid() }),
+  query: z.object({}),
+  body: z.object({ objectPath: z.string().trim().min(1).max(1024) }),
+});
+
+export const deleteAuthorAvatarSchema = z.object({
+  params: z.object({ id: z.uuid() }),
+  query: z.object({}),
+  body: emptyBodySchema,
+});

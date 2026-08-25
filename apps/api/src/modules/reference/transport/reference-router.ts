@@ -48,6 +48,27 @@ export function createReferenceRouter(
     requireAdmin,
     controller.archive,
   );
+  router.post(
+    "/admin/reference/authors/:id/avatar/uploads",
+    referenceRateLimiter,
+    authenticated,
+    requireAdmin,
+    controller.reserveAuthorAvatar,
+  );
+  router.post(
+    "/admin/reference/authors/:id/avatar/complete",
+    referenceRateLimiter,
+    authenticated,
+    requireAdmin,
+    controller.completeAuthorAvatar,
+  );
+  router.delete(
+    "/admin/reference/authors/:id/avatar",
+    referenceRateLimiter,
+    authenticated,
+    requireAdmin,
+    controller.deleteAuthorAvatar,
+  );
 
   return router;
 }

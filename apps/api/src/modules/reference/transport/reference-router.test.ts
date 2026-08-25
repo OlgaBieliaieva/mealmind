@@ -8,6 +8,7 @@ import { errorHandler } from "../../../http/middleware/error-handler.js";
 import type { ApiRateLimitOverrides } from "../../../http/middleware/rate-limit.js";
 import { createRequestContextMiddleware } from "../../../http/middleware/request-context.js";
 import type { ReferenceService } from "../application/reference-service.js";
+import type { AuthorAvatarService } from "../application/author-avatar-service.js";
 import { createReferenceController } from "./reference-controller.js";
 import { createReferenceRouter } from "./reference-router.js";
 
@@ -28,6 +29,7 @@ function createTestApp(
   service: ReferenceService,
   role: "USER" | "ADMIN",
   rateLimitOverrides: ApiRateLimitOverrides = {},
+  authorAvatarService: AuthorAvatarService = avatarService(),
 ) {
   const app = express();
   app.use(createRequestContextMiddleware(createNoopLogger()));
@@ -35,13 +37,27 @@ function createTestApp(
   app.use(
     "/api/v1",
     createReferenceRouter(
-      createReferenceController(service),
+      createReferenceController(service, authorAvatarService),
       authenticationService(role),
       rateLimitOverrides,
     ),
   );
   app.use(errorHandler);
   return app;
+}
+
+function avatarService(): AuthorAvatarService {
+  return {
+    reserve: vi.fn(async () => ({
+      objectPath:
+        "authors/24b79ffc-e6af-440c-ae38-8cd37c22be1c/11111111-1111-4111-8111-111111111111/upload.png",
+      uploadUrl: "https://storage.test/upload",
+      token: "signed-upload-token",
+    })),
+    complete: vi.fn(async () => ({ avatarUrl: "https://storage.test/avatar.webp" })),
+    remove: vi.fn(async () => undefined),
+    createReadUrl: vi.fn(async () => "https://storage.test/avatar.webp"),
+  };
 }
 
 function referenceService(): ReferenceService {
@@ -246,5 +262,27 @@ describe("reference router", () => {
 
     expect(response.status).toBe(403);
     expect(service.archive).not.toHaveBeenCalled();
+  });
+
+  it("allows only an administrator to reserve an author avatar upload", async () => {
+    const service = referenceService();
+    const avatars = avatarService();
+    const id = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const body = { mimeType: "image/png", byteSize: 1024 };
+
+    const denied = await request(createTestApp(service, "USER", {}, avatars))
+      .post(`/api/v1/admin/reference/authors/${id}/avatar/uploads`)
+      .set("authorization", "Bearer token")
+      .send(body);
+    const accepted = await request(createTestApp(service, "ADMIN", {}, avatars))
+      .post(`/api/v1/admin/reference/authors/${id}/avatar/uploads`)
+      .set("authorization", "Bearer token")
+      .send(body);
+
+    expect(denied.status).toBe(403);
+    expect(accepted.status).toBe(201);
+    expect(accepted.headers["cache-control"]).toBe("no-store");
+    expect(avatars.reserve).toHaveBeenCalledTimes(1);
+    expect(avatars.reserve).toHaveBeenCalledWith(id, body);
   });
 });

@@ -392,6 +392,35 @@ apps/api/openapi/openapi.yaml
 Точний endpoint вважається погодженим лише після реалізації transport schema,
 authorization policy, тестів і OpenAPI operation.
 
+Реалізовані контракти PR-013/PR-014:
+
+- GET /api/v1/food/search і /api/v1/food/{products|recipes}/:id;
+- PUT|DELETE /api/v1/food/favorites/:kind/:id;
+- GET /api/v1/meal-plans/week?date=YYYY-MM-DD.
+
+Вони завжди визначають active family на сервері. Тижневий read endpoint не
+створює порожній MealPlan; режими meal/member і day selection є клієнтськими
+представленнями одного composite response. Відповідь містить назву сім’ї, а
+список типів прийомів їжі є відсортованим об’єднанням активних налаштувань
+профілів членів цієї сім’ї, а не повним системним довідником.
+
+Порожній `GET /api/v1/food/search?type=recipe` повертає рецепти від
+найновіших. Recipe search підтримує фільтри `difficulty`, `recipeTypeId`,
+`authorId`, `ingredientId`, `cuisineId` і `dietaryTagId`. Картковий
+presenter повертає макронутрієнти та короткочасний signed media URL, але не
+внутрішній storage object path.
+
+Detail read models продукту й рецепта повертають UI-ready hero media, поживність
+на 100 г, пов’язані картки та зовнішні посилання. Recipe author read model може
+містити безпечні HTTP(S) social links з author_links. Навігаційний returnTo
+залишається лише клієнтським внутрішнім шляхом і проходить open-redirect
+санітизацію.
+
+Аватар автора завантажується окремим admin-only трикроковим контрактом:
+резервування signed upload, завершення серверної перевірки/нормалізації та
+необов’язкове видалення. Bucket є приватним, клієнт не визначає довільний шлях,
+а read-моделі отримують лише короткочасний signed URL без object path.
+
 ## Стабільність і зміни контрактів
 
 Зміна API-контракту має включати:
