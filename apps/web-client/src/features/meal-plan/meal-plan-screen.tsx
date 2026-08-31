@@ -319,7 +319,10 @@ export function MealPlanScreen() {
           />
         )}
       </div>
-      <PlanAddMenu href={discoverHref(returnTo, undefined, anchorDate)} />
+      <PlanAddMenu
+        href={discoverHref(returnTo, undefined, anchorDate)}
+        shoppingHref={shoppingListHref(data.planId, anchorDate, selectedDays)}
+      />
     </section>
   );
 }
@@ -1448,7 +1451,13 @@ function MemberFoodCard({
   );
 }
 
-function PlanAddMenu({ href }: { readonly href: string }) {
+function PlanAddMenu({
+  href,
+  shoppingHref,
+}: {
+  readonly href: string;
+  readonly shoppingHref: string;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -1466,12 +1475,9 @@ function PlanAddMenu({ href }: { readonly href: string }) {
           <Link href={href}>
             <Utensils /> Додати страви до плану
           </Link>
-          <button
-            type="button"
-            onClick={() => toast.info("Список покупок з плану буде доступний у наступному етапі.")}
-          >
+          <Link href={shoppingHref}>
             <ShoppingCart /> Створити список покупок
-          </button>
+          </Link>
           <button
             type="button"
             onClick={() =>
@@ -1549,6 +1555,17 @@ function discoverHref(returnTo: string, memberId?: string, date?: string): strin
   if (memberId) params.set("memberId", memberId);
   if (date) params.set("date", date);
   return "/plan/discover?" + params.toString();
+}
+
+function shoppingListHref(
+  planId: string | null,
+  date: string,
+  selectedDates: readonly string[],
+): string {
+  const query = new URLSearchParams({ date });
+  if (planId) query.set("planId", planId);
+  if (selectedDates.length) query.set("dates", selectedDates.join(","));
+  return `/shop/new?${query.toString()}`;
 }
 
 function SearchLink({ href }: { readonly href: string }) {

@@ -652,7 +652,7 @@ model User {
   cookingStepsResolved       CookingSessionStep[]            @relation("CookingStepResolver")
   familyAccountInvitations   FamilyMemberAccountInvitation[] @relation("FamilyAccountInvitationInviter")
   mealPlanMutationRequests   MealPlanMutationRequest[]       @relation("MealPlanMutationActor")
-  preparedMealEntries        MealEntry[]                      @relation("MealEntryPreparer")
+  preparedMealEntries        MealEntry[]                     @relation("MealEntryPreparer")
 
   @@index([applicationRole])
   @@index([deletedAt])
@@ -1493,18 +1493,18 @@ model MealPlan {
 }
 
 model MealEntry {
-  id         String   @id @default(uuid()) @db.Uuid
-  mealPlanId String   @map("meal_plan_id") @db.Uuid
-  date       DateTime @db.Date
-  mealTypeId String   @map("meal_type_id") @db.Uuid
-  recipeId   String?  @map("recipe_id") @db.Uuid
-  productId  String?  @map("product_id") @db.Uuid
-  position   Int      @db.SmallInt
-  revision   Int      @default(0)
-  preparedAt DateTime? @map("prepared_at") @db.Timestamptz(3)
-  preparedByUserId String? @map("prepared_by_user_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String    @id @default(uuid()) @db.Uuid
+  mealPlanId       String    @map("meal_plan_id") @db.Uuid
+  date             DateTime  @db.Date
+  mealTypeId       String    @map("meal_type_id") @db.Uuid
+  recipeId         String?   @map("recipe_id") @db.Uuid
+  productId        String?   @map("product_id") @db.Uuid
+  position         Int       @db.SmallInt
+  revision         Int       @default(0)
+  preparedAt       DateTime? @map("prepared_at") @db.Timestamptz(3)
+  preparedByUserId String?   @map("prepared_by_user_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   mealPlan                MealPlan                 @relation(fields: [mealPlanId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   mealType                MealType                 @relation(fields: [mealTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -1567,21 +1567,22 @@ model MealEntryParticipant {
 //------------------ SHOPPING --------------------------
 
 model ShoppingList {
-  id                String             @id @default(uuid()) @db.Uuid
-  familyId          String             @map("family_id") @db.Uuid
-  mealPlanId        String             @map("meal_plan_id") @db.Uuid
-  periodStart       DateTime           @map("period_start") @db.Date
-  periodEnd         DateTime           @map("period_end") @db.Date
-  version           Int                @db.SmallInt
-  revision          Int                @default(1)
-  status            ShoppingListStatus @default(OPEN)
-  sourceFingerprint String             @map("source_fingerprint") @db.Char(64)
-  generatedAt       DateTime           @map("generated_at") @db.Timestamptz(3)
-  createdByUserId   String?            @map("created_by_user_id") @db.Uuid
-  completedAt       DateTime?          @map("completed_at") @db.Timestamptz(3)
-  archivedAt        DateTime?          @map("archived_at") @db.Timestamptz(3)
-  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String             @id @default(uuid()) @db.Uuid
+  familyId           String             @map("family_id") @db.Uuid
+  mealPlanId         String             @map("meal_plan_id") @db.Uuid
+  periodStart        DateTime           @map("period_start") @db.Date
+  periodEnd          DateTime           @map("period_end") @db.Date
+  version            Int                @db.SmallInt
+  revision           Int                @default(1)
+  status             ShoppingListStatus @default(OPEN)
+  sourceFingerprint  String             @map("source_fingerprint") @db.Char(64)
+  generationWarnings Json               @default("[]") @map("generation_warnings")
+  generatedAt        DateTime           @map("generated_at") @db.Timestamptz(3)
+  createdByUserId    String?            @map("created_by_user_id") @db.Uuid
+  completedAt        DateTime?          @map("completed_at") @db.Timestamptz(3)
+  archivedAt         DateTime?          @map("archived_at") @db.Timestamptz(3)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   family    Family             @relation(fields: [familyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   mealPlan  MealPlan           @relation(fields: [mealPlanId, familyId], references: [id, familyId], onDelete: Restrict, onUpdate: Cascade)
@@ -1604,6 +1605,11 @@ model ShoppingListItem {
   productId                  String?                @map("product_id") @db.Uuid
   customName                 String?                @map("custom_name") @db.VarChar(240)
   productCategoryId          String?                @map("product_category_id") @db.Uuid
+  productNameSnapshot        String?                @map("product_name_snapshot") @db.VarChar(240)
+  categoryCodeSnapshot       String?                @map("category_code_snapshot") @db.VarChar(80)
+  categoryNameSnapshot       String?                @map("category_name_snapshot") @db.VarChar(160)
+  groupCategoryCodeSnapshot  String?                @map("group_category_code_snapshot") @db.VarChar(80)
+  groupCategoryNameSnapshot  String?                @map("group_category_name_snapshot") @db.VarChar(160)
   derivedQuantity            Decimal?               @map("derived_quantity") @db.Decimal(12, 3)
   derivedMeasurementUnitId   String?                @map("derived_measurement_unit_id") @db.Uuid
   requestedQuantity          Decimal?               @map("requested_quantity") @db.Decimal(12, 3)

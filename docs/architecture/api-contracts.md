@@ -495,3 +495,21 @@ composite read models допускаються snapshot tests, якщо snapshot
 - для неочікуваних помилок API передає безпечний `x-request-id` до Sentry tag
   `request_id`, але не передає request body, authorization headers, cookies
   або персональні дані.
+
+### Реалізовані контракти PR-017
+
+- GET|POST /api/v1/shopping-lists;
+- GET /api/v1/shopping-lists/:listId;
+- POST /api/v1/shopping-lists/:listId/regenerate;
+- PATCH /api/v1/shopping-lists/:listId/status;
+- PATCH /api/v1/shopping-lists/:listId/items/:itemId;
+- PATCH /api/v1/shopping-lists/:listId/items/:itemId/status;
+- POST /api/v1/shopping-lists/:listId/items/catalog;
+- POST /api/v1/shopping-lists/:listId/items/custom.
+
+Generation приймає лише період 1–7 послідовних днів одного MealPlan, який
+починається не раніше familyToday, визначеного backend у Family.timeZone.
+Snapshot масштабує recipe ingredients за сумою gramWeight, включає optional
+ingredients і не використовує yieldWeightG у calculation v1. OWNER і MEMBER
+мають однаковий доступ до спільного shopping resource своєї active family;
+application ADMIN не отримує міжсімейного доступу.

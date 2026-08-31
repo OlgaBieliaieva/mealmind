@@ -1,10 +1,11 @@
-import { CalendarDays, House, UserRound } from "lucide-react";
+import { CalendarDays, House, ShoppingCart, UserRound } from "lucide-react";
 
 export const clientRoutes = {
   home: "/",
   family: "/family",
   profile: "/profile",
   plan: "/plan",
+  shop: "/shop",
 } as const;
 
 export const clientNavigationItems = [
@@ -19,6 +20,12 @@ export const clientNavigationItems = [
     label: "План харчування",
     icon: CalendarDays,
     activePaths: [clientRoutes.plan, "/food"],
+  },
+  {
+    href: clientRoutes.shop,
+    label: "Списки покупок",
+    icon: ShoppingCart,
+    activePaths: [clientRoutes.shop],
   },
   {
     href: clientRoutes.profile,

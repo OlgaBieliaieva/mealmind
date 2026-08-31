@@ -555,7 +555,7 @@ describe("MealPlanScreen", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", {
+      screen.getByRole("link", {
         name: /Створити список покупок/,
       }),
     ).toBeInTheDocument();

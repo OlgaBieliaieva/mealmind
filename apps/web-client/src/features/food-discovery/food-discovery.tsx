@@ -30,6 +30,7 @@ import {
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
 import { getRecipeTypeEmoji } from "@/shared/lib/recipe-type-emoji";
 import { createMealEntries, getPlanningContext } from "@/shared/api/meal-plans";
+import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
 
 type Tab = "favorites" | "recipe" | "product";
 type FilterKey = keyof RecipeSearchFilters;
@@ -47,8 +48,12 @@ export function FoodDiscovery() {
   const returnTo = sanitizeReturnTo(parameters.get("returnTo"), "/plan");
   const memberId = parameters.get("memberId");
   const date = parameters.get("date") ?? new Date().toISOString().slice(0, 10);
-  const selectMode = parameters.get("mode") === "select";
-  const initialTab = readTab(parameters.get("tab"));
+  const planSelectMode = parameters.get("mode") === "select";
+  const shoppingMode = parameters.get("mode") === "shopping-product";
+  const selectMode = planSelectMode || shoppingMode;
+  const shoppingListId = parameters.get("shoppingListId");
+  const shoppingRevision = Number(parameters.get("revision") ?? "0");
+  const initialTab = shoppingMode ? "product" : readTab(parameters.get("tab"));
   const initialQuery = parameters.get("query") ?? "";
   const [input, setInput] = useState(initialQuery);
   const [queryText, setQueryText] = useState(initialQuery);
@@ -66,7 +71,7 @@ export function FoodDiscovery() {
   const planningContext = useQuery({
     queryKey: ["meal-plan", "planning-context", date],
     queryFn: ({ signal }) => getPlanningContext(getBrowserApiClient(), date, signal),
-    enabled: selectMode,
+    enabled: planSelectMode,
   });
 
   const planningMembers = planningContext.data?.data.members.filter((item) => item.canPlan) ?? [];
@@ -80,8 +85,23 @@ export function FoodDiscovery() {
     : (selectedMember?.mealTypes[0]?.id ?? "");
 
   const quickAdd = useMutation({
-    mutationFn: () =>
-      createMealEntries(
+    mutationFn: async () => {
+      if (shoppingMode) {
+        if (!shoppingListId || shoppingRevision < 1)
+          throw new Error("Shopping list context missing");
+        let revision = shoppingRevision;
+        for (const item of selectedItems) {
+          if (item.kind !== "product") continue;
+          const response = await addCatalogShoppingItem(getBrowserApiClient(), shoppingListId, {
+            expectedRevision: revision,
+            productId: item.id,
+            quantity: 100,
+          });
+          revision = response.data.revision;
+        }
+        return;
+      }
+      await createMealEntries(
         getBrowserApiClient(),
         date,
         selectedItems.map((item) => ({
@@ -91,9 +111,12 @@ export function FoodDiscovery() {
           foodId: item.id,
           participants: [{ memberId: effectiveMemberId, quantityGrams: 100 }],
         })),
-      ),
+      );
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+      await queryClient.invalidateQueries({
+        queryKey: shoppingMode ? ["shopping-lists"] : ["meal-plan"],
+      });
       router.push(returnTo);
     },
   });
@@ -111,8 +134,8 @@ export function FoodDiscovery() {
     return () => window.clearTimeout(timeout);
   }, [ingredientInput]);
 
-  const favorites = tab === "favorites";
-  const type = tab === "favorites" ? "all" : tab;
+  const favorites = !shoppingMode && tab === "favorites";
+  const type = shoppingMode ? "product" : tab === "favorites" ? "all" : tab;
   const canSearch = favorites || tab === "recipe" || queryText.length >= 2;
   const activeFilters = Object.values(filters).filter(Boolean).length;
   const latestRecipes = tab === "recipe" && queryText.length === 0 && activeFilters === 0;
@@ -212,8 +235,13 @@ export function FoodDiscovery() {
   if (queryText) discoveryState.set("query", queryText);
   if (memberId) discoveryState.set("memberId", memberId);
   if (selectMode) {
-    discoveryState.set("mode", "select");
-    discoveryState.set("date", date);
+    discoveryState.set("mode", shoppingMode ? "shopping-product" : "select");
+    if (shoppingMode) {
+      if (shoppingListId) discoveryState.set("shoppingListId", shoppingListId);
+      discoveryState.set("revision", String(shoppingRevision));
+    } else {
+      discoveryState.set("date", date);
+    }
   }
   for (const [key, value] of Object.entries(filters)) {
     if (value) discoveryState.set(key, value);
@@ -223,6 +251,12 @@ export function FoodDiscovery() {
     returnTo: "/plan/discover?" + discoveryState.toString(),
   });
   if (selectMode) detailsSuffix.set("date", date);
+  if (shoppingMode) {
+    detailsSuffix.set("mode", "shopping-product");
+    if (shoppingListId) detailsSuffix.set("shoppingListId", shoppingListId);
+    detailsSuffix.set("revision", String(shoppingRevision));
+    detailsSuffix.set("shoppingReturnTo", returnTo);
+  }
 
   return (
     <section className="food-discovery" aria-labelledby="food-discovery-title">
@@ -231,11 +265,17 @@ export function FoodDiscovery() {
           <ArrowLeft />
         </Link>
         <div>
-          <p>{memberId ? "Пошук для вибраного члена сім’ї" : "Планування меню"}</p>
-          <h1 id="food-discovery-title">Знайти їжу</h1>
+          <p>
+            {shoppingMode
+              ? "Додавання до списку покупок"
+              : memberId
+                ? "Пошук для вибраного члена сім’ї"
+                : "Планування меню"}
+          </p>
+          <h1 id="food-discovery-title">{shoppingMode ? "Знайти продукт" : "Знайти їжу"}</h1>
         </div>
       </header>
-      {selectMode ? (
+      {planSelectMode ? (
         <section className="quick-plan-context" aria-label="Контекст швидкого додавання">
           <strong>
             Додати до плану ·{" "}
@@ -300,13 +340,30 @@ export function FoodDiscovery() {
           ) : null}
         </section>
       ) : null}
+      {shoppingMode ? (
+        <section className="quick-plan-context" aria-label="Додавання продуктів до списку покупок">
+          <strong>Додати продукти до списку</strong>
+          <p>
+            Одиницю продукту буде зафіксовано під час додавання. Кількість можна змінити у списку.
+          </p>
+          <button
+            type="button"
+            disabled={!selectedItems.length || quickAdd.isPending}
+            onClick={() => quickAdd.mutate()}
+          >
+            {quickAdd.isPending ? "Додаємо…" : `Додати (${selectedItems.length})`}
+          </button>
+          {quickAdd.isError ? <p role="alert">Не вдалося додати вибрані продукти.</p> : null}
+        </section>
+      ) : null}
       <div className="food-tabs" role="tablist" aria-label="Каталог їжі">
-        {(
-          [
-            ["favorites", "Моя книга"],
-            ["recipe", "Рецепти"],
-            ["product", "Продукти"],
-          ] as const
+        {(shoppingMode
+          ? ([["product", "Продукти"]] as const)
+          : ([
+              ["favorites", "Моя книга"],
+              ["recipe", "Рецепти"],
+              ["product", "Продукти"],
+            ] as const)
         ).map(([value, label]) => (
           <button
             key={value}

@@ -530,12 +530,12 @@ Family-scoped ledger ідемпотентних batch-команд плану.
 
 Aggregate root збереженого snapshot покупок для періоду плану.
 
-| Аспект        | Опис                                  |
-| ------------- | ------------------------------------- |
-| Ownership     | `familyId`, `mealPlanId`              |
-| Versioning    | version, revision, source fingerprint |
-| Період        | start/end date у межах одного plan    |
-| Життєвий цикл | Open, completed, archived             |
+| Аспект        | Опис                                                                  |
+| ------------- | --------------------------------------------------------------------- |
+| Ownership     | `familyId`, `mealPlanId`                                              |
+| Versioning    | version, revision, source fingerprint і immutable generation warnings |
+| Період        | start/end date у межах одного plan                                    |
+| Життєвий цикл | Open, completed, archived                                             |
 
 Список не створюється для повністю минулого періоду. Regeneration створює нову version замість переписування archived snapshot.
 
@@ -543,12 +543,13 @@ Aggregate root збереженого snapshot покупок для періо�
 
 Редагована catalog або manual позиція списку.
 
-| Аспект         | Опис                                       |
-| -------------- | ------------------------------------------ |
-| Походження     | Catalog або manual                         |
-| Кількості      | Derived і user-requested quantity/unit     |
-| Purchase state | status, `purchasedAt`, `removedAt` і notes |
-| Групування     | Product category або окрема manual group   |
+| Аспект         | Опис                                                       |
+| -------------- | ---------------------------------------------------------- |
+| Походження     | Catalog або manual                                         |
+| Кількості      | Derived і user-requested quantity/unit                     |
+| Purchase state | status, `purchasedAt`, `removedAt` і notes                 |
+| Групування     | Snapshot власної й parent category або окрема manual group |
+| Історичність   | Snapshot назви Product та display metadata категорій       |
 
 Фактична кількість, ціна та торгова мережа не входять до поточної persistence foundation і можуть бути додані окремим vertical slice після уточнення вимог.
 

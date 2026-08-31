@@ -22,6 +22,7 @@ const EXPECTED_MIGRATIONS = [
   "20260814073753_replace_meal_settings_with_meal_type_preferences",
   "20260825120000_meal_plan_mutations",
   "20260826100000_meal_entry_prepared_state",
+  "20260831120000_shopping_list_snapshot_metadata",
 ] as const;
 
 loadEnvironment({
@@ -151,6 +152,31 @@ async function verifyAppliedMigrations(
 
     if (preparedStateResult.rows.length !== 2) {
       throw new Error("Meal entry prepared state migration was not applied");
+    }
+
+    const shoppingSnapshotResult = await client.query<{ readonly column_name: string }>(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND (
+          (table_name = 'shopping_lists' AND column_name = 'generation_warnings')
+          OR
+          (
+            table_name = 'shopping_list_items'
+            AND column_name IN (
+              'product_name_snapshot',
+              'category_code_snapshot',
+              'category_name_snapshot',
+              'group_category_code_snapshot',
+              'group_category_name_snapshot'
+            )
+          )
+        )
+      ORDER BY column_name
+    `);
+
+    if (shoppingSnapshotResult.rows.length !== 6) {
+      throw new Error("Shopping list snapshot metadata migration was not applied");
     }
 
     return {

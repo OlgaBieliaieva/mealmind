@@ -1,17 +1,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getFoodDetails, setFoodFavorite, type FoodDetails as Food } from "@/shared/api/food";
+import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
 import { validateRenderedUi } from "@/test/ui-quality";
 
 import { FoodDetails } from "./food-details";
 
+const routerPush = vi.hoisted(() => vi.fn());
+
 vi.mock("next/navigation", () => ({
   useSearchParams: () =>
     new URLSearchParams(
-      "returnTo=%2Fplan%2Fdiscover%3FreturnTo%3D%252Fplan%26tab%3Dproduct%26query%3D%D1%87%D1%96%D0%B0",
+      "returnTo=%2Fplan%2Fdiscover%3FreturnTo%3D%252Fplan%26tab%3Dproduct%26query%3D%D1%87%D1%96%D0%B0&mode=shopping-product&shoppingListId=list-id&revision=3&shoppingReturnTo=%2Fshop%2Flist-id",
     ),
+  useRouter: () => ({ push: routerPush }),
 }));
 
 vi.mock("@/shared/api/browser-api-client", () => ({
@@ -21,6 +25,10 @@ vi.mock("@/shared/api/browser-api-client", () => ({
 vi.mock("@/shared/api/food", () => ({
   getFoodDetails: vi.fn(),
   setFoodFavorite: vi.fn(),
+}));
+
+vi.mock("@/shared/api/shopping-lists", () => ({
+  addCatalogShoppingItem: vi.fn(),
 }));
 
 const nutrient = (code: string, name: string, group: string, unit: string, value: string) => ({
@@ -121,7 +129,9 @@ function renderDetails(kind: "product" | "recipe") {
 
 describe("FoodDetails", () => {
   beforeEach(() => {
+    routerPush.mockClear();
     vi.mocked(setFoodFavorite).mockResolvedValue(undefined);
+    vi.mocked(addCatalogShoppingItem).mockResolvedValue({ data: {} } as never);
   });
 
   it("renders product overview and returns to the preserved discovery state", async () => {
@@ -135,6 +145,24 @@ describe("FoodDetails", () => {
     );
     expect(screen.getByText("Metro Chef")).toBeVisible();
     await validateRenderedUi(container);
+  });
+
+  it("adds a catalog product with 100 grams and returns to the shopping list", async () => {
+    vi.mocked(getFoodDetails).mockResolvedValue({ data: product });
+    renderDetails("product");
+
+    await screen.findByRole("heading", { name: "Чіа насіння" });
+    fireEvent.click(screen.getByRole("button", { name: "Дії з продуктом" }));
+    fireEvent.click(screen.getByRole("button", { name: "Додати до списку покупок" }));
+
+    await waitFor(() =>
+      expect(addCatalogShoppingItem).toHaveBeenCalledWith({}, "list-id", {
+        expectedRevision: 3,
+        productId: "product-id",
+        quantity: 100,
+      }),
+    );
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/shop/list-id"));
   });
 
   it("renders recipe overview, ingredient links and nutrients per 100 grams", async () => {
