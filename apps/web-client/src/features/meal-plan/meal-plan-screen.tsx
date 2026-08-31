@@ -158,7 +158,6 @@ export function MealPlanScreen() {
   }
 
   const returnTo = "/plan?" + searchParams.toString();
-  console.log(data);
 
   return (
     <section className="plan-screen" aria-labelledby="plan-title">
