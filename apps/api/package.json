@@ -15,6 +15,7 @@
     "test:families:db": "tsx src/modules/family/infrastructure/prisma-family-repository.integration.ts",
     "test:food:db": "tsx src/modules/food/infrastructure/prisma-food-repository.integration.ts",
     "test:recipes:db": "tsx src/modules/recipe/infrastructure/prisma-recipe-repository.integration.ts",
+    "test:meal-plans:db": "tsx src/modules/meal-plan/infrastructure/prisma-meal-plan-repository.integration.ts",
     "test:coverage": "vitest run --coverage",
     "openapi:export": "tsx src/scripts/export-openapi.ts",
     "openapi:check": "tsx src/scripts/export-openapi.ts --check",

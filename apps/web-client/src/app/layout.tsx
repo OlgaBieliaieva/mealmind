@@ -13,6 +13,7 @@ import "@/features/recipe-details/recipe-details.css";
 import "@/features/onboarding/onboarding.css";
 import "@/features/family/family.css";
 import "@/features/meal-plan/meal-plan.css";
+import "@/features/meal-plan/advanced-planning-flow.css";
 import "@/features/food-discovery/food-discovery.css";
 import "@/features/food-discovery/food-details.css";
 

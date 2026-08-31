@@ -7,6 +7,7 @@ import { readRecipeFilterOptions, searchFood, setFoodFavorite } from "@/shared/a
 import { FoodDiscovery } from "./food-discovery";
 
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams("returnTo=%2Fplan"),
 }));
 

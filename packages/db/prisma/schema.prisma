@@ -651,6 +651,8 @@ model User {
   cookingIngredientsResolved CookingSessionIngredient[]      @relation("CookingIngredientResolver")
   cookingStepsResolved       CookingSessionStep[]            @relation("CookingStepResolver")
   familyAccountInvitations   FamilyMemberAccountInvitation[] @relation("FamilyAccountInvitationInviter")
+  mealPlanMutationRequests   MealPlanMutationRequest[]       @relation("MealPlanMutationActor")
+  preparedMealEntries        MealEntry[]                      @relation("MealEntryPreparer")
 
   @@index([applicationRole])
   @@index([deletedAt])
@@ -897,6 +899,7 @@ model Family {
   consumptionEntries         ConsumptionEntry[]
   mealConsumptionResolutions MealConsumptionResolution[]
   accountInvitations         FamilyMemberAccountInvitation[]
+  mealPlanMutationRequests   MealPlanMutationRequest[]
 
   @@index([createdByUserId])
   @@index([archivedAt])
@@ -1497,6 +1500,9 @@ model MealEntry {
   recipeId   String?  @map("recipe_id") @db.Uuid
   productId  String?  @map("product_id") @db.Uuid
   position   Int      @db.SmallInt
+  revision   Int      @default(0)
+  preparedAt DateTime? @map("prepared_at") @db.Timestamptz(3)
+  preparedByUserId String? @map("prepared_by_user_id") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1507,13 +1513,33 @@ model MealEntry {
   participants            MealEntryParticipant[]
   shoppingListItemSources ShoppingListItemSource[]
   cookingSession          CookingSession?
+  preparedBy              User?                    @relation("MealEntryPreparer", fields: [preparedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([mealPlanId, date, mealTypeId, position])
   @@index([mealTypeId])
   @@index([recipeId])
   @@index([productId])
   @@index([date])
+  @@index([preparedByUserId])
   @@map("meal_entries")
+}
+
+model MealPlanMutationRequest {
+  id                 String   @id @default(uuid()) @db.Uuid
+  familyId           String   @map("family_id") @db.Uuid
+  requestId          String   @map("request_id") @db.Uuid
+  requestFingerprint String   @map("request_fingerprint") @db.Char(64)
+  createdByUserId    String   @map("created_by_user_id") @db.Uuid
+  result             Json
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy User   @relation("MealPlanMutationActor", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([familyId, requestId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+  @@map("meal_plan_mutation_requests")
 }
 
 model MealEntryParticipant {
@@ -2078,7 +2104,7 @@ model MealType {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  mealEntries MealEntry[]
+  mealEntries       MealEntry[]
   personPreferences PersonMealTypePreference[]
 
   @@index([kind, isActive, sortOrder])
