@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { sanitizeReturnTo } from "@/features/auth/safe-return-to";
@@ -28,6 +28,8 @@ import {
   type RecipeSearchFilters,
 } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { getRecipeTypeEmoji } from "@/shared/lib/recipe-type-emoji";
+import { createMealEntries, getPlanningContext } from "@/shared/api/meal-plans";
 
 type Tab = "favorites" | "recipe" | "product";
 type FilterKey = keyof RecipeSearchFilters;
@@ -41,8 +43,11 @@ const DIFFICULTIES: readonly { value: RecipeDifficulty; label: string }[] = [
 
 export function FoodDiscovery() {
   const parameters = useSearchParams();
+  const router = useRouter();
   const returnTo = sanitizeReturnTo(parameters.get("returnTo"), "/plan");
   const memberId = parameters.get("memberId");
+  const date = parameters.get("date") ?? new Date().toISOString().slice(0, 10);
+  const selectMode = parameters.get("mode") === "select";
   const initialTab = readTab(parameters.get("tab"));
   const initialQuery = parameters.get("query") ?? "";
   const [input, setInput] = useState(initialQuery);
@@ -54,7 +59,44 @@ export function FoodDiscovery() {
   const [ingredientInput, setIngredientInput] = useState("");
   const [ingredientQuery, setIngredientQuery] = useState("");
   const [ingredientName, setIngredientName] = useState(parameters.get("ingredientName") ?? "");
+  const [selectedItems, setSelectedItems] = useState<readonly FoodSearchItem[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState(memberId ?? "");
+  const [selectedMealTypeId, setSelectedMealTypeId] = useState("");
   const queryClient = useQueryClient();
+  const planningContext = useQuery({
+    queryKey: ["meal-plan", "planning-context", date],
+    queryFn: ({ signal }) => getPlanningContext(getBrowserApiClient(), date, signal),
+    enabled: selectMode,
+  });
+
+  const planningMembers = planningContext.data?.data.members.filter((item) => item.canPlan) ?? [];
+  const selectedMember =
+    planningMembers.find((item) => item.id === selectedMemberId) ?? planningMembers[0];
+  const effectiveMemberId = selectedMember?.id ?? "";
+  const effectiveMealTypeId = selectedMember?.mealTypes.some(
+    (item) => item.id === selectedMealTypeId,
+  )
+    ? selectedMealTypeId
+    : (selectedMember?.mealTypes[0]?.id ?? "");
+
+  const quickAdd = useMutation({
+    mutationFn: () =>
+      createMealEntries(
+        getBrowserApiClient(),
+        date,
+        selectedItems.map((item) => ({
+          date,
+          mealTypeId: effectiveMealTypeId,
+          kind: item.kind,
+          foodId: item.id,
+          participants: [{ memberId: effectiveMemberId, quantityGrams: 100 }],
+        })),
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+      router.push(returnTo);
+    },
+  });
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -169,6 +211,10 @@ export function FoodDiscovery() {
   const discoveryState = new URLSearchParams({ returnTo, tab });
   if (queryText) discoveryState.set("query", queryText);
   if (memberId) discoveryState.set("memberId", memberId);
+  if (selectMode) {
+    discoveryState.set("mode", "select");
+    discoveryState.set("date", date);
+  }
   for (const [key, value] of Object.entries(filters)) {
     if (value) discoveryState.set(key, value);
   }
@@ -176,6 +222,7 @@ export function FoodDiscovery() {
   const detailsSuffix = new URLSearchParams({
     returnTo: "/plan/discover?" + discoveryState.toString(),
   });
+  if (selectMode) detailsSuffix.set("date", date);
 
   return (
     <section className="food-discovery" aria-labelledby="food-discovery-title">
@@ -188,6 +235,71 @@ export function FoodDiscovery() {
           <h1 id="food-discovery-title">Знайти їжу</h1>
         </div>
       </header>
+      {selectMode ? (
+        <section className="quick-plan-context" aria-label="Контекст швидкого додавання">
+          <strong>
+            Додати до плану ·{" "}
+            {new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium" }).format(
+              new Date(date + "T12:00:00"),
+            )}
+          </strong>
+          {planningContext.isError ? (
+            <p role="alert">Не вдалося завантажити профілі родини.</p>
+          ) : null}
+          {planningContext.data ? (
+            <div>
+              <label>
+                Учасник
+                <select
+                  value={effectiveMemberId}
+                  onChange={(event) => {
+                    setSelectedMemberId(event.target.value);
+                    setSelectedMealTypeId("");
+                  }}
+                >
+                  {planningContext.data.data.members
+                    .filter((item) => item.canPlan)
+                    .map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                Прийом їжі
+                <select
+                  value={effectiveMealTypeId}
+                  onChange={(event) => setSelectedMealTypeId(event.target.value)}
+                >
+                  {selectedMember?.mealTypes.map((meal) => (
+                    <option key={meal.id} value={meal.id}>
+                      {meal.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            disabled={
+              !selectedItems.length ||
+              !effectiveMemberId ||
+              !effectiveMealTypeId ||
+              quickAdd.isPending
+            }
+            onClick={() => quickAdd.mutate()}
+          >
+            {quickAdd.isPending ? "Додаємо…" : `Додати (${selectedItems.length})`}
+          </button>
+          {quickAdd.isError ? (
+            <p role="alert">
+              Не вдалося додати вибрані позиції. Перевірте, чи їх ще немає у цьому прийомі їжі.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
       <div className="food-tabs" role="tablist" aria-label="Каталог їжі">
         {(
           [
@@ -397,6 +509,21 @@ export function FoodDiscovery() {
                     favorite: !item.isFavorite,
                   })
                 }
+                selectable={selectMode}
+                selected={selectedItems.some(
+                  (selected) => selected.kind === item.kind && selected.id === item.id,
+                )}
+                onSelect={() =>
+                  setSelectedItems((current) =>
+                    current.some(
+                      (selected) => selected.kind === item.kind && selected.id === item.id,
+                    )
+                      ? current.filter(
+                          (selected) => selected.kind !== item.kind || selected.id !== item.id,
+                        )
+                      : [...current, item],
+                  )
+                }
               />
             ))}
           </ul>
@@ -428,11 +555,17 @@ function FoodCard({
   detailsSuffix,
   favoritePending,
   onFavorite,
+  selectable,
+  selected,
+  onSelect,
 }: {
   readonly item: FoodSearchItem;
   readonly detailsSuffix: string;
   readonly favoritePending: boolean;
   readonly onFavorite: () => void;
+  readonly selectable: boolean;
+  readonly selected: boolean;
+  readonly onSelect: () => void;
 }) {
   return (
     <li>
@@ -468,18 +601,31 @@ function FoodCard({
           )}
         </span>
       </Link>
-      <button
-        type="button"
-        className="favorite-button"
-        aria-label={
-          item.isFavorite ? `Видалити ${item.name} з обраного` : `Додати ${item.name} до обраного`
-        }
-        aria-pressed={item.isFavorite}
-        disabled={favoritePending}
-        onClick={onFavorite}
-      >
-        <Heart aria-hidden="true" fill={item.isFavorite ? "currentColor" : "none"} />
-      </button>
+      <div className="food-result-list__actions">
+        <button
+          type="button"
+          className="favorite-button"
+          aria-label={
+            item.isFavorite ? `Видалити ${item.name} з обраного` : `Додати ${item.name} до обраного`
+          }
+          aria-pressed={item.isFavorite}
+          disabled={favoritePending}
+          onClick={onFavorite}
+        >
+          <Heart aria-hidden="true" fill={item.isFavorite ? "currentColor" : "none"} />
+        </button>
+        {selectable ? (
+          <button
+            type="button"
+            className="food-select-button"
+            aria-label={selected ? `Прибрати ${item.name} з вибору` : `Вибрати ${item.name}`}
+            aria-pressed={selected}
+            onClick={onSelect}
+          >
+            {selected ? "✓" : "+"}
+          </button>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -570,26 +716,6 @@ function formatNumber(value: number | null): string {
 
 function difficultyLabel(value: RecipeDifficulty): string {
   return DIFFICULTIES.find((item) => item.value === value)?.label ?? value;
-}
-
-function getRecipeTypeEmoji(code?: string): string {
-  const emoji: Record<string, string> = {
-    breakfast: "🍳",
-    appetizers: "🥟",
-    soups: "🍲",
-    main_dishes: "🍽️",
-    sides: "🥔",
-    salads: "🥗",
-    bakery: "🥐",
-    desserts: "🍰",
-    sauces: "🥣",
-    beverages: "🥤",
-    snacks: "🥜",
-    preserves: "🫙",
-    baby_food: "🍼",
-    medical: "🩺",
-  };
-  return (code && emoji[code]) || "🍲";
 }
 
 function readTab(value: string | null): Tab {

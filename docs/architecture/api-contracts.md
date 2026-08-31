@@ -375,18 +375,18 @@ apps/api/openapi/openapi.yaml
 
 ## Заплановане розширення API
 
-| Етап   | Контрактний scope                                                    |
-| ------ | -------------------------------------------------------------------- |
-| PR-009 | Reference data endpoints, transport schemas, перший OpenAPI artifact |
-| PR-010 | Products, media metadata та окремі public/admin DTO                  |
-| PR-011 | Recipes, ingredients, nutrition і recipe presenters                  |
-| PR-013 | Unified discovery із discriminated union `product \| recipe`         |
-| PR-014 | Meal plan composite read model зі стабільною публічною формою        |
-| PR-016 | Advanced planning commands і перевірка конфліктів                    |
-| PR-017 | Shopping List snapshot, revisions і mutation contracts               |
-| PR-018 | Cooking mode sessions та optimistic concurrency                      |
-| PR-019 | Consumption diary, privacy-aware reads і family dashboard summary    |
-| PR-020 | Фінальний аудит API/OpenAPI, security і документації                 |
+| Етап       | Контрактний scope                                                    |
+| ---------- | -------------------------------------------------------------------- |
+| PR-009     | Reference data endpoints, transport schemas, перший OpenAPI artifact |
+| PR-010     | Products, media metadata та окремі public/admin DTO                  |
+| PR-011     | Recipes, ingredients, nutrition і recipe presenters                  |
+| PR-013     | Unified discovery із discriminated union `product \| recipe`         |
+| PR-014     | Meal plan composite read model зі стабільною публічною формою        |
+| PR-015/016 | Meal plan CRUD, atomic batch, revision та advanced planning          |
+| PR-017     | Shopping List snapshot, revisions і mutation contracts               |
+| PR-018     | Cooking mode sessions та optimistic concurrency                      |
+| PR-019     | Consumption diary, privacy-aware reads і family dashboard summary    |
+| PR-020     | Фінальний аудит API/OpenAPI, security і документації                 |
 
 Ця таблиця визначає напрям розвитку, але не гарантує остаточні назви маршрутів.
 Точний endpoint вважається погодженим лише після реалізації transport schema,
@@ -398,11 +398,42 @@ authorization policy, тестів і OpenAPI operation.
 - PUT|DELETE /api/v1/food/favorites/:kind/:id;
 - GET /api/v1/meal-plans/week?date=YYYY-MM-DD.
 
+Реалізовані контракти PR-015/PR-016:
+
+- GET `/api/v1/meal-plans/planning-context`;
+- POST `/api/v1/meal-plans/entries/batch`;
+- PATCH|DELETE `/api/v1/meal-plans/entries/:entryId`;
+- PATCH|DELETE `/api/v1/meal-plans/entries/:entryId/participants/:memberId`.
+- PATCH `/api/v1/meal-plans/entries/:entryId/prepared`.
+
+Batch є atomic і idempotent у межах сім’ї. Порції надходять як канонічні
+грами, а update/delete захищені `expectedRevision`. OWNER планує для будь-якого
+активного профілю, MEMBER — лише для власного. Application ADMIN не розширює
+family access. Стани фактичного споживання не входять до mutation-контракту
+плану; `prepared` є лише станом готовності позиції.
+
 Вони завжди визначають active family на сервері. Тижневий read endpoint не
 створює порожній MealPlan; режими meal/member і day selection є клієнтськими
 представленнями одного composite response. Відповідь містить назву сім’ї, а
 список типів прийомів їжі є відсортованим об’єднанням активних налаштувань
 профілів членів цієї сім’ї, а не повним системним довідником.
+Для ролі MEMBER сервер повертає лише власний профіль, власні порції та
+персональні агрегати; UI не є єдиною межею приватності. Картки позицій містять
+короткочасний signed thumbnail URL та UI-ready metadata продукту або рецепта,
+але не внутрішній storage object path.
+
+`aggregatedMeals.nutrition` і нутрієнти групи прийому їжі є сумою вибраних
+порцій за вибрані дати; вони не зіставляються з єдиною «сімейною нормою».
+Персональне зіставлення доступне лише в member projection. Сервер вибирає
+версійований target set окремо для кожної дати. Якщо для частини періоду цілі
+відсутні, response повертає порожні `targets`, а клієнт показує нейтральний
+стан без висновку про відповідність.
+Елементи `targets` містять опорне `value` та первинні
+`minimumValue/targetValue/maximumValue`. Тому точна ціль, одностороння межа
+або діапазон доступні клієнту без втрати семантики; багатоденна projection
+повертає конкретний нутрієнт лише за наявності його цілі на кожну дату.
+Так само assessment не формує сигналів балансу для неповного набору енергії та
+основних макронутрієнтів.
 
 Порожній `GET /api/v1/food/search?type=recipe` повертає рецепти від
 найновіших. Recipe search підтримує фільтри `difficulty`, `recipeTypeId`,

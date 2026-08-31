@@ -46,7 +46,9 @@ const NUTRIENT_GROUPS: Record<string, string> = {
 };
 
 export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id: string }) {
-  const returnTo = sanitizeReturnTo(useSearchParams().get("returnTo"), "/plan/discover");
+  const parameters = useSearchParams();
+  const returnTo = sanitizeReturnTo(parameters.get("returnTo"), "/plan/discover");
+  const date = parameters.get("date") ?? new Date().toISOString().slice(0, 10);
   const queryClient = useQueryClient();
   const queryKey = ["food-details", kind, id] as const;
   const query = useQuery({
@@ -104,6 +106,13 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
           onFavorite={() => favorite.mutate(!food.isFavorite)}
         />
       )}
+      <Link
+        className="food-details__add-plan"
+        href={`/plan/add/${food.kind}/${food.id}?${new URLSearchParams({ date, returnTo }).toString()}`}
+        aria-label={`Додати ${food.kind === "recipe" ? food.title : food.name} в план`}
+      >
+        <span aria-hidden="true">+</span>
+      </Link>
     </article>
   );
 }

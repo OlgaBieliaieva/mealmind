@@ -20,6 +20,8 @@ const EXPECTED_MIGRATIONS = [
   "20260812120000_01_family_member_account_invitations",
   "20260813112956_add_nutrient_target_energy_snapshot",
   "20260814073753_replace_meal_settings_with_meal_type_preferences",
+  "20260825120000_meal_plan_mutations",
+  "20260826100000_meal_entry_prepared_state",
 ] as const;
 
 loadEnvironment({
@@ -113,6 +115,42 @@ async function verifyAppliedMigrations(
      */
     if (publicTableCount <= 1) {
       throw new Error("Applied migrations did not create application tables");
+    }
+
+    const mealPlanMutationResult = await client.query<{ readonly revision_default: string }>(`
+      SELECT column_default AS revision_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'meal_entries'
+        AND column_name = 'revision'
+    `);
+
+    if (!mealPlanMutationResult.rows[0]?.revision_default?.includes("0")) {
+      throw new Error("Meal entry revision migration was not applied");
+    }
+
+    const ledgerResult = await client.query<{ readonly table_name: string }>(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = 'meal_plan_mutation_requests'
+    `);
+
+    if (ledgerResult.rows.length !== 1) {
+      throw new Error("Meal plan idempotency ledger was not created");
+    }
+
+    const preparedStateResult = await client.query<{ readonly column_name: string }>(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'meal_entries'
+        AND column_name IN ('prepared_at', 'prepared_by_user_id')
+      ORDER BY column_name
+    `);
+
+    if (preparedStateResult.rows.length !== 2) {
+      throw new Error("Meal entry prepared state migration was not applied");
     }
 
     return {

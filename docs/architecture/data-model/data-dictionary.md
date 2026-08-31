@@ -496,11 +496,13 @@ Image або external video рецепта.
 
 Позиція плану на конкретну дату й тип прийому їжі.
 
-| Аспект       | Опис                                     |
-| ------------ | ---------------------------------------- |
-| Вміст        | Рівно один із `productId` або `recipeId` |
-| Основні поля | date, meal type і position               |
-| Ownership    | Через `MealPlan.familyId`                |
+| Аспект         | Опис                                                                           |
+| -------------- | ------------------------------------------------------------------------------ |
+| Вміст          | Рівно один із `productId` або `recipeId`                                       |
+| Основні поля   | date, meal type, position, revision, optional prepared timestamp/actor         |
+| Ownership      | Через `MealPlan.familyId`                                                      |
+| Конкурентність | Update/delete потребують актуального `revision`                                |
+| Готовність     | `preparedAt` і `preparedByUserId` не є фактом споживання або записом щоденника |
 
 ### MealEntryParticipant
 
@@ -511,6 +513,16 @@ Image або external video рецепта.
 | Ключ         | Unique `(mealEntryId, familyMemberId)`          |
 | Основні поля | quantity, measurement unit, normalized grams    |
 | Інваріанти   | Учасник належить сім’ї плану; кількості додатні |
+
+### MealPlanMutationRequest
+
+Family-scoped ledger ідемпотентних batch-команд плану.
+
+| Аспект       | Опис                                                   |
+| ------------ | ------------------------------------------------------ |
+| Ключ         | Unique `(familyId, requestId)`                         |
+| Основні поля | SHA-256 fingerprint, actor, JSON result і timestamp    |
+| Інваріанти   | Той самий requestId не може представляти інший payload |
 
 ## Shopping List
 

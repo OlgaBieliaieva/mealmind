@@ -793,3 +793,19 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.food-details__add-plan {
+  position: fixed;
+  right: max(1.25rem, calc((100vw - var(--client-content-width)) / 2 + 1.25rem));
+  bottom: calc(var(--client-navigation-height) + 1.25rem);
+  z-index: 25;
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #48aa5b;
+  box-shadow: 0 0.75rem 1.5rem rgb(0 0 0 / 18%);
+  font-size: 2.5rem;
+  text-decoration: none;
+}

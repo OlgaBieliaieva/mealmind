@@ -127,6 +127,12 @@ userId/familyId/role, атомарний та ідемпотентний family 
 ACTIVE membership, OWNER policy, tenant isolation, dependent-профіль без User,
 soft archive і покрокову доступну форму без проміжного збереження відповідей.
 
+Meal-plan tests окремо перевіряють канонічний тиждень і selected-day
+агрегацію, family/member authorization, atomic batch, idempotent replay,
+duplicate policy, optimistic revision та ізоляцію advanced draft за сім’єю і
+тижнем. Component tests покривають доступні day/member/meal controls, review,
+помилки submit і збереження navigation context.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -215,6 +221,7 @@ npm run api:test:products:db
 npm run api:test:accounts:db
 npm run api:test:families:db
 npm run api:test:recipes:db
+npm run api:test:meal-plans:db
 npm run check
 npm run test:ui-quality
 ```
@@ -230,6 +237,9 @@ npm run test:ui-quality
   repository лише в ізольованій test database;
 - `npm run api:test:recipes:db` після `npm run db:test` перевіряє recipe
   transactions і nutrition snapshot лише в ізольованій test database.
+- `npm run api:test:meal-plans:db` після `npm run db:test` перевіряє atomic
+  batch, idempotent replay, member policy, stale revision і delete semantics
+  лише в ізольованій test database;
   bootstrap repository у тій самій ізольованій test database;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.
