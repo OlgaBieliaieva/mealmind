@@ -10,11 +10,13 @@ import {
   Heart,
   ImageIcon,
   PlayCircle,
+  ShoppingCart,
+  Utensils,
   UserRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { sanitizeReturnTo } from "@/features/auth/safe-return-to";
@@ -28,6 +30,7 @@ import {
   type RecipeDifficulty,
 } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
 import { Button, PageState } from "@/shared/ui";
 
 const MACRO_CODES = ["energy_kcal", "protein", "total_fat", "carbohydrate"] as const;
@@ -47,8 +50,14 @@ const NUTRIENT_GROUPS: Record<string, string> = {
 
 export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id: string }) {
   const parameters = useSearchParams();
+  const router = useRouter();
   const returnTo = sanitizeReturnTo(parameters.get("returnTo"), "/plan/discover");
   const date = parameters.get("date") ?? new Date().toISOString().slice(0, 10);
+  const shoppingMode = parameters.get("mode") === "shopping-product" && kind === "product";
+  const shoppingListId = parameters.get("shoppingListId");
+  const shoppingRevision = Number(parameters.get("revision") ?? "0");
+  const shoppingReturnTo = sanitizeReturnTo(parameters.get("shoppingReturnTo"), "/shop");
+  const [actionsOpen, setActionsOpen] = useState(false);
   const queryClient = useQueryClient();
   const queryKey = ["food-details", kind, id] as const;
   const query = useQuery({
@@ -70,6 +79,22 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey });
       void queryClient.invalidateQueries({ queryKey: ["food-search"] });
+    },
+  });
+  const addToShopping = useMutation({
+    mutationFn: () => {
+      if (!shoppingMode || !shoppingListId || shoppingRevision < 1) {
+        throw new Error("Shopping list context missing");
+      }
+      return addCatalogShoppingItem(getBrowserApiClient(), shoppingListId, {
+        expectedRevision: shoppingRevision,
+        productId: id,
+        quantity: 100,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      router.push(shoppingReturnTo);
     },
   });
 
@@ -106,13 +131,35 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
           onFavorite={() => favorite.mutate(!food.isFavorite)}
         />
       )}
-      <Link
+      <button
+        type="button"
         className="food-details__add-plan"
-        href={`/plan/add/${food.kind}/${food.id}?${new URLSearchParams({ date, returnTo }).toString()}`}
-        aria-label={`Додати ${food.kind === "recipe" ? food.title : food.name} в план`}
+        aria-label="Дії з продуктом"
+        aria-expanded={actionsOpen}
+        onClick={() => setActionsOpen((value) => !value)}
       >
         <span aria-hidden="true">+</span>
-      </Link>
+      </button>
+      {actionsOpen ? (
+        <div className="food-details__add-menu">
+          <Link
+            href={`/plan/add/${food.kind}/${food.id}?${new URLSearchParams({ date, returnTo }).toString()}`}
+          >
+            <Utensils /> Додати до плану
+          </Link>
+          {shoppingMode ? (
+            <button
+              type="button"
+              disabled={addToShopping.isPending}
+              onClick={() => addToShopping.mutate()}
+            >
+              <ShoppingCart />
+              {addToShopping.isPending ? "Додаємо…" : "Додати до списку покупок"}
+            </button>
+          ) : null}
+          {addToShopping.isError ? <p role="alert">Не вдалося додати продукт до списку.</p> : null}
+        </div>
+      ) : null}
     </article>
   );
 }

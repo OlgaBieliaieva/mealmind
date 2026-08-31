@@ -27,6 +27,7 @@ export interface AppDependencies {
   readonly recipeRouter?: Router;
   readonly foodRouter?: Router;
   readonly mealPlanRouter?: Router;
+  readonly shoppingListRouter?: Router;
   readonly familyRouter?: Router;
   readonly sessionReader?: ApplicationSessionReader;
   readonly logger: AppLogger;
@@ -98,6 +99,10 @@ export function createApp(dependencies: AppDependencies): Express {
 
   if (dependencies.mealPlanRouter !== undefined) {
     app.use("/api/v1", dependencies.mealPlanRouter);
+  }
+
+  if (dependencies.shoppingListRouter !== undefined) {
+    app.use("/api/v1", dependencies.shoppingListRouter);
   }
 
   if (dependencies.familyRouter !== undefined) {

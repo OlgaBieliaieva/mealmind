@@ -7,6 +7,10 @@ import {
   mealPlanOpenApiPaths,
   mealPlanOpenApiSchemas,
 } from "./modules/meal-plan/meal-plan-openapi.js";
+import {
+  shoppingListOpenApiPaths,
+  shoppingListOpenApiSchemas,
+} from "./modules/shopping-list/shopping-list-openapi.js";
 
 export const apiOpenApiDocument = Object.freeze({
   ...referenceOpenApiDocument,
@@ -58,6 +62,7 @@ export const apiOpenApiDocument = Object.freeze({
     ...familyOpenApiPaths,
     ...foodOpenApiPaths,
     ...mealPlanOpenApiPaths,
+    ...shoppingListOpenApiPaths,
   }),
   components: Object.freeze({
     ...referenceOpenApiDocument.components,
@@ -68,6 +73,7 @@ export const apiOpenApiDocument = Object.freeze({
       ...familyOpenApiSchemas,
       ...foodOpenApiSchemas,
       ...mealPlanOpenApiSchemas,
+      ...shoppingListOpenApiSchemas,
     }),
   }),
 });

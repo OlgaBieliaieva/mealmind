@@ -18,6 +18,7 @@ import { createMealPlanModule } from "./modules/meal-plan/meal-plan-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
 import { createRecipeModule } from "./modules/recipe/recipe-module.js";
+import { createShoppingListModule } from "./modules/shopping-list/shopping-list-module.js";
 
 export interface ApiRuntime {
   readonly app: Express;
@@ -75,6 +76,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
   });
+  const shoppingListModule = createShoppingListModule(database, authenticationService);
   const familyModule = createFamilyModule(
     database,
     authenticationService,
@@ -92,6 +94,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     recipeRouter: recipeModule.router,
     foodRouter: foodModule.router,
     mealPlanRouter: mealPlanModule.router,
+    shoppingListRouter: shoppingListModule.router,
     familyRouter: familyModule.router,
     sessionReader: familyModule.service,
     logger,

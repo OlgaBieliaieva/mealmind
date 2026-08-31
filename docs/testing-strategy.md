@@ -133,6 +133,14 @@ duplicate policy, optimistic revision та ізоляцію advanced draft за 
 тижнем. Component tests покривають доступні day/member/meal controls, review,
 помилки submit і збереження navigation context.
 
+Shopping-list tests окремо перевіряють trusted family date, період 1–7 днів,
+масштабування рецептів за сумою ваг інгредієнтів, включення optional
+ingredients, unit-compatible aggregation, category grouping, persisted
+snapshots/warnings, stale detection, versioned regeneration, optimistic
+revision, item/list lifecycle та cross-family isolation. Component tests
+покривають month/category accordions, product-only picker, quantity editing,
+purchased controls і confirmation незавершеного списку.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry

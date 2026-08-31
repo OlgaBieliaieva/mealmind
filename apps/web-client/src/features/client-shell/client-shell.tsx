@@ -15,7 +15,8 @@ export interface ClientShellProps {
 
 export function ClientShell({ children }: ClientShellProps) {
   const pathname = usePathname();
-  const immersive = pathname.startsWith("/plan") || pathname.startsWith("/food/");
+  const immersive =
+    pathname.startsWith("/plan") || pathname.startsWith("/food/") || pathname.startsWith("/shop");
 
   if (
     pathname.startsWith("/auth/") ||
