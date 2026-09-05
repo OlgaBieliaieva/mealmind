@@ -76,7 +76,7 @@ function unitLabel(unit: string): string {
 }
 
 function roundedNutrientValue(value: number): number {
-  return Math.round(value * 10) / 10;
+  return Math.round(value);
 }
 
 function targetReference(target: NutrientTargetAmount | undefined): number | null {
@@ -158,6 +158,13 @@ export function MealPlanScreen() {
   }
 
   const returnTo = "/plan?" + searchParams.toString();
+  const preparedDiaryDate = [...selectedDays]
+    .sort()
+    .find((selectedDate) =>
+      data.days
+        .find((day) => day.date === selectedDate)
+        ?.meals.some((meal) => meal.entries.some((entry) => entry.preparedAt !== null)),
+    );
 
   return (
     <section className="plan-screen" aria-labelledby="plan-title">
@@ -322,6 +329,7 @@ export function MealPlanScreen() {
       <PlanAddMenu
         href={discoverHref(returnTo, undefined, anchorDate)}
         shoppingHref={shoppingListHref(data.planId, anchorDate, selectedDays)}
+        diaryHref={preparedDiaryDate ? diaryHref(preparedDiaryDate) : null}
       />
     </section>
   );
@@ -462,10 +470,12 @@ function AggregatedPlannedFoodCard({
       );
     },
 
-    onSuccess: async () =>
-      queryClient.invalidateQueries({
-        queryKey: ["meal-plan"],
-      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["meal-plan"] }),
+        queryClient.invalidateQueries({ queryKey: ["consumption"] }),
+      ]);
+    },
 
     onError: () =>
       toast.error("Не вдалося видалити одну або кілька позицій. Оновіть план і повторіть дію."),
@@ -485,10 +495,12 @@ function AggregatedPlannedFoodCard({
       );
     },
 
-    onSuccess: async () =>
-      queryClient.invalidateQueries({
-        queryKey: ["meal-plan"],
-      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["meal-plan"] }),
+        queryClient.invalidateQueries({ queryKey: ["consumption"] }),
+      ]);
+    },
 
     onError: () => toast.error("Не вдалося оновити стан готовності."),
   });
@@ -1143,7 +1155,7 @@ function MealNutritionSummary({ nutrition }: { readonly nutrition: NutritionAggr
         {nutrients.map(([label, value, unit]) => (
           <span key={label}>
             <small>{label}</small>
-            <strong>{value === undefined ? "—" : Math.round(value * 10) / 10}</strong>
+            <strong>{value === undefined ? "—" : Math.round(value)}</strong>
             <small>{value === undefined ? "" : unit}</small>
           </span>
         ))}
@@ -1454,11 +1466,15 @@ function MemberFoodCard({
 function PlanAddMenu({
   href,
   shoppingHref,
+  diaryHref,
 }: {
   readonly href: string;
   readonly shoppingHref: string;
+  readonly diaryHref: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
   return (
     <>
       <button
@@ -1480,9 +1496,15 @@ function PlanAddMenu({
           </Link>
           <button
             type="button"
-            onClick={() =>
-              toast.info("Перенесення плану до щоденника буде доступне у наступному етапі.")
-            }
+            onClick={async () => {
+              setOpen(false);
+              if (!diaryHref) {
+                toast.info("У вибрані дні немає готових страв, які можна додати до щоденника.");
+                return;
+              }
+              await queryClient.invalidateQueries({ queryKey: ["consumption"] });
+              router.push(diaryHref);
+            }}
           >
             <BookOpen /> Додати план до щоденника
           </button>
@@ -1566,6 +1588,10 @@ function shoppingListHref(
   if (planId) query.set("planId", planId);
   if (selectedDates.length) query.set("dates", selectedDates.join(","));
   return `/shop/new?${query.toString()}`;
+}
+
+function diaryHref(date: string): string {
+  return `/diary?${new URLSearchParams({ date }).toString()}`;
 }
 
 function SearchLink({ href }: { readonly href: string }) {

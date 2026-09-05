@@ -131,7 +131,8 @@
   list-style: none;
 }
 
-.shopping-list-cards > li > a {
+.shopping-list-cards > li > a,
+.shopping-list-cards > li > .shopping-list-card__select {
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -624,4 +625,17 @@
   .shopping-quantity input {
     width: 4.5rem;
   }
+}
+.shopping-list-card__select {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.shopping-list-card__select:disabled {
+  opacity: 0.55;
+}
+.shopping-picker-error {
+  margin: 1rem;
+  color: #a52626;
 }

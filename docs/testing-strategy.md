@@ -230,6 +230,7 @@ npm run api:test:accounts:db
 npm run api:test:families:db
 npm run api:test:recipes:db
 npm run api:test:meal-plans:db
+npm run api:test:consumption:db
 npm run check
 npm run test:ui-quality
 ```
@@ -248,6 +249,9 @@ npm run test:ui-quality
 - `npm run api:test:meal-plans:db` після `npm run db:test` перевіряє atomic
   batch, idempotent replay, member policy, stale revision і delete semantics
   лише в ізольованій test database;
+- `npm run api:test:consumption:db` після `npm run db:test` перевіряє derived
+  pending candidates, confirm, зміну порції й snapshot, reversible checkbox,
+  ручні записи та OWNER/MEMBER projection лише в ізольованій test database;
   bootstrap repository у тій самій ізольованій test database;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.

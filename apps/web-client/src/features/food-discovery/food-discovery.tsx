@@ -50,7 +50,9 @@ export function FoodDiscovery() {
   const date = parameters.get("date") ?? new Date().toISOString().slice(0, 10);
   const planSelectMode = parameters.get("mode") === "select";
   const shoppingMode = parameters.get("mode") === "shopping-product";
+  const diaryMode = parameters.get("mode") === "diary-select";
   const selectMode = planSelectMode || shoppingMode;
+  const contextualMode = selectMode || diaryMode;
   const shoppingListId = parameters.get("shoppingListId");
   const shoppingRevision = Number(parameters.get("revision") ?? "0");
   const initialTab = shoppingMode ? "product" : readTab(parameters.get("tab"));
@@ -234,8 +236,11 @@ export function FoodDiscovery() {
   const discoveryState = new URLSearchParams({ returnTo, tab });
   if (queryText) discoveryState.set("query", queryText);
   if (memberId) discoveryState.set("memberId", memberId);
-  if (selectMode) {
-    discoveryState.set("mode", shoppingMode ? "shopping-product" : "select");
+  if (contextualMode) {
+    discoveryState.set(
+      "mode",
+      shoppingMode ? "shopping-product" : diaryMode ? "diary-select" : "select",
+    );
     if (shoppingMode) {
       if (shoppingListId) discoveryState.set("shoppingListId", shoppingListId);
       discoveryState.set("revision", String(shoppingRevision));
@@ -250,12 +255,17 @@ export function FoodDiscovery() {
   const detailsSuffix = new URLSearchParams({
     returnTo: "/plan/discover?" + discoveryState.toString(),
   });
-  if (selectMode) detailsSuffix.set("date", date);
+  if (contextualMode) detailsSuffix.set("date", date);
   if (shoppingMode) {
     detailsSuffix.set("mode", "shopping-product");
     if (shoppingListId) detailsSuffix.set("shoppingListId", shoppingListId);
     detailsSuffix.set("revision", String(shoppingRevision));
     detailsSuffix.set("shoppingReturnTo", returnTo);
+  }
+  if (diaryMode) {
+    detailsSuffix.set("mode", "diary-select");
+    if (memberId) detailsSuffix.set("memberId", memberId);
+    detailsSuffix.set("diaryReturnTo", returnTo);
   }
 
   return (
@@ -268,11 +278,15 @@ export function FoodDiscovery() {
           <p>
             {shoppingMode
               ? "Додавання до списку покупок"
-              : memberId
-                ? "Пошук для вибраного члена сім’ї"
-                : "Планування меню"}
+              : diaryMode
+                ? "Додавання до щоденника"
+                : memberId
+                  ? "Пошук для вибраного члена сім’ї"
+                  : "Планування меню"}
           </p>
-          <h1 id="food-discovery-title">{shoppingMode ? "Знайти продукт" : "Знайти їжу"}</h1>
+          <h1 id="food-discovery-title">
+            {shoppingMode ? "Знайти продукт" : diaryMode ? "Знайти спожиту їжу" : "Знайти їжу"}
+          </h1>
         </div>
       </header>
       {planSelectMode ? (

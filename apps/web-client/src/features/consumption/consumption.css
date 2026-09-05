@@ -1,0 +1,230 @@
+.diary-screen {
+  padding-bottom: 7rem;
+}
+.diary-member-summary {
+  padding: 0 1rem 1rem;
+}
+.diary-adherence {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+.diary-adherence span {
+  display: flex;
+  justify-content: space-between;
+  color: #657083;
+  font-size: 0.75rem;
+}
+.diary-adherence progress,
+.diary-nutrients progress {
+  width: 100%;
+  accent-color: #48aa5b;
+}
+.diary-nutrients {
+  margin-top: 0.85rem;
+  border-top: 1px solid #eef0f2;
+}
+.diary-nutrients > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0 0;
+  cursor: pointer;
+  list-style: none;
+}
+.diary-nutrients > summary::-webkit-details-marker {
+  display: none;
+}
+.diary-nutrients > summary > span {
+  display: grid;
+  gap: 0.15rem;
+}
+.diary-nutrients > summary strong {
+  color: #172033;
+  font-size: 0.8rem;
+}
+.diary-nutrients > summary small,
+.diary-nutrients article span,
+.diary-nutrients article small {
+  color: #7b8493;
+  font-size: 0.7rem;
+}
+.diary-nutrients > summary svg {
+  width: 1rem;
+  transition: transform 0.2s ease;
+}
+.diary-nutrients[open] > summary svg {
+  transform: rotate(180deg);
+}
+.diary-nutrients > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding-top: 0.75rem;
+}
+.diary-nutrients article {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+.diary-food-card--skipped {
+  opacity: 0.65;
+}
+.diary-food-card--manual {
+  border-left: 4px solid #8b5cf6;
+  background: #faf8ff;
+}
+.diary-source-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  color: #6d28d9;
+  background: #ede9fe;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.diary-food-card .member-food-card__actions {
+  display: grid;
+  position: relative;
+  align-content: space-between;
+  justify-items: end;
+}
+.diary-consumption-toggle--skipped {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+.diary-consumption-toggle--skipped span {
+  color: #d97706;
+}
+.diary-consumption-toggle:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--client-color-focus) 35%, transparent);
+  outline-offset: 2px;
+}
+.diary-deviations {
+  margin: 0.75rem 0 0;
+  color: #7c3d12;
+  font-size: 0.72rem;
+}
+.diary-edit-dialog {
+  position: fixed;
+  z-index: 40;
+  display: grid;
+  padding: 1rem;
+  background: rgb(15 23 42 / 45%);
+  inset: 0;
+  place-items: center;
+}
+.diary-edit-dialog > div {
+  display: grid;
+  width: min(100%, 28rem);
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1.25rem 3rem rgb(15 23 42 / 25%);
+}
+.diary-edit-dialog h3 {
+  margin: 0;
+}
+.diary-edit-dialog label {
+  display: grid;
+  gap: 0.4rem;
+  color: #465066;
+  font-size: 0.8rem;
+}
+.diary-edit-dialog input {
+  padding: 0.7rem;
+  border: 1px solid var(--client-color-border);
+  border-radius: 0.65rem;
+  font: inherit;
+}
+.diary-edit-dialog fieldset {
+  padding: 0;
+  border: 0;
+}
+.diary-edit-dialog legend {
+  margin-bottom: 0.5rem;
+  color: #465066;
+  font-size: 0.8rem;
+}
+.diary-edit-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+.diary-edit-dialog footer button {
+  padding: 0.65rem 0.9rem;
+  border: 0;
+  border-radius: 0.7rem;
+  color: #fff;
+  background: #48aa5b;
+}
+.diary-edit-dialog footer button:first-child {
+  color: #465066;
+  background: #eef1f4;
+}
+.diary-portion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.diary-portion label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #737d8e;
+  font-size: 0.7rem;
+}
+.diary-portion input {
+  width: 4.5rem;
+  padding: 0.4rem;
+  border: 1px solid var(--client-color-border);
+  border-radius: 0.55rem;
+  font: inherit;
+}
+.diary-portion button,
+.diary-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  border-radius: 0.55rem;
+  color: #287a43;
+  background: #edf7ef;
+  font: inherit;
+  font-size: 0.7rem;
+}
+.diary-portion button {
+  padding: 0.4rem;
+}
+.diary-portion button svg,
+.diary-skip svg {
+  width: 0.9rem;
+}
+.diary-skip {
+  margin-top: 0.55rem;
+  padding: 0.45rem 0.65rem;
+}
+.diary-empty {
+  padding: 1.25rem;
+  text-align: center;
+}
+.diary-empty svg {
+  margin: 0 auto;
+  color: #48aa5b;
+}
+.diary-add-date input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #dfe3e8;
+  border-radius: 0.8rem;
+  background: #fff;
+  font: inherit;
+}

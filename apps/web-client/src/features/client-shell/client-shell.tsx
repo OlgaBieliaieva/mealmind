@@ -16,7 +16,11 @@ export interface ClientShellProps {
 export function ClientShell({ children }: ClientShellProps) {
   const pathname = usePathname();
   const immersive =
-    pathname.startsWith("/plan") || pathname.startsWith("/food/") || pathname.startsWith("/shop");
+    pathname.startsWith("/plan") ||
+    pathname.startsWith("/food/") ||
+    pathname.startsWith("/shop") ||
+    pathname.startsWith("/diary") ||
+    pathname.startsWith("/analytics");
 
   if (
     pathname.startsWith("/auth/") ||
@@ -47,8 +51,8 @@ export function ClientShell({ children }: ClientShellProps) {
             <div className="client-header__content">
               <Link
                 className="client-brand"
-                href={clientRoutes.home}
-                aria-label="MealMind — на головну"
+                href={clientRoutes.diary}
+                aria-label="MealMind — до щоденника"
               >
                 <span className="client-brand__mark" aria-hidden="true">
                   M

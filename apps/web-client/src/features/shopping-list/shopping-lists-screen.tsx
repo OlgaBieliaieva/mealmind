@@ -1,31 +1,58 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Plus, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
-import { listShoppingLists, type ShoppingListSummary } from "@/shared/api/shopping-lists";
+import {
+  addCatalogShoppingItem,
+  listShoppingLists,
+  type ShoppingListSummary,
+} from "@/shared/api/shopping-lists";
 
 const MONTH_FORMAT = new Intl.DateTimeFormat("uk-UA", { month: "long", year: "numeric" });
 const DATE_FORMAT = new Intl.DateTimeFormat("uk-UA", { day: "numeric", month: "short" });
 
 export function ShoppingListsScreen() {
+  const parameters = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const productId = parameters.get("addProduct");
   const query = useQuery({
     queryKey: ["shopping-lists"],
     queryFn: ({ signal }) => listShoppingLists(getBrowserApiClient(), signal),
   });
   const groups = useMemo(() => groupByMonth(query.data?.data ?? []), [query.data]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const addProduct = useMutation({
+    mutationFn: (list: ShoppingListSummary) => {
+      if (!productId) throw new Error("Product context missing");
+      return addCatalogShoppingItem(getBrowserApiClient(), list.id, {
+        expectedRevision: list.revision,
+        productId,
+        quantity: 100,
+      });
+    },
+    onSuccess: async (_response, list) => {
+      await queryClient.invalidateQueries({ queryKey: ["shopping-lists"] });
+      router.push(`/shop/${list.id}`);
+    },
+  });
 
   return (
     <section className="shopping-page">
       <header className="shopping-page__header">
         <div>
           <span className="shopping-page__eyebrow">Сімейні покупки</span>
-          <h1>Списки покупок</h1>
-          <p>Збережені списки на основі вашого плану харчування.</p>
+          <h1>{productId ? "Оберіть список покупок" : "Списки покупок"}</h1>
+          <p>
+            {productId
+              ? "Продукт буде додано у кількості 100 г. У списку її можна змінити."
+              : "Збережені списки на основі вашого плану харчування."}
+          </p>
         </div>
         <Link className="shopping-primary-button" href="/shop/new">
           <Plus aria-hidden="true" /> Створити
@@ -72,7 +99,13 @@ export function ShoppingListsScreen() {
               {!closed ? (
                 <ul className="shopping-list-cards">
                   {group.items.map((list) => (
-                    <ShoppingListCard key={list.id} list={list} />
+                    <ShoppingListCard
+                      key={list.id}
+                      list={list}
+                      selecting={Boolean(productId)}
+                      pending={addProduct.isPending}
+                      onSelect={() => addProduct.mutate(list)}
+                    />
                   ))}
                 </ul>
               ) : null}
@@ -81,6 +114,12 @@ export function ShoppingListsScreen() {
         })}
       </div>
 
+      {addProduct.isError ? (
+        <p className="shopping-picker-error" role="alert">
+          Не вдалося додати продукт. Список міг змінитися — повторіть вибір.
+        </p>
+      ) : null}
+
       <Link className="shopping-fab" href="/shop/new" aria-label="Створити список покупок">
         <Plus aria-hidden="true" />
       </Link>
@@ -88,35 +127,59 @@ export function ShoppingListsScreen() {
   );
 }
 
-function ShoppingListCard({ list }: { readonly list: ShoppingListSummary }) {
+function ShoppingListCard({
+  list,
+  selecting = false,
+  pending = false,
+  onSelect,
+}: {
+  readonly list: ShoppingListSummary;
+  readonly selecting?: boolean;
+  readonly pending?: boolean;
+  readonly onSelect?: () => void;
+}) {
   const visibleCount = list.itemCount;
   const percent = visibleCount ? Math.round((list.purchasedCount / visibleCount) * 100) : 0;
+  const content = (
+    <>
+      <span className="shopping-list-card__icon" aria-hidden="true">
+        <ShoppingCart />
+      </span>
+      <span className="shopping-list-card__content">
+        <span className="shopping-list-card__topline">
+          <strong>{periodLabel(list.periodStart, list.periodEnd)}</strong>
+          <StatusBadge status={list.status} />
+        </span>
+        <span>
+          Придбано {list.purchasedCount} з {visibleCount}
+          {list.version > 1 ? ` · версія ${list.version}` : ""}
+        </span>
+        <progress
+          className="shopping-list-card__progress"
+          aria-label={`Готовність ${percent}%`}
+          max="100"
+          value={percent}
+        >
+          {percent}%
+        </progress>
+      </span>
+      <ChevronRight aria-hidden="true" />
+    </>
+  );
   return (
     <li>
-      <Link href={`/shop/${list.id}`}>
-        <span className="shopping-list-card__icon" aria-hidden="true">
-          <ShoppingCart />
-        </span>
-        <span className="shopping-list-card__content">
-          <span className="shopping-list-card__topline">
-            <strong>{periodLabel(list.periodStart, list.periodEnd)}</strong>
-            <StatusBadge status={list.status} />
-          </span>
-          <span>
-            Придбано {list.purchasedCount} з {visibleCount}
-            {list.version > 1 ? ` · версія ${list.version}` : ""}
-          </span>
-          <progress
-            className="shopping-list-card__progress"
-            aria-label={`Готовність ${percent}%`}
-            max="100"
-            value={percent}
-          >
-            {percent}%
-          </progress>
-        </span>
-        <ChevronRight aria-hidden="true" />
-      </Link>
+      {selecting ? (
+        <button
+          type="button"
+          className="shopping-list-card__select"
+          disabled={pending || list.status !== "OPEN"}
+          onClick={onSelect}
+        >
+          {content}
+        </button>
+      ) : (
+        <Link href={`/shop/${list.id}`}>{content}</Link>
+      )}
     </li>
   );
 }

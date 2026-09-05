@@ -1,19 +1,21 @@
-import { CalendarDays, House, ShoppingCart, UserRound } from "lucide-react";
+import { BookOpen, CalendarDays, ShoppingCart, UserRound, ChartNoAxesCombined } from "lucide-react";
 
 export const clientRoutes = {
-  home: "/",
+  root: "/",
+  analytics: "/analytics",
   family: "/family",
   profile: "/profile",
   plan: "/plan",
   shop: "/shop",
+  diary: "/diary",
 } as const;
 
 export const clientNavigationItems = [
   {
-    href: clientRoutes.home,
-    label: "Головна",
-    icon: House,
-    activePaths: [clientRoutes.home],
+    href: clientRoutes.shop,
+    label: "Списки покупок",
+    icon: ShoppingCart,
+    activePaths: [clientRoutes.shop],
   },
   {
     href: clientRoutes.plan,
@@ -22,10 +24,16 @@ export const clientNavigationItems = [
     activePaths: [clientRoutes.plan, "/food"],
   },
   {
-    href: clientRoutes.shop,
-    label: "Списки покупок",
-    icon: ShoppingCart,
-    activePaths: [clientRoutes.shop],
+    href: clientRoutes.diary,
+    label: "Щоденник",
+    icon: BookOpen,
+    activePaths: [clientRoutes.diary],
+  },
+  {
+    href: clientRoutes.analytics,
+    label: "Головна",
+    icon: ChartNoAxesCombined,
+    activePaths: [clientRoutes.analytics],
   },
   {
     href: clientRoutes.profile,

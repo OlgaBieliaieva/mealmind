@@ -2892,6 +2892,320 @@
           "429": { "description": "Перевищено rate limit" }
         }
       }
+    },
+    "/api/v1/consumption/diary": {
+      "get": {
+        "summary": "Отримати щоденник за один день",
+        "description": "Повертає приготовані планові позиції як derived pending-кандидати та підтверджені факти. OWNER бачить усю сім’ю, MEMBER — лише себе.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/dashboard": {
+      "get": {
+        "summary": "Отримати сімейний dashboard за період",
+        "description": "Повертає plan-vs-fact, макронутрієнти, персональні цілі та вагу на межах періоду. OWNER бачить усі профілі, MEMBER — лише власний.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "dates",
+            "in": "query",
+            "required": true,
+            "description": "Від однієї до 31 унікальної локальної дати через кому",
+            "schema": { "type": "string", "example": "2026-09-01,2026-09-02" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Агрегований read model dashboard за вибраний період",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDashboard" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/plan/{participantId}/confirm": {
+      "post": {
+        "summary": "Підтвердити фактичне споживання планової позиції",
+        "description": "Створює ConsumptionEntry лише після явної дії. Повторне підтвердження відновлює раніше скасований факт.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConfirmPlannedConsumption" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/plan/{participantId}/skip": {
+      "post": {
+        "summary": "Позначити планову позицію як пропущену",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ConsumptionDateBody" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/plan/{participantId}/restore": {
+      "post": {
+        "summary": "Відновити явно пропущену планову позицію",
+        "description": "Повертає позицію зі SKIPPED до очікування підтвердження.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ConsumptionDateBody" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/entries/{entryId}": {
+      "patch": {
+        "summary": "Змінити фактичну порцію або прийом їжі",
+        "description": "Optimistic concurrency за expectedRevision; nutrient snapshot перераховується, відмінність від плану стає CHANGED.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateConsumptionQuantity" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/entries/{entryId}/void": {
+      "post": {
+        "summary": "Скасувати факт споживання",
+        "description": "Переводить факт у VOIDED. Для планової позиції resolution стає UNCONFIRMED, чекбокс — false; явний SKIPPED керується окремою дією.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/VoidConsumption" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/consumption/entries/manual": {
+      "post": {
+        "summary": "Додати спожиту поза планом їжу",
+        "description": "Приймає рівно один catalog source: product або recipe. Дефолтна порція web-клієнта — 100 г.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddManualConsumption" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Денний read model щоденника",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ConsumptionDiaryDay" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Немає права керувати вибраним сімейним профілем" },
+          "404": { "description": "Позицію не знайдено в активній сім’ї" },
+          "409": { "description": "Конфлікт revision або lifecycle факту" },
+          "422": { "description": "Некоректна дата, порція або catalog food" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
     }
   },
   "components": {
@@ -4224,6 +4538,104 @@
           "mealPlanId": { "type": "string", "format": "uuid" },
           "periodStart": { "type": "string", "format": "date" },
           "periodEnd": { "type": "string", "format": "date" }
+        }
+      },
+      "ConsumptionDiaryDay": {
+        "type": "object",
+        "required": ["familyName", "role", "selfMemberId", "date", "timeZone", "members"],
+        "properties": {
+          "familyName": { "type": "string" },
+          "role": { "type": "string", "enum": ["OWNER", "MEMBER"] },
+          "selfMemberId": { "type": ["string", "null"], "format": "uuid" },
+          "date": { "type": "string", "format": "date" },
+          "timeZone": { "type": "string" },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Member-scoped summary, targets, nutrients and diary items"
+            }
+          }
+        }
+      },
+      "ConsumptionDashboard": {
+        "type": "object",
+        "required": [
+          "familyName",
+          "role",
+          "selfMemberId",
+          "dates",
+          "periodStart",
+          "periodEnd",
+          "timeZone",
+          "members"
+        ],
+        "properties": {
+          "familyName": { "type": "string" },
+          "role": { "type": "string", "enum": ["OWNER", "MEMBER"] },
+          "selfMemberId": { "type": ["string", "null"], "format": "uuid" },
+          "dates": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 31,
+            "items": { "type": "string", "format": "date" }
+          },
+          "periodStart": { "type": "string", "format": "date" },
+          "periodEnd": { "type": "string", "format": "date" },
+          "timeZone": { "type": "string" },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Member-scoped period summary, aggregated nutrients, scaled targets and boundary weights"
+            }
+          }
+        }
+      },
+      "ConfirmPlannedConsumption": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 }
+        }
+      },
+      "ConsumptionDateBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["date"],
+        "properties": { "date": { "type": "string", "format": "date" } }
+      },
+      "UpdateConsumptionQuantity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "quantityGrams", "mealTypeId", "date"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 },
+          "mealTypeId": { "type": "string", "format": "uuid" },
+          "date": { "type": "string", "format": "date" }
+        }
+      },
+      "VoidConsumption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "date"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "date": { "type": "string", "format": "date" }
+        }
+      },
+      "AddManualConsumption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["memberId", "date", "kind", "foodId", "mealTypeId", "quantityGrams"],
+        "properties": {
+          "memberId": { "type": "string", "format": "uuid" },
+          "date": { "type": "string", "format": "date" },
+          "kind": { "type": "string", "enum": ["product", "recipe"] },
+          "foodId": { "type": "string", "format": "uuid" },
+          "mealTypeId": { "type": "string", "format": "uuid" },
+          "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 }
         }
       }
     },

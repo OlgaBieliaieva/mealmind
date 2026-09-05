@@ -1,0 +1,294 @@
+.analytics-screen {
+  padding-bottom: 5rem;
+}
+
+.analytics-controls .plan-view-switch {
+  width: auto;
+}
+
+.analytics-controls .plan-view-switch button {
+  width: auto;
+  min-width: 2.5rem;
+  padding: 0 0.7rem;
+  gap: 0.35rem;
+}
+
+.analytics-controls .plan-view-switch button span {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.analytics-member-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.analytics-member {
+  display: grid;
+  gap: 1rem;
+}
+
+.analytics-member__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.2rem;
+}
+
+.analytics-member__header h2,
+.analytics-member__header p {
+  margin: 0;
+}
+
+.analytics-member__header h2 {
+  color: #172033;
+  font-size: 1.05rem;
+}
+
+.analytics-member__header p {
+  margin-top: 0.15rem;
+  color: #737d8e;
+  font-size: 0.75rem;
+}
+
+.analytics-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.analytics-card {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--client-color-border);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--client-shadow-card);
+}
+
+.analytics-card > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.analytics-card > header p,
+.analytics-card > header h3,
+.analytics-card > p {
+  margin: 0;
+}
+
+.analytics-card > header p {
+  color: #48aa5b;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analytics-card > header h3 {
+  margin-top: 0.15rem;
+  color: #172033;
+  font-size: 0.94rem;
+}
+
+.analytics-card > p,
+.analytics-card > small {
+  color: #737d8e;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.analytics-adherence > header > strong {
+  color: #287a43;
+  font-size: 1.5rem;
+}
+
+.analytics-adherence progress,
+.analytics-targets progress {
+  width: 100%;
+  accent-color: #48aa5b;
+}
+
+.analytics-adherence > small {
+  color: #8a5a24;
+}
+
+.analytics-macros__content {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.analytics-macros__chart {
+  width: 7.5rem;
+  height: 7.5rem;
+}
+
+.analytics-macros__chart circle {
+  fill: none;
+  stroke-width: 6;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.analytics-macros__chart circle.track {
+  stroke: #eef1f4;
+}
+
+.analytics-macros__chart circle.protein {
+  stroke: #48aa5b;
+}
+
+.analytics-macros__chart circle.fat {
+  stroke: #f0a43c;
+}
+
+.analytics-macros__chart circle.carbohydrate {
+  stroke: #5b8def;
+}
+
+.analytics-macros__chart text {
+  color: #687267;
+  fill: currentcolor;
+  font-size: 0.22rem;
+  font-weight: 800;
+}
+
+.analytics-macros ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analytics-macros li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  color: #687267;
+  font-size: 0.75rem;
+}
+
+.analytics-macros li::before {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  content: "";
+}
+
+.analytics-macros li.protein::before {
+  background: #48aa5b;
+}
+
+.analytics-macros li.fat::before {
+  background: #f0a43c;
+}
+
+.analytics-macros li.carbohydrate::before {
+  background: #5b8def;
+}
+
+.analytics-macros li strong {
+  color: #172033;
+}
+
+.analytics-nutrition {
+  grid-column: 1 / -1;
+}
+
+.analytics-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.analytics-targets article {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: #f8faf8;
+}
+
+.analytics-targets article span,
+.analytics-targets article small {
+  overflow: hidden;
+  color: #737d8e;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+}
+
+.analytics-targets article strong {
+  color: #172033;
+  font-size: 0.9rem;
+}
+
+.analytics-weight {
+  grid-column: 1 / -1;
+}
+
+.analytics-weight__values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.analytics-weight__values > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: #f8faf8;
+}
+
+.analytics-weight__values span {
+  color: #737d8e;
+  font-size: 0.66rem;
+}
+
+.analytics-weight__values strong {
+  color: #172033;
+  font-size: 0.9rem;
+}
+
+.analytics-weight__values .increase strong {
+  color: #b45309;
+}
+
+.analytics-weight__values .decrease strong {
+  color: #287a43;
+}
+
+@media (min-width: 760px) {
+  .analytics-targets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .analytics-controls .plan-view-switch button span {
+    display: none;
+  }
+
+  .analytics-macros__content {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
+  .analytics-macros__chart {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+
+  .analytics-weight__values {
+    grid-template-columns: 1fr;
+  }
+}
