@@ -607,9 +607,10 @@ enum ConsumptionNutrientCompleteness {
 }
 
 enum MealConsumptionOutcome {
-  CONFIRMED @map("confirmed")
-  CHANGED   @map("changed")
-  SKIPPED   @map("skipped")
+  CONFIRMED   @map("confirmed")
+  CHANGED     @map("changed")
+  SKIPPED     @map("skipped")
+  UNCONFIRMED @map("unconfirmed")
 
   @@map("meal_consumption_outcome")
 }
@@ -1808,6 +1809,7 @@ model ConsumptionEntry {
   sourceMealEntryParticipantId String?                @unique @map("source_meal_entry_participant_id") @db.Uuid
   productId                    String?                @map("product_id") @db.Uuid
   recipeId                     String?                @map("recipe_id") @db.Uuid
+  mealTypeId                   String?                @map("meal_type_id") @db.Uuid
   quantity                     Decimal                @db.Decimal(12, 3)
   measurementUnitId            String                 @map("measurement_unit_id") @db.Uuid
   quantityInGrams              Decimal                @map("quantity_in_grams") @db.Decimal(12, 3)
@@ -1831,6 +1833,7 @@ model ConsumptionEntry {
   sourceMealEntryParticipant MealEntryParticipant?      @relation(fields: [sourceMealEntryParticipantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   product                    Product?                   @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   recipe                     Recipe?                    @relation(fields: [recipeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  mealType                   MealType?                  @relation(fields: [mealTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   measurementUnit            MeasurementUnit            @relation("ConsumptionEntryActualUnit", fields: [measurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   cookingSession             CookingSession?            @relation(fields: [cookingSessionId, familyId], references: [id, familyId], onDelete: Restrict, onUpdate: Cascade)
   plannedMeasurementUnit     MeasurementUnit?           @relation("ConsumptionEntryPlannedUnit", fields: [plannedMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -1843,6 +1846,7 @@ model ConsumptionEntry {
   @@index([recordedByUserId])
   @@index([productId])
   @@index([recipeId])
+  @@index([mealTypeId])
   @@index([measurementUnitId])
   @@index([plannedMeasurementUnitId])
   @@index([cookingSessionId])
@@ -2110,8 +2114,9 @@ model MealType {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  mealEntries       MealEntry[]
-  personPreferences PersonMealTypePreference[]
+  mealEntries        MealEntry[]
+  personPreferences  PersonMealTypePreference[]
+  consumptionEntries ConsumptionEntry[]
 
   @@index([kind, isActive, sortOrder])
   @@map("meal_types")

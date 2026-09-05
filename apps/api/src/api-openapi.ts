@@ -11,6 +11,10 @@ import {
   shoppingListOpenApiPaths,
   shoppingListOpenApiSchemas,
 } from "./modules/shopping-list/shopping-list-openapi.js";
+import {
+  consumptionOpenApiPaths,
+  consumptionOpenApiSchemas,
+} from "./modules/consumption/consumption-openapi.js";
 
 export const apiOpenApiDocument = Object.freeze({
   ...referenceOpenApiDocument,
@@ -63,6 +67,7 @@ export const apiOpenApiDocument = Object.freeze({
     ...foodOpenApiPaths,
     ...mealPlanOpenApiPaths,
     ...shoppingListOpenApiPaths,
+    ...consumptionOpenApiPaths,
   }),
   components: Object.freeze({
     ...referenceOpenApiDocument.components,
@@ -74,6 +79,7 @@ export const apiOpenApiDocument = Object.freeze({
       ...foodOpenApiSchemas,
       ...mealPlanOpenApiSchemas,
       ...shoppingListOpenApiSchemas,
+      ...consumptionOpenApiSchemas,
     }),
   }),
 });

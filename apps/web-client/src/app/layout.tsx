@@ -17,6 +17,8 @@ import "@/features/meal-plan/advanced-planning-flow.css";
 import "@/features/food-discovery/food-discovery.css";
 import "@/features/food-discovery/food-details.css";
 import "@/features/shopping-list/shopping-list.css";
+import "@/features/consumption/consumption.css";
+import "@/features/analytics/dashboard.css";
 
 readWebEnv();
 

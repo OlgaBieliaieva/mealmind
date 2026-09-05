@@ -513,3 +513,24 @@ Snapshot масштабує recipe ingredients за сумою gramWeight, вк�
 ingredients і не використовує yieldWeightG у calculation v1. OWNER і MEMBER
 мають однаковий доступ до спільного shopping resource своєї active family;
 application ADMIN не отримує міжсімейного доступу.
+
+### Реалізовані контракти PR-019
+
+- GET `/api/v1/consumption/diary?date=YYYY-MM-DD`;
+- GET `/api/v1/consumption/dashboard?dates=YYYY-MM-DD,YYYY-MM-DD`;
+- POST `/api/v1/consumption/plan/:participantId/confirm`;
+- POST `/api/v1/consumption/plan/:participantId/skip`;
+- PATCH `/api/v1/consumption/entries/:entryId`;
+- POST `/api/v1/consumption/entries/:entryId/void`;
+- POST `/api/v1/consumption/entries/manual`.
+
+Diary є family-scoped денним read model, а dashboard агрегує явний набір із
+1–31 унікальної локальної дати. Приготовані позиції
+плану повертаються як derived `PENDING` без створення факту. Confirm створює
+`ConsumptionEntry`; update і void захищені `expectedRevision`. Скасування
+чекбокса переводить факт у `VOIDED`, а resolution — у `UNCONFIRMED`; `SKIPPED`
+встановлюється лише окремою дією користувача. Dashboard повертає показники
+дотримання плану, фактичні нутрієнти, персональні цілі, масштабовані за кількістю
+вибраних днів, і вагу на початок та кінець періоду. OWNER керує всіма профілями
+своєї сім’ї, MEMBER отримує лише власну projection. Request/response payload не
+логуються.

@@ -23,6 +23,9 @@ const EXPECTED_MIGRATIONS = [
   "20260825120000_meal_plan_mutations",
   "20260826100000_meal_entry_prepared_state",
   "20260831120000_shopping_list_snapshot_metadata",
+  "20260831170000_consumption_owner_write_policy",
+  "20260901100000_consumption_meal_type_and_restore",
+  "20260901120000_consumption_deviation_controls",
 ] as const;
 
 loadEnvironment({
@@ -177,6 +180,18 @@ async function verifyAppliedMigrations(
 
     if (shoppingSnapshotResult.rows.length !== 6) {
       throw new Error("Shopping list snapshot metadata migration was not applied");
+    }
+
+    const consumptionMealTypeResult = await client.query<{ readonly column_name: string }>(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'consumption_entries'
+        AND column_name = 'meal_type_id'
+    `);
+
+    if (consumptionMealTypeResult.rows.length !== 1) {
+      throw new Error("Consumption meal type migration was not applied");
     }
 
     return {

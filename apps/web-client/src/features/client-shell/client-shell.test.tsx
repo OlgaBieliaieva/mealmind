@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ClientShell } from "./client-shell";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => "/profile",
 }));
 
 describe("ClientShell", () => {
@@ -36,13 +36,13 @@ describe("ClientShell", () => {
   it("marks the current navigation item", () => {
     render(
       <ClientShell>
-        <h1>Головна</h1>
+        <h1>Мій профіль</h1>
       </ClientShell>,
     );
 
     expect(
       screen.getByRole("link", {
-        name: "Головна",
+        name: "Мій профіль",
       }),
     ).toHaveAttribute("aria-current", "page");
   });
@@ -50,7 +50,7 @@ describe("ClientShell", () => {
   it("provides a skip link to the main content", () => {
     render(
       <ClientShell>
-        <h1>Головна</h1>
+        <h1>Мій профіль</h1>
       </ClientShell>,
     );
 

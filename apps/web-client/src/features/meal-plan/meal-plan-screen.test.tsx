@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,12 +12,15 @@ import { validateRenderedUi } from "@/test/ui-quality";
 import { MealPlanScreen } from "./meal-plan-screen";
 
 const replace = vi.fn();
+const push = vi.fn();
+const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { info: vi.fn(), error: vi.fn() }));
 
 let search = "date=2026-08-21";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     replace,
+    push,
   }),
 
   useSearchParams: () => new URLSearchParams(search),
@@ -26,6 +29,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/shared/api/browser-api-client", () => ({
   getBrowserApiClient: () => ({}),
 }));
+vi.mock("sonner", () => ({ toast: toastMock }));
 
 vi.mock("@/shared/api/meal-plans", () => ({
   getMealPlanWeek: vi.fn(),
@@ -152,6 +156,8 @@ function renderPlan() {
 describe("MealPlanScreen", () => {
   beforeEach(() => {
     replace.mockReset();
+    push.mockReset();
+    toastMock.info.mockReset();
 
     search = "date=2026-08-21";
 
@@ -186,6 +192,43 @@ describe("MealPlanScreen", () => {
     ).toHaveAttribute("href", expect.stringContaining("/plan/discover"));
 
     await validateRenderedUi(container);
+  });
+
+  it("opens the first selected diary day that has prepared food", async () => {
+    const readyEntry = {
+      id: "ready-entry",
+      revision: 1,
+      kind: "product" as const,
+      foodId: "product-id",
+      name: "Йогурт",
+      imageUrl: null,
+      categoryCode: "dairy",
+      categoryName: "Молочні продукти",
+      recipeType: null,
+      totalTimeMin: null,
+      difficulty: null,
+      preparedAt: "2026-08-21T08:00:00.000Z",
+      position: 1,
+      participants: [],
+    };
+    vi.mocked(getMealPlanWeek).mockResolvedValue({
+      data: createBaseWeek({
+        days: createEmptyDays().map((day) =>
+          day.date === "2026-08-21"
+            ? {
+                ...day,
+                meals: [{ mealType: breakfastMealType, entries: [readyEntry] }],
+              }
+            : day,
+        ),
+      }),
+    });
+
+    renderPlan();
+    fireEvent.click(await screen.findByRole("button", { name: "Дії з планом" }));
+    fireEvent.click(screen.getByRole("button", { name: /Додати план до щоденника/ }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/diary?date=2026-08-21"));
   });
 
   it("opens a localized day picker from the calendar button", async () => {
@@ -560,11 +603,14 @@ describe("MealPlanScreen", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("button", {
-        name: /Додати план до щоденника/,
-      }),
-    ).toBeInTheDocument();
+    const diaryAction = screen.getByRole("button", {
+      name: /Додати план до щоденника/,
+    });
+    fireEvent.click(diaryAction);
+    expect(push).not.toHaveBeenCalled();
+    expect(toastMock.info).toHaveBeenCalledWith(
+      "У вибрані дні немає готових страв, які можна додати до щоденника.",
+    );
   });
 
   it("renders a selected member summary and meal groups for one day", async () => {

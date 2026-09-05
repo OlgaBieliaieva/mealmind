@@ -9,12 +9,12 @@ import { validateRenderedUi } from "@/test/ui-quality";
 import { FoodDetails } from "./food-details";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const navigation = vi.hoisted(() => ({ search: "" }));
+const shoppingSearch =
+  "returnTo=%2Fplan%2Fdiscover%3FreturnTo%3D%252Fplan%26tab%3Dproduct%26query%3D%D1%87%D1%96%D0%B0&mode=shopping-product&shoppingListId=list-id&revision=3&shoppingReturnTo=%2Fshop%2Flist-id";
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () =>
-    new URLSearchParams(
-      "returnTo=%2Fplan%2Fdiscover%3FreturnTo%3D%252Fplan%26tab%3Dproduct%26query%3D%D1%87%D1%96%D0%B0&mode=shopping-product&shoppingListId=list-id&revision=3&shoppingReturnTo=%2Fshop%2Flist-id",
-    ),
+  useSearchParams: () => new URLSearchParams(navigation.search),
   useRouter: () => ({ push: routerPush }),
 }));
 
@@ -129,9 +129,26 @@ function renderDetails(kind: "product" | "recipe") {
 
 describe("FoodDetails", () => {
   beforeEach(() => {
+    navigation.search = shoppingSearch;
     routerPush.mockClear();
     vi.mocked(setFoodFavorite).mockResolvedValue(undefined);
     vi.mocked(addCatalogShoppingItem).mockResolvedValue({ data: {} } as never);
+  });
+
+  it("offers plan, shopping list and diary actions for a product", async () => {
+    navigation.search = "returnTo=%2Fplan%2Fdiscover&date=2026-09-01";
+    vi.mocked(getFoodDetails).mockResolvedValue({ data: product });
+    renderDetails("product");
+
+    await screen.findByRole("heading", { name: "Чіа насіння" });
+    fireEvent.click(screen.getByRole("button", { name: "Дії з продуктом" }));
+
+    expect(screen.getByRole("link", { name: "Додати до плану" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Додати до списку покупок" })).toHaveAttribute(
+      "href",
+      "/shop?addProduct=product-id",
+    );
+    expect(screen.getByRole("link", { name: "Додати до щоденника" })).toBeVisible();
   });
 
   it("renders product overview and returns to the preserved discovery state", async () => {
@@ -183,6 +200,19 @@ describe("FoodDetails", () => {
     expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
     expect(screen.queryByText(/часткові дані/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/повні дані/i)).not.toBeInTheDocument();
+  });
+
+  it("does not offer adding a recipe to a shopping list", async () => {
+    navigation.search = "returnTo=%2Fplan%2Fdiscover&date=2026-09-01";
+    vi.mocked(getFoodDetails).mockResolvedValue({ data: recipe });
+    renderDetails("recipe");
+
+    await screen.findByRole("heading", { name: "Чіа пудинг" });
+    fireEvent.click(screen.getByRole("button", { name: "Дії з рецептом" }));
+
+    expect(screen.getByRole("link", { name: "Додати до плану" })).toBeVisible();
+    expect(screen.queryByText("Додати до списку покупок")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Додати до щоденника" })).toBeVisible();
   });
 
   it("renders separate video cards and opens a photo in the enlarged viewer", async () => {

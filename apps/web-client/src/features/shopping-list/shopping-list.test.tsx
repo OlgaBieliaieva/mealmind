@@ -16,6 +16,8 @@ import { ShoppingListsScreen } from "./shopping-lists-screen";
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "list-id" }),
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/shared/api/browser-api-client", () => ({
   getBrowserApiClient: () => ({}),
@@ -37,6 +39,7 @@ vi.mock("@/shared/api/shopping-lists", async (importOriginal) => {
     addCustomShoppingItem: vi.fn(),
     setShoppingListStatus: vi.fn(),
     regenerateShoppingList: vi.fn(),
+    addCatalogShoppingItem: vi.fn(),
   };
 });
 vi.mock("sonner", () => ({

@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  BookOpen,
   Clock3,
   ExternalLink,
   Globe,
@@ -57,6 +58,9 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
   const shoppingListId = parameters.get("shoppingListId");
   const shoppingRevision = Number(parameters.get("revision") ?? "0");
   const shoppingReturnTo = sanitizeReturnTo(parameters.get("shoppingReturnTo"), "/shop");
+  const diaryMode = parameters.get("mode") === "diary-select";
+  const diaryReturnTo = sanitizeReturnTo(parameters.get("diaryReturnTo"), `/diary?date=${date}`);
+  const diaryMemberId = parameters.get("memberId");
   const [actionsOpen, setActionsOpen] = useState(false);
   const queryClient = useQueryClient();
   const queryKey = ["food-details", kind, id] as const;
@@ -134,7 +138,7 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
       <button
         type="button"
         className="food-details__add-plan"
-        aria-label="Дії з продуктом"
+        aria-label={food.kind === "product" ? "Дії з продуктом" : "Дії з рецептом"}
         aria-expanded={actionsOpen}
         onClick={() => setActionsOpen((value) => !value)}
       >
@@ -147,7 +151,7 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
           >
             <Utensils /> Додати до плану
           </Link>
-          {shoppingMode ? (
+          {food.kind === "product" && shoppingMode ? (
             <button
               type="button"
               disabled={addToShopping.isPending}
@@ -156,7 +160,16 @@ export function FoodDetails({ kind, id }: { readonly kind: FoodKind; readonly id
               <ShoppingCart />
               {addToShopping.isPending ? "Додаємо…" : "Додати до списку покупок"}
             </button>
+          ) : food.kind === "product" ? (
+            <Link href={`/shop?${new URLSearchParams({ addProduct: food.id }).toString()}`}>
+              <ShoppingCart /> Додати до списку покупок
+            </Link>
           ) : null}
+          <Link
+            href={`/diary/add/${food.kind}/${food.id}?${new URLSearchParams({ date, returnTo: diaryMode ? diaryReturnTo : `/diary?date=${date}`, ...(diaryMemberId ? { memberId: diaryMemberId } : {}) }).toString()}`}
+          >
+            <BookOpen /> Додати до щоденника
+          </Link>
           {addToShopping.isError ? <p role="alert">Не вдалося додати продукт до списку.</p> : null}
         </div>
       ) : null}

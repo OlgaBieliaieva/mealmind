@@ -176,7 +176,7 @@
 .plan-content {
   display: grid;
   gap: 1rem;
-  padding: 1rem 1rem 2rem;
+  padding: 1rem 1rem 4rem;
 }
 .plan-search-link {
   display: flex;
