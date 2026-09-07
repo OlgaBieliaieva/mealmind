@@ -59,6 +59,19 @@ Local, test, staging і production не використовують спіль�
 
 `DIRECT_URL` використовується Prisma tooling для контрольованих migrations. `TEST_DATABASE_URL` приймається лише database test utilities і має вказувати на окрему локальну database `mealmind_test`.
 
+### Email та invitation variables
+
+| Variable              | Consumer | Classification    | Purpose                                 |
+| --------------------- | -------- | ----------------- | --------------------------------------- |
+| INVITATION_APP_ORIGIN | apps/api | Non-secret        | HTTPS origin client для invitation link |
+| INVITATION_TTL_HOURS  | apps/api | Non-secret        | Строк дії family invitation             |
+| RESEND_FROM_EMAIL     | apps/api | Non-secret policy | Verified sender сімейних запрошень      |
+| RESEND_API_KEY        | apps/api | Secret            | Server-only Resend API credential       |
+
+Google Client ID і Client Secret не є application variables: ними володіє
+Supabase Auth provider configuration. Resend SMTP key для Auth також
+зберігається у Supabase Dashboard, а не в Render або Vercel.
+
 ## Валідація
 
 - API перевіряє environment до відкриття HTTP port.
@@ -88,8 +101,14 @@ Sentry transport у local development і automated tests вимкнено за
 - Confirmation і recovery templates зберігаються у `supabase/templates`.
 - Production потребує custom SMTP, SPF/DKIM/DMARC, CAPTCHA та exact staging і
   production redirects.
-- Google OAuth provider залишається вимкненим; майбутній client secret
-  зберігатиметься тільки у Supabase/provider secrets.
+- Google OAuth доступний тільки у web-client. Він використовує наявний PKCE
+  callback і той самий API bootstrap/onboarding flow, що email/password.
+- Web-admin не має self-registration або Google OAuth і використовує
+  контрольований email/password login з API role gate.
+- Локальний Google provider вимкнений за замовчуванням. Staging і production
+  Client Secret зберігаються тільки в Supabase provider settings.
+- Production Auth-листи надсилаються через Resend custom SMTP; API надсилає
+  family invitation через окремий Resend API key.
 
 ## Локальний запуск
 
@@ -222,8 +241,9 @@ npm run start -w @mealmind/api
 `prisma migrate deploy` застосовує тільки reviewed migrations. Reference seed
 не запускається автоматично під час кожного deployment.
 
-Render використовує `/health` як platform health check. Endpoint `/ready`
-залишається окремою перевіркою доступності PostgreSQL.
+Render використовує `/ready` як platform health check, тому rollout приймається
+лише після підтвердження доступності PostgreSQL. `/health` залишається окремою
+process-level перевіркою.
 
 `PORT` надається платформою і не зберігається у Blueprint. Решта
 environment-specific values задаються через Render Dashboard.
@@ -236,7 +256,14 @@ Blueprint містить лише назви:
 - `DIRECT_URL`;
 - `SUPABASE_URL`;
 - `SUPABASE_PUBLISHABLE_KEY`;
-- `SUPABASE_SECRET_KEY`.
+- `SUPABASE_SECRET_KEY`;
+- `INVITATION_APP_ORIGIN`;
+- `INVITATION_TTL_HOURS`;
+- `RESEND_FROM_EMAIL`;
+- `RESEND_API_KEY`;
+- `SENTRY_DSN`;
+- `SENTRY_ENVIRONMENT`;
+- `SENTRY_RELEASE`.
 
 Значення цих параметрів не зберігаються у Git.
 
@@ -266,6 +293,7 @@ Target Blueprint використовує paid starter instance, оскільк�
 
 ## References
 
+- [Покроковий production release](../operations/production-release.md)
 - [Supabase CLI local development](https://supabase.com/docs/guides/local-development/cli/getting-started)
 - [Supabase local configuration and secrets](https://supabase.com/docs/guides/local-development/managing-config)
 - [Supabase environment management](https://supabase.com/docs/guides/deployment/managing-environments)

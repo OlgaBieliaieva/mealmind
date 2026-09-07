@@ -1,7 +1,7 @@
 # Автентифікація web-client
 
 Клієнтський застосунок підтримує email/password registration, confirmation,
-sign-in, sign-out і password recovery через Supabase Auth.
+Google OAuth, sign-in, sign-out і password recovery через Supabase Auth.
 
 - Browser client виконує інтерактивні auth operations.
 - Server client і `proxy.ts` зберігають та оновлюють PKCE session у cookies.
@@ -18,5 +18,6 @@ sign-in, sign-out і password recovery через Supabase Auth.
 - `returnTo` приймає лише внутрішній шлях поточного застосунку.
 - Email очікування confirmation зберігається у `sessionStorage`, а не в URL.
 
-Google OAuth у цьому модулі не активовано, але provider-neutral callback
-сумісний із майбутнім `signInWithOAuth()`.
+Google OAuth використовує той самий PKCE callback і application bootstrap, що
+й email/password flow. OAuth Client Secret зберігається лише в Google
+Cloud/Supabase і не передається до web-client environment.

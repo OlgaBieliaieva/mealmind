@@ -294,7 +294,11 @@ Backend є єдиним власником calendar, timezone, sorting і aggreg
 
 Authorization враховує роль у сім’ї та тип профілю. OWNER читає й змінює щоденники всіх активних профілів своєї сім’ї. MEMBER керує лише власним щоденником. Application administrator не має автоматичного доступу до цих даних.
 
-### Cooking
+### Cooking (зарезервована post-MVP модель)
+
+Цей розділ описує цільову доменну модель, а не активний vertical slice.
+У першому релізі немає Cooking API, application service або UI; Prisma-схема
+зберігає моделі для можливої наступної версії.
 
 Модуль супроводжує виконання запланованого рецепта і володіє фактичним станом конкретного приготування.
 
@@ -309,11 +313,17 @@ Authorization враховує роль у сім’ї та тип профіл�
 - versioned nutrient snapshot завершеного приготування;
 - audit metadata й optimistic concurrency.
 
-`Recipe` залишається канонічним шаблоном, а `CookingSession` — фактом виконання конкретної запланованої страви. Сеанс не змінює базовий рецепт. Збереження зміненого приготування як окремого family recipe використовуватиме copy-on-write через `Recipe.originalRecipeId` і залишається поза MVP.
+`Recipe` залишається канонічним шаблоном, а майбутній `CookingSession` буде
+фактом виконання конкретної запланованої страви. Сеанс не змінюватиме базовий
+рецепт. Збереження зміненого приготування як окремого family recipe
+використовуватиме copy-on-write через `Recipe.originalRecipeId`.
 
 Невідмічений інгредієнт має стан `PENDING`, а не `OMITTED`. Partial preview може тимчасово не включати unresolved інгредієнти лише з явною ознакою неповноти. Завершення дозволене після явного опрацювання всіх інгредієнтів і кроків; фінальний snapshot включає `USED`, враховує `SUBSTITUTED` і виключає тільки `OMITTED`.
 
-Завершений `CookingSession` є пріоритетним джерелом nutrient values для пов’язаного факту споживання. `ConsumptionEntry` зберігає optional traceability до сеансу, а його власний snapshot залишається історичним фактом, масштабованим за спожитою частиною та фактичним виходом.
+Поточний Consumption vertical slice використовує канонічний розрахунок продукту
+або рецепта. Якщо Cooking буде реалізовано, завершений `CookingSession` стане
+пріоритетним джерелом nutrient values для пов’язаного факту споживання.
+`ConsumptionEntry` уже має optional traceability для такої сумісності.
 
 ### Shopping List
 
@@ -607,7 +617,7 @@ Performance tracing, profiling або розширені metrics додають�
 Цільова production topology:
 
 ```text
-mealmind.in.ua          → Vercel web-client
+app.mealmind.in.ua      → Vercel web-client
 admin.mealmind.in.ua    → Vercel web-admin
 api.mealmind.in.ua      → Render API
 PostgreSQL/Auth/Storage → Supabase
