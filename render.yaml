@@ -11,11 +11,14 @@ services:
 
     buildCommand: npm ci --include=dev && npm run build -- --filter=@mealmind/api
     preDeployCommand: npm run db:migrate:deploy
+    initialDeployHook: npm run db:seed:reference
     startCommand: npm run start -w @mealmind/api
 
-    healthCheckPath: /health
+    healthCheckPath: /ready
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 15
+    domains:
+      - api.mealmind.in.ua
 
     envVars:
       - key: NODE_ENV
@@ -40,6 +43,18 @@ services:
         sync: false
 
       - key: SUPABASE_SECRET_KEY
+        sync: false
+
+      - key: INVITATION_APP_ORIGIN
+        sync: false
+
+      - key: INVITATION_TTL_HOURS
+        value: 72
+
+      - key: RESEND_FROM_EMAIL
+        sync: false
+
+      - key: RESEND_API_KEY
         sync: false
 
       - key: SENTRY_DSN

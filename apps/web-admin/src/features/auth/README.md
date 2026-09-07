@@ -1,7 +1,8 @@
 # Автентифікація web-admin
 
 Адміністративний застосунок має власну Supabase cookie session і не підтримує
-self-service registration.
+self-service registration. Google OAuth навмисно доступний лише у web-client:
+адміністративний вхід залишається контрольованим email/password flow.
 
 Після email/password sign-in застосунок:
 

@@ -6,6 +6,7 @@ import { AuthForm } from "./auth-form";
 const mocks = vi.hoisted(() => ({
   signUp: vi.fn(),
   signInWithPassword: vi.fn(),
+  signInWithOAuth: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   getUser: vi.fn(),
   updateUser: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("@/shared/supabase/browser-client", () => ({
     auth: {
       signUp: mocks.signUp,
       signInWithPassword: mocks.signInWithPassword,
+      signInWithOAuth: mocks.signInWithOAuth,
       resetPasswordForEmail: mocks.resetPasswordForEmail,
       getUser: mocks.getUser,
       updateUser: mocks.updateUser,
@@ -94,6 +96,27 @@ describe("AuthForm", () => {
     fillCredentials();
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/onboarding"));
+  });
+
+  it("starts Google OAuth through the shared callback and preserves returnTo", async () => {
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { provider: "google", url: "https://accounts.google.test/oauth" },
+      error: null,
+    });
+    const navigate = vi.fn();
+    render(<AuthForm mode="sign-up" returnTo="/recipes" navigate={navigate} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Продовжити через Google" }));
+
+    await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledOnce());
+    expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: {
+        redirectTo: "http://localhost:3000/auth/callback?next=%2Frecipes",
+        skipBrowserRedirect: true,
+      },
+    });
+    expect(navigate).toHaveBeenCalledWith("https://accounts.google.test/oauth");
   });
 
   it("keeps password recovery response neutral", async () => {

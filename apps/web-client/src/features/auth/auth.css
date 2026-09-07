@@ -58,6 +58,7 @@
 }
 
 .auth-button,
+.auth-google-button,
 .auth-sign-out {
   min-height: 2.75rem;
   padding: 0.625rem 1rem;
@@ -70,10 +71,46 @@
   cursor: pointer;
 }
 
+.auth-google-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 1.5rem;
+  border: 0.0625rem solid var(--client-color-border);
+  color: var(--client-color-text);
+  background: #ffffff;
+}
+
+.auth-google-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #4285f4;
+}
+
 .auth-button:disabled,
+.auth-google-button:disabled,
 .auth-sign-out:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.auth-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  color: var(--client-color-text-muted);
+  font-size: 0.875rem;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  height: 0.0625rem;
+  flex: 1;
+  background: var(--client-color-border);
+  content: "";
 }
 
 .auth-message {
