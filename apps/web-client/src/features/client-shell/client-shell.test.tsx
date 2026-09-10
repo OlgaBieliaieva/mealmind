@@ -5,6 +5,7 @@ import { ClientShell } from "./client-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/profile",
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 vi.mock("@/features/family/hooks/use-family", () => ({

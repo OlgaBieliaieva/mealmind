@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button, Card, PageState, Typography } from "@/shared/ui";
 
@@ -16,6 +17,7 @@ type Status =
   | "ERROR";
 
 export function AccountActivation() {
+  const router = useRouter();
   const [status, setStatus] = useState<Status>("LOADING");
   const [emailHint, setEmailHint] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -93,9 +95,9 @@ export function AccountActivation() {
         onClick={async () => {
           setClaiming(true);
           const response = await fetch("/api/account-activation", { method: "POST" });
-          if (response.ok) window.location.assign("/family");
+          if (response.ok) router.replace("/family");
           else if (response.status === 401)
-            window.location.assign("/auth/sign-up?returnTo=%2Faccount-activation");
+            router.replace("/auth/sign-up?returnTo=%2Faccount-activation");
           else {
             const payload = (await response.json().catch(() => null)) as {
               error?: { code?: string };

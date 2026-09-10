@@ -3,6 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateRenderedUi } from "@/test/ui-quality";
 import { AccountActivation } from "./account-activation";
 
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => navigation,
+}));
+
 describe("AccountActivation", () => {
   afterEach(() => vi.unstubAllGlobals());
 

@@ -5,6 +5,7 @@ import { AdminShell } from "./admin-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 describe("AdminShell", () => {
