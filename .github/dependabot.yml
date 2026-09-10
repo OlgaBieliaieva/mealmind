@@ -11,6 +11,12 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
+    groups:
+      vitest:
+        dependency-type: development
+        patterns:
+          - "vitest"
+          - "@vitest/*"
 
   - package-ecosystem: github-actions
     directory: "/"
