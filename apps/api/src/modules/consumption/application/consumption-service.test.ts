@@ -92,6 +92,74 @@ describe("consumption service", () => {
     expect(readDay).toHaveBeenCalledWith(expect.objectContaining({ date: "2026-08-20" }));
   });
 
+  it("restores signed recipe thumbnails after explicit confirmation", async () => {
+    const imageDay: DiaryDay = {
+      ...day,
+      members: [
+        {
+          memberId: "member-id",
+          name: "Олена",
+          isSelf: true,
+          canEdit: true,
+          mealTypes: [],
+          summary: {
+            plannedCount: 1,
+            confirmedCount: 1,
+            changedCount: 0,
+            skippedCount: 0,
+            pendingCount: 0,
+            addedCount: 0,
+            deviationCount: 0,
+            adherencePercent: 100,
+          },
+          nutrients: [],
+          targets: [],
+          items: [
+            {
+              key: "planned:participant-id",
+              source: "MEAL_PLAN",
+              participantId: "participant-id",
+              entryId: "entry-id",
+              revision: 1,
+              kind: "recipe",
+              foodId: "recipe-id",
+              name: "Суп",
+              imageUrl: null,
+              imageObjectPath: "recipes/recipe-id/photo.jpg",
+              categoryCode: null,
+              categoryName: null,
+              recipeType: null,
+              mealType: null,
+              plannedMealType: null,
+              energyPer100g: null,
+              plannedQuantityGrams: 250,
+              plannedEnergyKcal: null,
+              actualQuantityGrams: 250,
+              actualEnergyKcal: null,
+              macros: { protein: null, fat: null, carbohydrate: null },
+              status: "CONFIRMED",
+              preparedAt: null,
+            },
+          ],
+        },
+      ],
+    };
+    const createReadUrl = vi.fn(async () => "https://storage.test/thumbnail.jpg");
+    const service = createConsumptionService(
+      repository({ readDay: vi.fn(async () => imageDay) }),
+      context(),
+      {
+        products: { createReadUrl: vi.fn(async () => "") },
+        recipes: { createReadUrl },
+      },
+    );
+
+    const result = await service.confirmPlanned("owner-id", "participant-id");
+
+    expect(result.members[0]?.items[0]?.imageUrl).toBe("https://storage.test/thumbnail.jpg");
+    expect(createReadUrl).toHaveBeenCalledWith("recipes/recipe-id/photo.jpg.thumbnail.webp");
+  });
+
   it("derives family scope for period dashboard reads", async () => {
     const readDashboard = vi.fn(async () => dashboard);
     const service = createConsumptionService(repository({ readDashboard }), context("MEMBER"));

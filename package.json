@@ -16,7 +16,7 @@
     "fast-uri": "3.1.6",
     "next": {
       "postcss": "8.5.25",
-      "sharp": "0.35.3"
+      "sharp": "0.35.4"
     },
     "prisma": {
       "mysql2": "3.23.1"
@@ -71,7 +71,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "axe-core": "4.12.1",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "16.3.4",
     "globals": "17.7.0",
     "html-validate": "11.5.6",
     "prettier": "3.9.6",
@@ -84,7 +84,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
-    "sharp@0.35.3": true,
+    "sharp@0.35.4": true,
     "unrs-resolver@1.12.2": true,
     "prisma@7.9.1": true,
     "@prisma/engines@7.9.1": true

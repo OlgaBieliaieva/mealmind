@@ -9,6 +9,7 @@ import { validateRenderedUi } from "./ui-quality";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 describe("Web Admin markup and accessibility baseline", () => {

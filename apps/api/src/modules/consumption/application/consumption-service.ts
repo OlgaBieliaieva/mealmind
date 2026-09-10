@@ -123,15 +123,7 @@ export function createConsumptionService(
         participantId,
         ...(quantityGrams === undefined ? {} : { quantityGrams }),
       });
-      const day = await repository.readDay({
-        familyId: family.id,
-        familyName: family.name,
-        timeZone: family.timeZone,
-        role: family.role,
-        userId,
-        date: await repository.participantDate(family.id, participantId),
-      });
-      return day;
+      return read(userId, await repository.participantDate(family.id, participantId));
     },
     async skipPlanned(userId, participantId, date) {
       const family = await context(userId);

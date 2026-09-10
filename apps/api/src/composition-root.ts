@@ -90,6 +90,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
   );
 
   const app = createApp({
+    apiOrigin: config.apiOrigin,
     healthService,
     readinessService,
     authenticationService,

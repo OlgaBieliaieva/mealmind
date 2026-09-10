@@ -31,7 +31,7 @@ export const clientNavigationItems = [
   },
   {
     href: clientRoutes.analytics,
-    label: "Головна",
+    label: "Аналітика",
     icon: ChartNoAxesCombined,
     activePaths: [clientRoutes.analytics],
   },

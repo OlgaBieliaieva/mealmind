@@ -83,3 +83,17 @@ export const apiOpenApiDocument = Object.freeze({
     }),
   }),
 });
+
+export function createApiOpenApiDocument(apiOrigin: string) {
+  const isLocal = apiOrigin === "http://127.0.0.1:3002";
+
+  return Object.freeze({
+    ...apiOpenApiDocument,
+    servers: Object.freeze([
+      Object.freeze({
+        url: apiOrigin,
+        description: isLocal ? "Локальне середовище розробки" : "Поточне середовище",
+      }),
+    ]),
+  });
+}

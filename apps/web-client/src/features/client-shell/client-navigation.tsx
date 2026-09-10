@@ -36,6 +36,7 @@ export function ClientNavigation() {
                   href={item.href}
                   aria-current={isCurrent ? "page" : undefined}
                   aria-label={item.label}
+                  onClick={(event) => event.currentTarget.blur()}
                 >
                   <Icon className="client-navigation__icon" aria-hidden="true" />
                 </Link>

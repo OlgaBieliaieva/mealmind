@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { SignOutButton } from "@/features/auth/sign-out-button";
+import { useFamily } from "@/features/family/hooks/use-family";
 
 import { ClientNavigation } from "./client-navigation";
 import { clientRoutes } from "./client-routes";
@@ -15,18 +16,19 @@ export interface ClientShellProps {
 
 export function ClientShell({ children }: ClientShellProps) {
   const pathname = usePathname();
+  const publicShell =
+    pathname.startsWith("/auth/") ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/account-activation");
   const immersive =
     pathname.startsWith("/plan") ||
     pathname.startsWith("/food/") ||
     pathname.startsWith("/shop") ||
     pathname.startsWith("/diary") ||
     pathname.startsWith("/analytics");
+  const family = useFamily(!publicShell && !immersive);
 
-  if (
-    pathname.startsWith("/auth/") ||
-    pathname === "/onboarding" ||
-    pathname.startsWith("/account-activation")
-  ) {
+  if (publicShell) {
     return (
       <>
         <a className="skip-link" href="#main-content">
@@ -60,7 +62,9 @@ export function ClientShell({ children }: ClientShellProps) {
 
                 <span>
                   <span className="client-brand__name">MealMind</span>
-                  <span className="client-brand__description">Сімейне планування харчування</span>
+                  <span className="client-brand__description">
+                    {family.data?.name ?? "Сімейне планування харчування"}
+                  </span>
                 </span>
               </Link>
 
