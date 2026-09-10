@@ -403,11 +403,18 @@
   transform: translateX(-50%);
 }
 
-.ui-tooltip:hover .ui-tooltip__content,
 .ui-tooltip:has(:focus-visible) .ui-tooltip__content {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, 0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-tooltip:hover .ui-tooltip__content {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

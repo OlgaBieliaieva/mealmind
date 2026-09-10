@@ -6,9 +6,10 @@ import { readFamily } from "@/shared/api/family";
 
 import { familyQueryKeys } from "../family-query-keys";
 
-export function useFamily() {
+export function useFamily(enabled = true) {
   return useQuery({
     queryKey: familyQueryKeys.current,
     queryFn: readFamily,
+    enabled,
   });
 }

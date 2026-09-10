@@ -9,6 +9,10 @@ MealMind API — серверна межа застосунку, яка відп
 - `GET /ready` перевіряє доступність необхідної інфраструктури.
 - `GET /api/openapi.json` повертає OpenAPI 3.1 contract прикладних endpoint-ів.
 
+У запущеному середовищі `servers[0].url` цього contract формується зі значення
+`API_ORIGIN`: локальний API публікує локальний origin, staging — staging origin,
+а production — production origin.
+
 Статичний файл для Postman генерується командою `npm run api:openapi:export` з кореня
 репозиторію. Інструкція з локального підключення міститься у `postman/README.md`.
 

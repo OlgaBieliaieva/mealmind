@@ -11,6 +11,11 @@ npm run api:openapi:export
 комітити разом зі змінами API, щоб маршрути, параметри та приклади запитів залишалися
 синхронізованими з кодом.
 
+Committed artifact використовує локальний server URL. Для роботи з розгорнутим
+середовищем можна імпортувати специфікацію безпосередньо з
+`https://api-staging.mealmind.in.ua/api/openapi.json` або відповідного production URL:
+runtime-документ підставляє канонічний `API_ORIGIN` поточного deployment.
+
 Перевірити, що експорт не застарів:
 
 ```powershell

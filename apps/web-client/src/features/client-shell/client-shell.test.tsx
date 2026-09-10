@@ -1,10 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ClientShell } from "./client-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/profile",
+}));
+
+vi.mock("@/features/family/hooks/use-family", () => ({
+  useFamily: () => ({ data: { name: "Родина Тестових" } }),
 }));
 
 describe("ClientShell", () => {
@@ -16,6 +20,7 @@ describe("ClientShell", () => {
     );
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.getByText("Родина Тестових")).toBeInTheDocument();
 
     expect(
       screen.getByRole("navigation", {
@@ -61,5 +66,19 @@ describe("ClientShell", () => {
     ).toHaveAttribute("href", "#main-content");
 
     expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
+  });
+
+  it("releases navigation focus after activation so its tooltip closes", () => {
+    render(
+      <ClientShell>
+        <h1>Мій профіль</h1>
+      </ClientShell>,
+    );
+
+    const analyticsLink = screen.getByRole("link", { name: "Аналітика" });
+    analyticsLink.focus();
+    fireEvent.click(analyticsLink, { button: 1 });
+
+    expect(analyticsLink).not.toHaveFocus();
   });
 });

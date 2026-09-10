@@ -13,6 +13,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
 }));
 
+vi.mock("@/features/family/hooks/use-family", () => ({
+  useFamily: () => ({ data: { name: "Родина Тестових" } }),
+}));
+
 describe("Web Client markup and accessibility baseline", () => {
   it("validates the application shell and navigation", async () => {
     const { container } = render(

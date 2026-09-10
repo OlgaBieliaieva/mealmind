@@ -1,7 +1,7 @@
 import express, { type Express, type Router } from "express";
 import { rateLimit } from "express-rate-limit";
 
-import { apiOpenApiDocument } from "./api-openapi.js";
+import { createApiOpenApiDocument } from "./api-openapi.js";
 import type { AuthenticationService } from "./application/authentication/authentication-service.js";
 import type { HealthService } from "./application/health.js";
 import type { AppLogger } from "./application/logging/logger.js";
@@ -18,6 +18,7 @@ import {
 } from "./http/routes/session-router.js";
 
 export interface AppDependencies {
+  readonly apiOrigin?: string;
   readonly healthService: HealthService;
   readonly readinessService: ReadinessService;
   readonly authenticationService: AuthenticationService;
@@ -37,6 +38,9 @@ export interface AppDependencies {
 
 export function createApp(dependencies: AppDependencies): Express {
   const app = express();
+  const apiOpenApiDocument = createApiOpenApiDocument(
+    dependencies.apiOrigin ?? "http://127.0.0.1:3002",
+  );
 
   app.disable("x-powered-by");
 

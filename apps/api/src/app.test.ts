@@ -21,6 +21,7 @@ describe("MealMind API application", () => {
 
   beforeEach(() => {
     dependencies = {
+      apiOrigin: "https://api-staging.mealmind.in.ua",
       healthService: createHealthService(),
       readinessService: createReadinessService({
         async check() {},
@@ -55,8 +56,8 @@ describe("MealMind API application", () => {
       );
       expect(response.body.paths["/api/v1/recipes/{id}"].get).toBeDefined();
       expect(response.body.servers).toContainEqual({
-        url: "http://127.0.0.1:3002",
-        description: "Локальне середовище розробки",
+        url: "https://api-staging.mealmind.in.ua",
+        description: "Поточне середовище",
       });
     });
 
