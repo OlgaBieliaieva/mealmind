@@ -51,8 +51,7 @@ export const productFormSchema = z
   .superRefine((value, context) => {
     if (value.type === "BRANDED") {
       if (value.brandId === "") issue(context, "brandId", "Оберіть бренд");
-      if (value.baseProductId === "") issue(context, "baseProductId", "Оберіть базовий продукт");
-      if (!/^\d{8}$|^\d{12,14}$/.test(value.gtin)) {
+      if (value.gtin !== "" && !/^\d{8}$|^\d{12,14}$/.test(value.gtin)) {
         issue(context, "gtin", "GTIN має містити 8, 12, 13 або 14 цифр");
       }
     }
@@ -85,15 +84,15 @@ export function mapProductFormToCreate(values: ProductFormValues): ProductWrite 
         ...common,
         type: "BRANDED",
         brandId: values.brandId,
-        baseProductId: values.baseProductId,
-        gtin: values.gtin,
+        baseProductId: values.baseProductId === "" ? null : values.baseProductId,
+        gtin: values.gtin === "" ? null : values.gtin,
       };
 }
 
 export function mapProductFormToUpdate(values: ProductFormValues): ProductUpdate {
   const common = mapCommon(values);
   return values.type === "BRANDED"
-    ? { ...common, brandId: values.brandId, gtin: values.gtin }
+    ? { ...common, brandId: values.brandId, gtin: values.gtin === "" ? null : values.gtin }
     : common;
 }
 

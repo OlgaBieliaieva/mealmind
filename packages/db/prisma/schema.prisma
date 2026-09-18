@@ -259,7 +259,9 @@ enum ProductFoodState {
 }
 
 enum ProductSourceProvider {
-  USDA @map("usda")
+  USDA           @map("usda")
+  MEALMIND_ADMIN @map("mealmind_admin")
+  MEALMIND_USER  @map("mealmind_user")
 
   @@map("product_source_provider")
 }
@@ -267,6 +269,8 @@ enum ProductSourceProvider {
 enum ProductSourceDataset {
   FOUNDATION_FOOD @map("foundation_food")
   SR_LEGACY       @map("sr_legacy")
+  ADMIN_CATALOG   @map("admin_catalog")
+  USER_CATALOG    @map("user_catalog")
 
   @@map("product_source_dataset")
 }

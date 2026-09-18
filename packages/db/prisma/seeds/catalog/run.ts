@@ -41,7 +41,10 @@ export async function importUsdaCatalog(
   await validateUsdaCatalogReferences(options.database, options.document);
 
   const existingReferences = await options.database.productSourceReference.findMany({
-    where: { provider: "USDA" },
+    where: {
+      provider: "USDA",
+      dataset: { in: ["FOUNDATION_FOOD", "SR_LEGACY"] },
+    },
     select: {
       id: true,
       productId: true,
@@ -49,8 +52,9 @@ export async function importUsdaCatalog(
       externalId: true,
     },
   });
+  const usdaReferences = existingReferences.map(toExistingSourceReference);
   const existingBySourceIdentity = new Map(
-    existingReferences.map((reference) => [sourceIdentity(reference), reference]),
+    usdaReferences.map((reference) => [sourceIdentity(reference), reference]),
   );
 
   await assertNoProductIdentityConflicts(
@@ -82,6 +86,19 @@ export async function importUsdaCatalog(
     portions: options.document.statistics.portionsTotal,
     batches,
   };
+}
+
+function toExistingSourceReference(reference: {
+  readonly id: string;
+  readonly productId: string;
+  readonly dataset: string;
+  readonly externalId: string;
+}): ExistingSourceReference {
+  if (reference.dataset !== "FOUNDATION_FOOD" && reference.dataset !== "SR_LEGACY") {
+    throw new Error("USDA source reference uses an unsupported dataset.");
+  }
+
+  return { ...reference, dataset: reference.dataset };
 }
 
 export async function cleanupLocalUsdaCatalog(

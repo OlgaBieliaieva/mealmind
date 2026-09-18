@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Prisma, type DatabaseClient } from "@mealmind/db";
 
 import { ProductConflictError, ProductInvariantError } from "../application/product-errors.js";
@@ -18,6 +20,12 @@ const productInclude = {
   brand: { select: { name: true } },
   defaultMeasurementUnit: { select: { symbol: true } },
   baseProduct: { select: { nameUa: true, nameEn: true } },
+  sourceReferences: {
+    where: { isPrimary: true },
+    orderBy: [{ createdAt: "asc" }],
+    take: 1,
+    select: { provider: true, dataset: true },
+  },
   nutrients: {
     include: { nutrient: { select: { nameUa: true, nameEn: true, unit: true } } },
     orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
@@ -101,8 +109,9 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
 
     async create(data) {
       try {
+        const productId = randomUUID();
         const row = await database.product.create({
-          data: productCreateData(data),
+          data: productCreateData(productId, data),
           include: productInclude,
         });
         return mapProductDetails(row);
@@ -265,8 +274,9 @@ function mapProductSearchItem(row: ProductSearchRow): ProductSearchItem {
   });
 }
 
-function productCreateData(data: ProductWrite): Prisma.ProductCreateInput {
+function productCreateData(id: string, data: ProductWrite): Prisma.ProductCreateInput {
   return {
+    id,
     type: data.type,
     nameEn: data.nameEn,
     ...(data.nameUa === undefined ? {} : { nameUa: data.nameUa }),
@@ -288,6 +298,15 @@ function productCreateData(data: ProductWrite): Prisma.ProductCreateInput {
     archivedAt: data.status === "ARCHIVED" ? new Date() : null,
     nutrients: { create: data.nutrients.map(nutrientCreateData) },
     portions: { create: data.portions.map(portionCreateData) },
+    sourceReferences: {
+      create: {
+        provider: data.source.provider,
+        dataset: data.source.dataset,
+        externalId: id,
+        sourceRelease: data.source.sourceRelease,
+        isPrimary: true,
+      },
+    },
   };
 }
 
@@ -353,6 +372,8 @@ function portionCreateData(
 }
 
 function mapProductDetails(row: ProductRow): ProductDetails {
+  const source = row.sourceReferences[0] ?? null;
+
   return Object.freeze({
     id: row.id,
     type: row.type,
@@ -368,6 +389,8 @@ function mapProductDetails(row: ProductRow): ProductDetails {
     baseProductId: row.baseProductId,
     baseProductName:
       row.baseProduct === null ? null : (row.baseProduct.nameUa ?? row.baseProduct.nameEn),
+    sourceProvider: source?.provider ?? null,
+    sourceDataset: source?.dataset ?? null,
     foodState: row.foodState,
     ediblePortionPercent: row.ediblePortionPercent?.toString() ?? null,
     status: row.status,
@@ -422,6 +445,8 @@ function mapProductSummary(row: ProductRow): ProductSummary {
     categoryName: details.categoryName,
     brandId: details.brandId,
     brandName: details.brandName,
+    sourceProvider: details.sourceProvider,
+    sourceDataset: details.sourceDataset,
     status: details.status,
     updatedAt: details.updatedAt,
     primaryMedia,

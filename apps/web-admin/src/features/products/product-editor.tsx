@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
@@ -15,7 +15,11 @@ import {
   updateProduct,
   type ProductStatus,
 } from "@/shared/api/products";
-import { listReferenceData, type ReferenceItem } from "@/shared/api/reference-data";
+import {
+  createReferenceData,
+  listReferenceData,
+  type ReferenceItem,
+} from "@/shared/api/reference-data";
 import { showErrorToast } from "@/shared/feedback/error-toast";
 import { PageState } from "@/shared/ui";
 
@@ -45,12 +49,8 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   });
   const categories = useReferenceOptions("product-categories");
   const units = useReferenceOptions("measurement-units");
-  const brands = useReferenceOptions("brands");
+  const brands = useReferenceOptions("brands", true);
   const nutrients = useReferenceOptions("nutrients");
-  const genericProducts = useQuery({
-    queryKey: ["admin-products", "generic-options"],
-    queryFn: () => listProducts(apiClient, { type: "GENERIC", status: "ACTIVE", pageSize: 100 }),
-  });
 
   const initialValues = useMemo(
     () =>
@@ -59,11 +59,40 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         : mapProductToForm(productQuery.data.data),
     [productQuery.data],
   );
-  const genericOptions =
-    genericProducts.data?.data.items.map((product) => ({
-      value: product.id,
-      label: product.nameUa ?? product.nameEn,
-    })) ?? [];
+  const searchGenericProducts = useCallback(
+    async (search: string) => {
+      const response = await listProducts(apiClient, {
+        type: "GENERIC",
+        status: "ACTIVE",
+        search,
+        pageSize: 20,
+      });
+      return response.data.items.map((product) => ({
+        value: product.id,
+        label: product.nameUa ?? product.nameEn,
+        description: product.categoryName,
+      }));
+    },
+    [apiClient],
+  );
+  const loadBaseProduct = useCallback(
+    async (id: string) => (await getProduct(apiClient, id)).data,
+    [apiClient],
+  );
+  const createBrand = useCallback(
+    async (data: Parameters<typeof createReferenceData>[2]) => {
+      const response = await createReferenceData(apiClient, "brands", data);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-reference-options", "brands"],
+      });
+      toast.success("Бренд створено");
+      return {
+        value: response.data.id,
+        label: String(response.data.name ?? response.data.nameUa ?? response.data.nameEn),
+      };
+    },
+    [apiClient, queryClient],
+  );
 
   const saveMutation = useMutation({
     mutationFn: async (values: typeof initialValues) =>
@@ -96,17 +125,9 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   });
 
   const referencesPending =
-    categories.isPending ||
-    units.isPending ||
-    brands.isPending ||
-    nutrients.isPending ||
-    genericProducts.isPending;
+    categories.isPending || units.isPending || brands.isPending || nutrients.isPending;
   const referencesError =
-    categories.isError ||
-    units.isError ||
-    brands.isError ||
-    nutrients.isError ||
-    genericProducts.isError;
+    categories.isError || units.isError || brands.isError || nutrients.isError;
 
   if ((isEdit && productQuery.isPending) || referencesPending) {
     return <PageState kind="loading" title="Завантажуємо редактор продукту" />;
@@ -127,6 +148,10 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   }
 
   const current = productQuery.data?.data;
+  const initialGenericOptions =
+    current?.baseProductId === null || current?.baseProductId === undefined
+      ? []
+      : [{ value: current.baseProductId, label: current.baseProductName ?? current.baseProductId }];
 
   return (
     <section className="admin-page product-page" aria-labelledby="product-editor-title">
@@ -161,9 +186,12 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         categories={categories.options}
         measurementUnits={units.options}
         brands={brands.options}
-        genericProducts={genericOptions}
+        genericProducts={initialGenericOptions}
         nutrients={nutrients.options}
         isSubmitting={saveMutation.isPending}
+        onSearchGenericProducts={searchGenericProducts}
+        onLoadBaseProduct={loadBaseProduct}
+        onCreateBrand={createBrand}
         onSubmit={(values) => saveMutation.mutateAsync(values).then(() => undefined)}
       />
 
@@ -184,28 +212,62 @@ export function ProductEditor({ productId }: ProductEditorProps) {
 
 function useReferenceOptions(
   resource: "product-categories" | "measurement-units" | "brands" | "nutrients",
+  includeInactive = false,
 ) {
   const apiClient = getBrowserApiClient();
   const query = useQuery({
     queryKey: ["admin-reference-options", resource],
-    queryFn: () => listReferenceData(apiClient, { resource, pageSize: 100 }),
+    queryFn: () => listReferenceData(apiClient, { resource, pageSize: 100, includeInactive }),
   });
 
   return {
     ...query,
-    options: flattenReferenceItems(query.data?.data.items ?? []),
+    options: flattenReferenceItems(
+      (query.data?.data.items ?? []).filter(
+        (item) => resource !== "brands" || item.status !== "ARCHIVED",
+      ),
+      0,
+      resource === "brands",
+    ),
   };
 }
 
-function flattenReferenceItems(items: readonly ReferenceItem[], depth = 0): ProductOption[] {
+function flattenReferenceItems(
+  items: readonly ReferenceItem[],
+  depth = 0,
+  preferPrimaryName = false,
+): ProductOption[] {
   return items.flatMap((item) => {
-    const name = readLabel(item);
-    const option = { value: item.id, label: `${"— ".repeat(depth)}${name}` };
+    const name = preferPrimaryName ? readPrimaryName(item) : readLabel(item);
+    const option = {
+      value: item.id,
+      label: `${"— ".repeat(depth)}${name}`,
+      ...(typeof item.unit === "string" ? { unit: nutrientUnitLabel(item.unit) } : {}),
+    };
     const children = Array.isArray(item.children)
-      ? flattenReferenceItems(item.children as readonly ReferenceItem[], depth + 1)
+      ? flattenReferenceItems(
+          item.children as readonly ReferenceItem[],
+          depth + 1,
+          preferPrimaryName,
+        )
       : [];
     return [option, ...children];
   });
+}
+
+function readPrimaryName(item: ReferenceItem): string {
+  const name = item.name;
+  return typeof name === "string" && name.trim().length > 0 ? name : readLabel(item);
+}
+
+function nutrientUnitLabel(unit: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    KCAL: "ккал",
+    G: "г",
+    MG: "мг",
+    MCG: "мкг",
+  };
+  return labels[unit] ?? unit.toLowerCase();
 }
 
 function readLabel(item: ReferenceItem): string {

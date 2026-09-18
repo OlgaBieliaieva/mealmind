@@ -51,6 +51,8 @@ export interface ProductSummary {
   readonly categoryName: string;
   readonly brandId: string | null;
   readonly brandName: string | null;
+  readonly sourceProvider: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | null;
+  readonly sourceDataset: "FOUNDATION_FOOD" | "SR_LEGACY" | "ADMIN_CATALOG" | "USER_CATALOG" | null;
   readonly status: ProductStatus;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMedia | null;

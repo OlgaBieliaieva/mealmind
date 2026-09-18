@@ -23,6 +23,23 @@ export const NUTRIENT_VALUE_TYPES = [
 ] as const;
 export type NutrientValueType = (typeof NUTRIENT_VALUE_TYPES)[number];
 
+export const PRODUCT_SOURCE_PROVIDERS = ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER"] as const;
+export type ProductSourceProvider = (typeof PRODUCT_SOURCE_PROVIDERS)[number];
+
+export const PRODUCT_SOURCE_DATASETS = [
+  "FOUNDATION_FOOD",
+  "SR_LEGACY",
+  "ADMIN_CATALOG",
+  "USER_CATALOG",
+] as const;
+export type ProductSourceDataset = (typeof PRODUCT_SOURCE_DATASETS)[number];
+
+export interface ProductSourceWrite {
+  readonly provider: ProductSourceProvider;
+  readonly dataset: ProductSourceDataset;
+  readonly sourceRelease: Date;
+}
+
 export interface ProductNutrientWrite {
   readonly nutrientId: string;
   readonly valuePer100g: string;
@@ -57,12 +74,13 @@ export interface ProductWrite {
   readonly notes?: string | null | undefined;
   readonly nutrients: readonly ProductNutrientWrite[];
   readonly portions: readonly ProductPortionWrite[];
+  readonly source: ProductSourceWrite;
 }
 
 export interface ProductUpdate {
   readonly nameEn?: string | undefined;
   readonly nameUa?: string | null | undefined;
-  readonly gtin?: string | undefined;
+  readonly gtin?: string | null | undefined;
   readonly categoryId?: string | undefined;
   readonly brandId?: string | undefined;
   readonly defaultMeasurementUnitId?: string | undefined;
@@ -116,6 +134,8 @@ export interface ProductDetails {
   readonly defaultMeasurementUnitSymbol: string;
   readonly baseProductId: string | null;
   readonly baseProductName: string | null;
+  readonly sourceProvider: ProductSourceProvider | null;
+  readonly sourceDataset: ProductSourceDataset | null;
   readonly foodState: ProductFoodState;
   readonly ediblePortionPercent: string | null;
   readonly status: ProductStatus;
@@ -142,6 +162,8 @@ export interface ProductSummary {
   readonly categoryName: string;
   readonly brandId: string | null;
   readonly brandName: string | null;
+  readonly sourceProvider: ProductSourceProvider | null;
+  readonly sourceDataset: ProductSourceDataset | null;
   readonly status: ProductStatus;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMediaRecord | null;

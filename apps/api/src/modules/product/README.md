@@ -6,8 +6,11 @@
 ## Інваріанти продукту
 
 - generic product обов’язково має category і default measurement unit та не має brand, GTIN або base product;
-- branded product обов’язково має brand, нормалізований 14-значний GTIN і неархівований generic base;
-- під час створення branded product пропущені category, unit, food state, edible portion, nutrients і portions копіюються з base як контрольований snapshot;
+- branded product обов’язково має brand; GTIN і generic base optional;
+- branded product без base повинен явно мати category і default measurement unit;
+- якщо вибрано ACTIVE generic base, його category, unit, food state, edible portion і portions можуть бути використані як контрольований snapshot;
+- nutrient values із пакування зберігаються як LABEL і перекривають base за nutrientId, а відсутні значення base копіюються як ESTIMATED;
+- створені адміністратором продукти мають primary source MEALMIND_ADMIN / ADMIN_CATALOG; MEALMIND_USER / USER_CATALOG зарезервовано для майбутнього user-generated catalog;
 - тип і base product після створення не змінюються;
 - update змінює nutrients/portions лише коли поле явно присутнє; порожній масив означає свідоме очищення;
 - дозволені переходи status: `DRAFT → ACTIVE|ARCHIVED`, `ACTIVE → ARCHIVED`, `ARCHIVED → DRAFT`.

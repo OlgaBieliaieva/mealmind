@@ -31,6 +31,14 @@ const sourceMapUploadEnabled = Boolean(
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Permissions-Policy", value: "camera=(self)" }],
+      },
+    ];
+  },
   env: {
     NEXT_PUBLIC_SENTRY_ENVIRONMENT: sentryEnvironment,
     NEXT_PUBLIC_SENTRY_RELEASE: sentryRelease,

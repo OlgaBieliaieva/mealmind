@@ -58,6 +58,7 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
       }),
   });
   const items = flattenReferenceItems(query.data?.data.items ?? []);
+  console.log(items);
   const categoryOptions: readonly ReferenceOption[] = [
     { value: "", label: "Без батьківської категорії" },
     ...items.map(({ item, depth }) => ({
@@ -398,7 +399,7 @@ export function flattenReferenceItems(
 }
 
 function itemLabel(item: ReferenceItem): string {
-  for (const field of ["nameUa", "displayName", "name", "nameEn", "code"]) {
+  for (const field of ["name", "nameUa", "displayName", "nameEn", "code"]) {
     if (typeof item[field] === "string") return item[field];
   }
   return item.id;

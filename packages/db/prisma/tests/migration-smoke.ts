@@ -26,6 +26,7 @@ const EXPECTED_MIGRATIONS = [
   "20260831170000_consumption_owner_write_policy",
   "20260901100000_consumption_meal_type_and_restore",
   "20260901120000_consumption_deviation_controls",
+  "20260918120000_product_source_origins",
 ] as const;
 
 loadEnvironment({
@@ -192,6 +193,29 @@ async function verifyAppliedMigrations(
 
     if (consumptionMealTypeResult.rows.length !== 1) {
       throw new Error("Consumption meal type migration was not applied");
+    }
+
+    const productSourceEnumResult = await client.query<{
+      readonly enum_name: string;
+      readonly enum_value: string;
+    }>(`
+      SELECT
+        type.typname AS enum_name,
+        value.enumlabel AS enum_value
+      FROM pg_type AS type
+      JOIN pg_enum AS value ON type.oid = value.enumtypid
+      WHERE type.typname IN ('product_source_provider', 'product_source_dataset')
+        AND value.enumlabel IN (
+          'mealmind_admin',
+          'mealmind_user',
+          'admin_catalog',
+          'user_catalog'
+        )
+      ORDER BY type.typname, value.enumsortorder
+    `);
+
+    if (productSourceEnumResult.rows.length !== 4) {
+      throw new Error("Product source origin enum migration was not applied");
     }
 
     return {
