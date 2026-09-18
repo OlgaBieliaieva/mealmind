@@ -94,15 +94,23 @@ const createProductBody = z
       }
     } else {
       if (!value.brandId) addIssue(context, "brandId", "Brand is required");
-      if (!value.gtin) addIssue(context, "gtin", "GTIN is required");
-      if (!value.baseProductId) addIssue(context, "baseProductId", "Generic base is required");
+      if (!value.baseProductId && value.categoryId === undefined) {
+        addIssue(context, "categoryId", "Category is required without a generic base");
+      }
+      if (!value.baseProductId && value.defaultMeasurementUnitId === undefined) {
+        addIssue(
+          context,
+          "defaultMeasurementUnitId",
+          "Measurement unit is required without a generic base",
+        );
+      }
     }
   });
 
 const updateProductBody = z.object({
   nameEn: productFields.nameEn.optional(),
   nameUa: productFields.nameUa,
-  gtin: gtin.optional(),
+  gtin: gtin.nullable().optional(),
   categoryId: uuid.optional(),
   brandId: uuid.optional(),
   defaultMeasurementUnitId: uuid.optional(),

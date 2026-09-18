@@ -30,7 +30,7 @@ const READ_URL_TTL_SECONDS = 300;
 
 export interface CreateProductInput extends Omit<
   ProductWrite,
-  "categoryId" | "defaultMeasurementUnitId" | "foodState" | "nutrients" | "portions"
+  "categoryId" | "defaultMeasurementUnitId" | "foodState" | "nutrients" | "portions" | "source"
 > {
   readonly categoryId?: string | undefined;
   readonly defaultMeasurementUnitId?: string | undefined;
@@ -127,7 +127,17 @@ export function createProductService(
     async create(input) {
       const resolved = await resolveCreateInput(repository, input);
       validateProductWrite(resolved);
-      return presentProduct(storage, await repository.create(resolved));
+      return presentProduct(
+        storage,
+        await repository.create({
+          ...resolved,
+          source: {
+            provider: "MEALMIND_ADMIN",
+            dataset: "ADMIN_CATALOG",
+            sourceRelease: new Date(),
+          },
+        }),
+      );
     },
 
     async update(id, input) {
@@ -266,7 +276,7 @@ export function createProductService(
 async function resolveCreateInput(
   repository: ProductRepository,
   input: CreateProductInput,
-): Promise<ProductWrite> {
+): Promise<Omit<ProductWrite, "source">> {
   if (input.type === "GENERIC") {
     if (input.categoryId === undefined || input.defaultMeasurementUnitId === undefined) {
       throw new ProductInvariantError("Generic products require category and measurement unit");
@@ -283,14 +293,27 @@ async function resolveCreateInput(
   }
 
   if (input.baseProductId === null || input.baseProductId === undefined) {
-    throw new ProductInvariantError("Branded products require a generic base product");
+    if (input.categoryId === undefined || input.defaultMeasurementUnitId === undefined) {
+      throw new ProductInvariantError(
+        "Branded products without a generic base require category and measurement unit",
+      );
+    }
+
+    return {
+      ...input,
+      categoryId: input.categoryId,
+      defaultMeasurementUnitId: input.defaultMeasurementUnitId,
+      foodState: input.foodState ?? "UNSPECIFIED",
+      nutrients: toLabelNutrients(input.nutrients ?? []),
+      portions: input.portions ?? [],
+    };
   }
 
   const base = await repository.findById(input.baseProductId);
 
-  if (base === null || base.type !== "GENERIC" || base.status === "ARCHIVED") {
+  if (base === null || base.type !== "GENERIC" || base.status !== "ACTIVE") {
     throw new ProductInvariantError(
-      "Branded products can inherit only from a non-archived generic product",
+      "Branded products can inherit only from an active generic product",
     );
   }
 
@@ -300,7 +323,7 @@ async function resolveCreateInput(
     defaultMeasurementUnitId: input.defaultMeasurementUnitId ?? base.defaultMeasurementUnitId,
     foodState: input.foodState ?? base.foodState,
     ediblePortionPercent: input.ediblePortionPercent ?? base.ediblePortionPercent,
-    nutrients: input.nutrients ?? base.nutrients,
+    nutrients: mergeBrandedNutrients(base.nutrients, input.nutrients ?? []),
     portions:
       input.portions ??
       base.portions.map((portion) => ({
@@ -318,7 +341,7 @@ async function resolveCreateInput(
   };
 }
 
-function validateProductWrite(input: ProductWrite): void {
+function validateProductWrite(input: Omit<ProductWrite, "source">): void {
   if (input.type === "GENERIC") {
     if (input.brandId || input.gtin || input.baseProductId) {
       throw new ProductInvariantError("Generic products cannot have brand, GTIN or base product");
@@ -326,10 +349,8 @@ function validateProductWrite(input: ProductWrite): void {
     return;
   }
 
-  if (!input.brandId || !input.gtin || !input.baseProductId) {
-    throw new ProductInvariantError(
-      "Branded products require brand, GTIN and generic base product",
-    );
+  if (!input.brandId) {
+    throw new ProductInvariantError("Branded products require a brand");
   }
 }
 
@@ -338,9 +359,37 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
     throw new ProductInvariantError("Generic products cannot be converted to branded products");
   }
 
-  if (existing.type === "BRANDED" && (input.brandId === "" || input.gtin === "")) {
-    throw new ProductInvariantError("Brand and GTIN cannot be removed from a branded product");
+  if (existing.type === "BRANDED" && input.brandId === "") {
+    throw new ProductInvariantError("Brand cannot be removed from a branded product");
   }
+}
+
+function toLabelNutrients(
+  nutrients: readonly ProductWrite["nutrients"][number][],
+): ProductWrite["nutrients"] {
+  return nutrients.map((nutrient) => ({ ...nutrient, valueType: "LABEL" }));
+}
+
+function mergeBrandedNutrients(
+  baseNutrients: ProductDetails["nutrients"],
+  labelNutrients: readonly ProductWrite["nutrients"][number][],
+): ProductWrite["nutrients"] {
+  const merged = new Map<string, ProductWrite["nutrients"][number]>(
+    baseNutrients.map((nutrient) => [
+      nutrient.nutrientId,
+      {
+        nutrientId: nutrient.nutrientId,
+        valuePer100g: nutrient.valuePer100g,
+        valueType: "ESTIMATED" as const,
+      },
+    ]),
+  );
+
+  for (const nutrient of toLabelNutrients(labelNutrients)) {
+    merged.set(nutrient.nutrientId, nutrient);
+  }
+
+  return [...merged.values()];
 }
 
 function assertStatusTransition(current: ProductStatus, next: ProductStatus): void {

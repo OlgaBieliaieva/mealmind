@@ -35,7 +35,7 @@ describe("product form schema and mapper", () => {
     expect(mapProductFormToCreate(values)).not.toHaveProperty("brandId");
   });
 
-  it("requires brand, GTIN and generic base for a branded product", () => {
+  it("requires only a brand among branded-specific fields", () => {
     const result = productFormSchema.safeParse({
       ...EMPTY_PRODUCT_FORM,
       type: "BRANDED",
@@ -46,10 +46,27 @@ describe("product form schema and mapper", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
-        expect.arrayContaining(["brandId", "baseProductId", "gtin"]),
-      );
+      expect(result.error.issues.map((issue) => issue.path[0])).toContain("brandId");
     }
+  });
+
+  it("maps optional base product and GTIN to null", () => {
+    const values = {
+      ...EMPTY_PRODUCT_FORM,
+      type: "BRANDED" as const,
+      nameEn: "Brand Apple",
+      categoryId,
+      defaultMeasurementUnitId: unitId,
+      brandId,
+    };
+
+    expect(productFormSchema.safeParse(values).success).toBe(true);
+    expect(mapProductFormToCreate(values)).toMatchObject({
+      type: "BRANDED",
+      brandId,
+      baseProductId: null,
+      gtin: null,
+    });
   });
 
   it("keeps immutable type/base fields out of the update payload", () => {

@@ -290,13 +290,15 @@ Group nodes не призначаються продукту напряму; ass
 
 Канонічний catalog item для generic або branded food.
 
-| Аспект        | Опис                                                                                               |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| Ключі         | UUID, optional unique normalized `gtin`                                                            |
-| Класифікація  | category, optional brand, food state, default measurement unit                                     |
-| Варіанти      | Optional `baseProductId` пов’язує branded product із generic base                                  |
-| Життєвий цикл | `status`, `verificationStatus`, `archivedAt`                                                       |
-| Інваріанти    | Generic і branded поля узгоджуються; catalog records не видаляються при наявності історичних links |
+| Аспект         | Опис                                                                                               |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| Ключі          | UUID, optional unique normalized `gtin`                                                            |
+| Класифікація   | category, optional brand, food state, default measurement unit                                     |
+| Варіанти       | Optional baseProductId пов’язує branded product із generic base                                    |
+| Походження     | Primary source розрізняє USDA, admin catalog і зарезервований user catalog                         |
+| Branded values | Label nutrients мають пріоритет; відсутні значення base фіксуються як ESTIMATED snapshot           |
+| Життєвий цикл  | `status`, `verificationStatus`, `archivedAt`                                                       |
+| Інваріанти     | Generic і branded поля узгоджуються; catalog records не видаляються при наявності історичних links |
 
 ### Brand
 

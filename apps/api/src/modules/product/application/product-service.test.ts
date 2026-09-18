@@ -16,6 +16,7 @@ const categoryId = "44b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const unitId = "54b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const brandId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const nutrientId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const secondNutrientId = "75b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const mediaId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
@@ -33,6 +34,8 @@ function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
     defaultMeasurementUnitSymbol: "g",
     baseProductId: null,
     baseProductName: null,
+    sourceProvider: null,
+    sourceDataset: null,
     foodState: "RAW",
     ediblePortionPercent: "95",
     status: "DRAFT",
@@ -222,9 +225,83 @@ describe("product service", () => {
         defaultMeasurementUnitId: unitId,
         foodState: "RAW",
         ediblePortionPercent: "95",
-        nutrients: [expect.objectContaining({ nutrientId, valuePer100g: "0.3" })],
+        nutrients: [
+          expect.objectContaining({
+            nutrientId,
+            valuePer100g: "0.3",
+            valueType: "ESTIMATED",
+          }),
+        ],
+        source: expect.objectContaining({
+          provider: "MEALMIND_ADMIN",
+          dataset: "ADMIN_CATALOG",
+        }),
       }),
     );
+  });
+
+  it("lets label nutrients override estimated base values", async () => {
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        id: baseProductId,
+        status: "ACTIVE",
+        nutrients: [
+          {
+            nutrientId,
+            nutrientName: "Білки",
+            unit: "G",
+            valuePer100g: "0.3",
+            valueType: "ANALYTICAL",
+          },
+          {
+            nutrientId: secondNutrientId,
+            nutrientName: "Жири",
+            unit: "G",
+            valuePer100g: "0.2",
+            valueType: "ANALYTICAL",
+          },
+        ],
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.create({
+      type: "BRANDED",
+      nameEn: "Brand Apple",
+      brandId,
+      baseProductId,
+      status: "DRAFT",
+      nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "UNKNOWN" }],
+    });
+
+    expect(productRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nutrients: [
+          { nutrientId, valuePer100g: "1.4", valueType: "LABEL" },
+          { nutrientId: secondNutrientId, valuePer100g: "0.2", valueType: "ESTIMATED" },
+        ],
+      }),
+    );
+  });
+
+  it("creates a branded product without a base or GTIN when classification is explicit", async () => {
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.create({
+      type: "BRANDED",
+      nameEn: "Brand snack",
+      brandId,
+      categoryId,
+      defaultMeasurementUnitId: unitId,
+      status: "DRAFT",
+      nutrients: [{ nutrientId, valuePer100g: "8", valueType: "UNKNOWN" }],
+    });
+
+    expect(productRepository.findById).not.toHaveBeenCalled();
+    const created = vi.mocked(productRepository.create).mock.calls[0]?.[0];
+    expect(created).not.toHaveProperty("baseProductId");
+    expect(created).not.toHaveProperty("gtin");
+    expect(created?.nutrients).toEqual([{ nutrientId, valuePer100g: "8", valueType: "LABEL" }]);
   });
 
   it("does not allow an active product to return directly to draft", async () => {

@@ -18,6 +18,11 @@ const database = createDatabaseClient({ connectionString, log: ["error"] });
 const repository = createPrismaProductRepository(database);
 const createdProductIds: string[] = [];
 let brandId: string | undefined;
+const adminSource = {
+  provider: "MEALMIND_ADMIN",
+  dataset: "ADMIN_CATALOG",
+  sourceRelease: new Date("2026-09-18"),
+} as const;
 
 try {
   const [category, unit, nutrient] = await Promise.all([
@@ -52,6 +57,7 @@ try {
         sortOrder: 0,
       },
     ],
+    source: adminSource,
   });
   createdProductIds.push(generic.id);
 
@@ -76,8 +82,11 @@ try {
     status: "DRAFT",
     nutrients: [],
     portions: [],
+    source: adminSource,
   });
   createdProductIds.push(branded.id);
+  assert.equal(branded.sourceProvider, "MEALMIND_ADMIN");
+  assert.equal(branded.sourceDataset, "ADMIN_CATALOG");
 
   await assert.rejects(
     repository.create({
@@ -92,6 +101,7 @@ try {
       status: "DRAFT",
       nutrients: [],
       portions: [],
+      source: adminSource,
     }),
     ProductConflictError,
   );
@@ -108,6 +118,7 @@ try {
     status: "ACTIVE",
     nutrients: [],
     portions: [],
+    source: adminSource,
   });
   createdProductIds.push(searchableActive.id);
 
@@ -121,6 +132,7 @@ try {
     status: "DRAFT",
     nutrients: [],
     portions: [],
+    source: adminSource,
   });
   createdProductIds.push(searchableDraft.id);
 
@@ -134,6 +146,7 @@ try {
     status: "ARCHIVED",
     nutrients: [],
     portions: [],
+    source: adminSource,
   });
   createdProductIds.push(searchableArchived.id);
 

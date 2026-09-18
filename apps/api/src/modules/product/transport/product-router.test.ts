@@ -29,6 +29,8 @@ function product(overrides: Partial<ProductDetailsView> = {}): ProductDetailsVie
     defaultMeasurementUnitSymbol: "g",
     baseProductId: null,
     baseProductName: null,
+    sourceProvider: null,
+    sourceDataset: null,
     foodState: "RAW",
     ediblePortionPercent: "95",
     status: "DRAFT",
@@ -266,5 +268,26 @@ describe("product router", () => {
     expect(viewed.status).toBe(200);
     expect(edited.body.data.nameUa).toBe("Червоне яблуко");
     expect(archived.body.data.status).toBe("ARCHIVED");
+  });
+
+  it("accepts a branded product without a GTIN or generic base", async () => {
+    const service = productService();
+
+    const response = await request(createTestApp(service, "ADMIN"))
+      .post("/api/v1/admin/products")
+      .set("authorization", "Bearer token")
+      .send({
+        type: "BRANDED",
+        nameEn: "Brand snack",
+        brandId: "54b79ffc-e6af-440c-ae38-8cd37c22be1c",
+        categoryId,
+        defaultMeasurementUnitId: unitId,
+      });
+
+    expect(response.status).toBe(201);
+    const input = vi.mocked(service.create).mock.calls[0]?.[0];
+    expect(input?.type).toBe("BRANDED");
+    expect(input).not.toHaveProperty("gtin");
+    expect(input).not.toHaveProperty("baseProductId");
   });
 });

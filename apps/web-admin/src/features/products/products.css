@@ -119,8 +119,103 @@
 }
 
 .product-form__conditional {
+  display: grid;
+  gap: 1rem;
   padding-top: 1rem;
   border-top: 0.0625rem solid var(--admin-color-border);
+}
+
+.product-form__field-with-action {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.product-base-search {
+  position: relative;
+}
+
+.product-base-search__control {
+  position: relative;
+}
+
+.product-base-search__clear {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  color: var(--admin-color-text-muted);
+  background: transparent;
+  font-size: 1.5rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.product-base-search__results {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  border: 0.0625rem solid var(--admin-color-border);
+  border-radius: 0.5rem;
+  background: var(--admin-color-surface);
+  box-shadow: var(--admin-shadow-card);
+}
+
+.product-base-search__message {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--admin-color-text-muted);
+}
+
+.product-base-search__option {
+  display: grid;
+  width: 100%;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 0;
+  border-top: 0.0625rem solid var(--admin-color-border);
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-base-search__option:hover,
+.product-base-search__option:focus-visible {
+  background: var(--admin-color-surface-muted);
+}
+
+.product-base-search__option small {
+  color: var(--admin-color-text-muted);
+}
+
+.product-form__inheritance-preview {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--admin-color-surface-muted);
+}
+
+.product-form__inheritance-preview h3,
+.product-form__inheritance-preview p {
+  margin-top: 0;
+}
+
+.product-form__inheritance-preview ul {
+  margin-bottom: 0;
+}
+
+.product-barcode-scanner__video {
+  display: block;
+  width: 100%;
+  min-height: 16rem;
+  border-radius: 0.5rem;
+  background: #111;
+  object-fit: cover;
 }
 
 .product-form__textarea {

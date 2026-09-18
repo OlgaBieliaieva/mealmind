@@ -66,7 +66,7 @@ export const productOpenApiPaths = Object.freeze({
     post: {
       summary: "Створити generic або branded продукт",
       description:
-        "Branded продукт успадковує пропущені category, unit, food state, nutrients і portions як контрольований snapshot generic base.",
+        "GTIN і generic base для branded продукту optional. Якщо base вибрано, label-нутрієнти перекривають його значення, а відсутні копіюються як ESTIMATED snapshot. Без base category та unit обов’язкові.",
       security: [{ bearerAuth: [] }],
       requestBody: jsonBody("#/components/schemas/ProductCreate"),
       responses: {

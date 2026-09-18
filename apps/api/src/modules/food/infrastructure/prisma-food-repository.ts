@@ -175,7 +175,7 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
         },
         brand: product.brand
           ? {
-              name: product.brand.nameUa ?? product.brand.name,
+              name: product.brand.name,
               countryCode: product.brand.countryCode,
               websiteUrl: product.brand.websiteUrl,
             }
@@ -541,7 +541,7 @@ async function searchFood(
         c.id::text AS "categoryId",
         c.code AS "categoryCode",
         c.name_ua AS "categoryName",
-        COALESCE(b.name_ua, b.name_en, b.name) AS "brandName",
+        COALESCE(b.name, b.name_ua, b.name_en) AS "brandName",
         NULL::text AS difficulty,
         NULL::integer AS "totalTimeMin",
         NULL::text AS "recipeTypeId",
