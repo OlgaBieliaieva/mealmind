@@ -851,7 +851,15 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
               productId: true,
               recipeId: true,
               mealTypeId: true,
-              cookingSession: { select: { id: true } },
+              cookingAllocations: {
+                where: { releasedAt: null, cookingSession: { status: "COMPLETED" } },
+                take: 1,
+                select: {
+                  cookingSession: {
+                    select: { id: true, actualYieldWeightG: true, plannedYieldWeightG: true },
+                  },
+                },
+              },
             },
           },
           consumptionEntry: {
@@ -867,11 +875,18 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
       });
       if (!participant || !participant.mealEntry.preparedAt) throw new ConsumptionNotFoundError();
       await authorizeMember(input.familyId, input.role, input.userId, participant.familyMemberId);
-      const quantityGrams = input.quantityGrams ?? participant.quantityInGrams.toNumber();
+      const cookingSession = participant.mealEntry.cookingAllocations[0]?.cookingSession ?? null;
+      const plannedQuantityGrams = participant.quantityInGrams.toNumber();
+      const suggestedQuantityGrams =
+        cookingSession?.actualYieldWeightG && cookingSession.plannedYieldWeightG
+          ? (plannedQuantityGrams * cookingSession.actualYieldWeightG.toNumber()) /
+            cookingSession.plannedYieldWeightG.toNumber()
+          : plannedQuantityGrams;
+      const quantityGrams = input.quantityGrams ?? suggestedQuantityGrams;
       const values = await snapshot({
         productId: participant.mealEntry.productId,
         recipeId: participant.mealEntry.recipeId,
-        cookingSessionId: participant.mealEntry.cookingSession?.id ?? null,
+        cookingSessionId: cookingSession?.id ?? null,
         quantityGrams,
       });
       await database.$transaction(async (tx) => {
@@ -889,7 +904,7 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
           plannedQuantity: participant.quantity,
           plannedMeasurementUnitId: participant.measurementUnitId,
           plannedQuantityInGrams: participant.quantityInGrams,
-          cookingSessionId: participant.mealEntry.cookingSession?.id ?? null,
+          cookingSessionId: cookingSession?.id ?? null,
           consumedAt: new Date(`${isoDate(participant.mealEntry.date)}T12:00:00.000Z`),
           localDate: participant.mealEntry.date,
           timeZone: (

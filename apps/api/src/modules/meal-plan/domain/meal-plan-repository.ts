@@ -45,6 +45,12 @@ export interface MealPlanEntryView {
   readonly totalTimeMin: number | null;
   readonly difficulty: string | null;
   readonly preparedAt: string | null;
+  readonly cookingSession: {
+    readonly id: string;
+    readonly status: "IN_PROGRESS" | "COMPLETED";
+    readonly resolvedSteps: number;
+    readonly totalSteps: number;
+  } | null;
   readonly position: number;
   readonly participants: readonly MealPlanParticipantView[];
 }
@@ -78,6 +84,7 @@ export interface AggregatedMealPlanEntrySourceView {
   readonly date: string;
   readonly mealTypeId: string;
   readonly preparedAt: string | null;
+  readonly cookingSession: MealPlanEntryView["cookingSession"];
 }
 
 export interface AggregatedMealPlanEntryView {

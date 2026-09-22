@@ -18,6 +18,7 @@
     "test:meal-plans:db": "tsx src/modules/meal-plan/infrastructure/prisma-meal-plan-repository.integration.ts",
     "test:shopping-lists:db": "tsx src/modules/shopping-list/infrastructure/prisma-shopping-list-repository.integration.ts",
     "test:consumption:db": "tsx src/modules/consumption/infrastructure/prisma-consumption-repository.integration.ts",
+    "test:cooking:db": "tsx src/modules/cooking/infrastructure/prisma-cooking-repository.integration.ts",
     "test:coverage": "vitest run --coverage",
     "openapi:export": "tsx src/scripts/export-openapi.ts",
     "openapi:check": "tsx src/scripts/export-openapi.ts --check",

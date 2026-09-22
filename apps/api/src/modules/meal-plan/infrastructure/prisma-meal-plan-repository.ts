@@ -586,6 +586,7 @@ function aggregateMealEntries(
       date: string;
       mealTypeId: string;
       preparedAt: string | null;
+      cookingSession: MealPlanEntryView["cookingSession"];
     }[];
 
     firstDate: string;
@@ -668,6 +669,8 @@ function aggregateMealEntries(
       mealTypeId: placement.mealTypeId,
 
       preparedAt: entry.preparedAt,
+
+      cookingSession: entry.cookingSession,
     });
 
     for (const participant of entry.participants) {
@@ -911,6 +914,7 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
             entries: {
               where: {
+                removedAt: null,
                 date: {
                   gte: query.weekStart,
                   lte: query.weekEnd,
@@ -938,6 +942,20 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                 mealTypeId: true,
                 position: true,
                 preparedAt: true,
+
+                cookingAllocations: {
+                  where: { releasedAt: null },
+                  take: 1,
+                  select: {
+                    cookingSession: {
+                      select: {
+                        id: true,
+                        status: true,
+                        steps: { select: { status: true } },
+                      },
+                    },
+                  },
+                },
 
                 product: {
                   select: {
@@ -1218,6 +1236,18 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           difficulty: entry.recipe?.difficulty ?? null,
 
           preparedAt: entry.preparedAt?.toISOString() ?? null,
+
+          cookingSession: entry.cookingAllocations[0]
+            ? {
+                id: entry.cookingAllocations[0].cookingSession.id,
+                status: entry.cookingAllocations[0].cookingSession.status as
+                  "IN_PROGRESS" | "COMPLETED",
+                resolvedSteps: entry.cookingAllocations[0].cookingSession.steps.filter(
+                  (step) => step.status !== "PENDING",
+                ).length,
+                totalSteps: entry.cookingAllocations[0].cookingSession.steps.length,
+              }
+            : null,
 
           position: entry.position,
 
@@ -1787,6 +1817,8 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                 where: {
                   mealPlanId: plan.id,
 
+                  removedAt: null,
+
                   date: new Date(input.date + "T00:00:00.000Z"),
 
                   mealTypeId: input.mealTypeId,
@@ -1856,11 +1888,15 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                   },
                 });
 
+                await synchronizeUnstartedCookingSession(transaction, existing.id, command.userId);
+
                 result.push(updated);
               } else {
                 const last = await transaction.mealEntry.findFirst({
                   where: {
                     mealPlanId: plan.id,
+
+                    removedAt: null,
 
                     date: new Date(input.date + "T00:00:00.000Z"),
 
@@ -2004,6 +2040,8 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
             },
 
             mealPlanId: plan.id,
+
+            removedAt: null,
 
             date: new Date(command.date + "T00:00:00.000Z"),
 
@@ -2175,6 +2213,8 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           throw new MealPlanConflictError();
         }
 
+        await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId);
+
         return {
           id: entry.id,
 
@@ -2188,6 +2228,10 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
         const entry = await readMutableEntry(transaction, command.familyId, command.entryId);
 
         assertRevision(entry.revision, command.expectedRevision);
+
+        if (entry.cookingAllocations.length > 0) {
+          throw new MealPlanConflictError("Prepared state is controlled by Cooking Mode");
+        }
 
         if (
           command.role !== "OWNER" &&
@@ -2242,17 +2286,25 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
         assertRevision(entry.revision, command.expectedRevision);
 
-        const deleted = await transaction.mealEntry.deleteMany({
+        const deleted = await transaction.mealEntry.updateMany({
           where: {
             id: entry.id,
 
             revision: command.expectedRevision,
+          },
+
+          data: {
+            removedAt: new Date(),
+            removedByUserId: command.userId,
+            revision: { increment: 1 },
           },
         });
 
         if (deleted.count !== 1) {
           throw new MealPlanConflictError();
         }
+
+        await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId, true);
       });
     },
 
@@ -2278,17 +2330,25 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
         }
 
         if (entry.participants.length === 1) {
-          const deleted = await transaction.mealEntry.deleteMany({
+          const deleted = await transaction.mealEntry.updateMany({
             where: {
               id: entry.id,
 
               revision: command.expectedRevision,
+            },
+
+            data: {
+              removedAt: new Date(),
+              removedByUserId: command.userId,
+              revision: { increment: 1 },
             },
           });
 
           if (deleted.count !== 1) {
             throw new MealPlanConflictError();
           }
+
+          await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId, true);
         } else {
           await transaction.mealEntryParticipant.delete({
             where: {
@@ -2317,6 +2377,8 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           if (updated.count !== 1) {
             throw new MealPlanConflictError();
           }
+
+          await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId);
         }
       });
     },
@@ -2401,6 +2463,159 @@ async function validateFood(
   }
 }
 
+async function synchronizeUnstartedCookingSession(
+  transaction: Prisma.TransactionClient,
+  entryId: string,
+  actorUserId: string,
+  releaseEntry = false,
+) {
+  const allocation = await transaction.cookingSessionMealEntry.findFirst({
+    where: {
+      mealEntryId: entryId,
+      releasedAt: null,
+      cookingSession: { status: "IN_PROGRESS" },
+    },
+    select: {
+      cookingSessionId: true,
+      mealEntryId: true,
+      cookingSession: {
+        select: {
+          id: true,
+          revision: true,
+          plannedYieldWeightG: true,
+          actualYieldWeightG: true,
+          ingredients: {
+            select: {
+              id: true,
+              source: true,
+              status: true,
+              actualProductId: true,
+              actualQuantity: true,
+              actualGramWeight: true,
+              plannedQuantity: true,
+              plannedGramWeight: true,
+            },
+          },
+          steps: { select: { status: true } },
+          mealEntries: {
+            where: { releasedAt: null },
+            select: {
+              cookingSessionId: true,
+              mealEntryId: true,
+              mealEntry: {
+                select: {
+                  participants: { select: { quantityInGrams: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!allocation) return;
+
+  const session = allocation.cookingSession;
+  const hasProgress =
+    session.actualYieldWeightG !== null ||
+    session.steps.some((step) => step.status !== "PENDING") ||
+    session.ingredients.some(
+      (ingredient) =>
+        ingredient.source === "ADDED_DURING_COOKING" ||
+        ingredient.status !== "PENDING" ||
+        ingredient.actualProductId !== null ||
+        ingredient.actualQuantity !== null ||
+        ingredient.actualGramWeight !== null,
+    );
+
+  if (hasProgress) return;
+
+  const remainingAllocations = releaseEntry
+    ? session.mealEntries.filter((item) => item.mealEntryId !== allocation.mealEntryId)
+    : session.mealEntries;
+
+  if (releaseEntry) {
+    await transaction.cookingSessionMealEntry.update({
+      where: {
+        cookingSessionId_mealEntryId: {
+          cookingSessionId: allocation.cookingSessionId,
+          mealEntryId: allocation.mealEntryId,
+        },
+      },
+      data: { releasedAt: new Date() },
+    });
+  }
+
+  if (remainingAllocations.length === 0) {
+    const cancelled = await transaction.cookingSession.updateMany({
+      where: { id: session.id, revision: session.revision, status: "IN_PROGRESS" },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelledByUserId: actorUserId,
+        revision: { increment: 1 },
+      },
+    });
+
+    if (cancelled.count !== 1) throw new MealPlanConflictError();
+
+    return;
+  }
+
+  const demands = remainingAllocations.map((item) => ({
+    cookingSessionId: item.cookingSessionId,
+    mealEntryId: item.mealEntryId,
+    weightG: item.mealEntry.participants.reduce(
+      (sum, participant) => sum + participant.quantityInGrams.toNumber(),
+      0,
+    ),
+  }));
+  const newPlannedYieldWeightG = demands.reduce((sum, item) => sum + item.weightG, 0);
+  const oldPlannedYieldWeightG = session.plannedYieldWeightG?.toNumber() ?? newPlannedYieldWeightG;
+  const scale = oldPlannedYieldWeightG > 0 ? newPlannedYieldWeightG / oldPlannedYieldWeightG : 1;
+
+  for (const demand of demands) {
+    await transaction.cookingSessionMealEntry.update({
+      where: {
+        cookingSessionId_mealEntryId: {
+          cookingSessionId: demand.cookingSessionId,
+          mealEntryId: demand.mealEntryId,
+        },
+      },
+      data: { plannedDemandWeightG: demand.weightG },
+    });
+  }
+
+  for (const ingredient of session.ingredients) {
+    if (ingredient.source !== "RECIPE") continue;
+
+    await transaction.cookingSessionIngredient.update({
+      where: { id: ingredient.id },
+      data: {
+        plannedQuantity:
+          ingredient.plannedQuantity === null
+            ? null
+            : ingredient.plannedQuantity.toNumber() * scale,
+        plannedGramWeight:
+          ingredient.plannedGramWeight === null
+            ? null
+            : ingredient.plannedGramWeight.toNumber() * scale,
+      },
+    });
+  }
+
+  const updated = await transaction.cookingSession.updateMany({
+    where: { id: session.id, revision: session.revision, status: "IN_PROGRESS" },
+    data: {
+      plannedYieldWeightG: newPlannedYieldWeightG,
+      revision: { increment: 1 },
+    },
+  });
+
+  if (updated.count !== 1) throw new MealPlanConflictError();
+}
+
 async function readMutableEntry(
   transaction: Prisma.TransactionClient,
   familyId: string,
@@ -2409,6 +2624,8 @@ async function readMutableEntry(
   const entry = await transaction.mealEntry.findFirst({
     where: {
       id: entryId,
+
+      removedAt: null,
 
       mealPlan: {
         familyId,
@@ -2423,6 +2640,11 @@ async function readMutableEntry(
       position: true,
       productId: true,
       recipeId: true,
+
+      cookingAllocations: {
+        where: { releasedAt: null },
+        select: { cookingSession: { select: { id: true, status: true } } },
+      },
 
       mealPlan: {
         select: {
