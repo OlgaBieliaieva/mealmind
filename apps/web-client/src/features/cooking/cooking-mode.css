@@ -1,0 +1,413 @@
+.cooking-mode {
+  min-height: calc(100dvh - var(--client-navigation-height));
+  color: #172033;
+  background: #fff;
+}
+
+.cooking-detail-hero__icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(31 41 55 / 70%);
+}
+
+.cooking-detail-hero__icon svg {
+  width: 1.4rem;
+}
+
+.cooking-detail-hero .food-details__hero-fallback {
+  display: grid;
+  place-items: center;
+}
+
+.cooking-detail-hero .food-details__hero-fallback svg {
+  width: clamp(5rem, 20vw, 8rem);
+  height: clamp(5rem, 20vw, 8rem);
+  color: #fff;
+  opacity: 0.8;
+}
+
+.cooking-detail-sheet {
+  padding-bottom: calc(var(--client-navigation-height) + 10rem + env(safe-area-inset-bottom));
+}
+
+.cooking-mode .ui-modal {
+  width: min(100%, var(--client-content-width));
+  max-width: none;
+  margin: auto auto 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+}
+
+.cooking-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 1rem 1rem 0;
+  border: 1px solid #f2d08b;
+  border-radius: 0.9rem;
+  padding: 0.8rem;
+  color: #6b4b12;
+  background: #fff8e8;
+  font-size: 0.9rem;
+}
+
+.cooking-banner--success {
+  border-color: #b8dec4;
+  color: #21633a;
+  background: #edf8f0;
+}
+
+.cooking-banner svg {
+  width: 1.2rem;
+  flex: 0 0 auto;
+}
+
+.cooking-segmented button {
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  color: #667085;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cooking-segmented button[aria-pressed="true"] {
+  color: #176d38;
+  background: #e7f6eb;
+}
+
+.cooking-content {
+  min-height: 24rem;
+}
+
+.cooking-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.cooking-content > .cooking-section {
+  margin: 1rem;
+}
+
+.cooking-section > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cooking-plan-context h2,
+.cooking-section h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.cooking-section > progress {
+  width: 100%;
+  height: 0.65rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: var(--client-color-primary);
+}
+
+.cooking-plan-context ul,
+.cooking-ingredient-list,
+.cooking-product-picker ul {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cooking-plan-context li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.1rem 1rem;
+}
+
+.cooking-plan-context small {
+  grid-column: 1 / -1;
+  color: #9a5b10;
+}
+
+.cooking-supporting-copy,
+.cooking-description p {
+  margin-bottom: 0;
+  color: #4b5563;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.cooking-source-list a {
+  margin-top: 0.75rem;
+}
+
+.cooking-author-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.cooking-author-links a {
+  color: var(--client-color-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cooking-ingredient-list li {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #edf0f3;
+  padding: 0.65rem 0;
+}
+
+.cooking-ingredient-list li:last-child {
+  border-bottom: 0;
+}
+
+.cooking-ingredient-list label,
+.cooking-step-list label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.cooking-ingredient-list input,
+.cooking-step-list input {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  accent-color: var(--client-color-primary);
+}
+
+.cooking-ingredient-list label > span,
+.cooking-step-list label > span,
+.cooking-product-picker button span {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.cooking-ingredient-list small,
+.cooking-step-list small,
+.cooking-product-picker small {
+  color: #747d8d;
+}
+
+.cooking-ingredient-list li[data-status="OMITTED"] strong {
+  color: #7c8491;
+  text-decoration: line-through;
+}
+
+.cooking-ingredient-list li > div button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #586273;
+  background: #f0f2f5;
+  cursor: pointer;
+}
+
+.cooking-ingredient-list svg {
+  width: 1.1rem;
+}
+
+.cooking-step-list {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.cooking-step-list li {
+  display: grid;
+  gap: 0.6rem;
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: #f8f9fb;
+}
+
+.cooking-step-list li[data-status="COMPLETED"] {
+  background: #eff8f1;
+}
+
+.cooking-step-list li[data-status="SKIPPED"] {
+  color: #737b88;
+}
+
+.cooking-step-list button {
+  width: fit-content;
+  border: 0;
+  padding: 0.3rem 0;
+  color: #7c5b20;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cooking-step-list em {
+  color: #8a650f;
+  font-size: 0.85rem;
+}
+
+.cooking-nutrition header p,
+.cooking-basis {
+  margin: 0.25rem 0 0;
+  color: #697386;
+  font-size: 0.9rem;
+}
+
+.cooking-nutrient-list {
+  display: grid;
+  margin: 0;
+}
+
+.cooking-nutrient-list > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  border-bottom: 1px solid #edf0f3;
+  padding: 0.7rem 0;
+}
+
+.cooking-nutrient-list dt,
+.cooking-nutrient-list dd {
+  margin: 0;
+}
+
+.cooking-nutrient-list dd {
+  font-weight: 700;
+}
+
+.cooking-actions {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: calc(var(--client-navigation-height) + 1.25rem + env(safe-area-inset-bottom));
+  left: 0;
+  display: grid;
+  width: min(calc(100% - 2rem), 48rem);
+  margin-inline: auto;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e6ec;
+  border-radius: 1rem;
+  grid-template-columns: 1fr 1fr;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 0.75rem 2rem rgb(23 23 23 / 14%);
+  backdrop-filter: blur(10px);
+}
+
+.cooking-actions .ui-button--secondary {
+  border-color: #d3d8df;
+  background: #eef0f3;
+}
+
+.cooking-actions .ui-button--primary {
+  background: var(--client-color-primary);
+}
+
+.cooking-actions .ui-button--danger {
+  background: var(--ui-color-danger);
+}
+
+.cooking-actions .ui-button:last-child {
+  grid-column: 1 / -1;
+  min-height: 2rem;
+  padding-block: 0.25rem;
+}
+
+.cooking-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.cooking-form label,
+.cooking-product-picker label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.cooking-form input,
+.cooking-product-picker input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid #cfd5de;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  color: #172033;
+  background: white;
+  font: inherit;
+}
+
+.cooking-segmented {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.9rem;
+  grid-template-columns: 1fr 1fr;
+  background: #f0f2f5;
+}
+
+.cooking-product-picker > p {
+  margin: 0.5rem 0;
+}
+
+.cooking-product-picker ul {
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.cooking-product-picker li button {
+  display: grid;
+  width: 100%;
+  gap: 0.15rem;
+  border: 1px solid #e0e4ea;
+  border-radius: 0.75rem;
+  padding: 0.7rem;
+  color: inherit;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cooking-product-picker li button[aria-pressed="true"] {
+  border-color: #3d9b62;
+  background: #edf8f0;
+}
+
+.planned-food-card__cooking-status {
+  color: #287648 !important;
+  font-weight: 700;
+}
+
+@media (max-width: 24rem) {
+  .cooking-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .cooking-actions .ui-button:last-child {
+    grid-column: auto;
+  }
+}

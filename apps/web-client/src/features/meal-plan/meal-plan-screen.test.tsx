@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { startCookingSession } from "@/shared/api/cooking";
 import {
   getMealPlanWeek,
   type MealPlanWeek,
@@ -30,6 +31,7 @@ vi.mock("@/shared/api/browser-api-client", () => ({
   getBrowserApiClient: () => ({}),
 }));
 vi.mock("sonner", () => ({ toast: toastMock }));
+vi.mock("@/shared/api/cooking", () => ({ startCookingSession: vi.fn() }));
 
 vi.mock("@/shared/api/meal-plans", () => ({
   getMealPlanWeek: vi.fn(),
@@ -158,6 +160,10 @@ describe("MealPlanScreen", () => {
     replace.mockReset();
     push.mockReset();
     toastMock.info.mockReset();
+    vi.mocked(startCookingSession).mockReset();
+    vi.mocked(startCookingSession).mockResolvedValue({
+      data: { id: "cooking-session-id" },
+    } as never);
 
     search = "date=2026-08-21";
 
@@ -499,6 +505,8 @@ describe("MealPlanScreen", () => {
           mealTypeId: "breakfast",
 
           preparedAt: null,
+
+          cookingSession: null,
         },
       ],
     } as const;
@@ -585,6 +593,16 @@ describe("MealPlanScreen", () => {
     expect(screen.getByText("Поживність плану")).toBeInTheDocument();
     expect(screen.getByText("177")).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "Дії для Вівсянка" }));
+    fireEvent.click(screen.getByRole("button", { name: "Готувати" }));
+    await waitFor(() =>
+      expect(startCookingSession).toHaveBeenCalledWith({}, [
+        { id: "entry-id", expectedRevision: 0 },
+      ]),
+    );
+    expect(push).toHaveBeenCalledWith("/plan/cooking/cooking-session-id");
+    push.mockClear();
+
     fireEvent.click(
       screen.getByRole("button", {
         name: "Дії з планом",
@@ -611,6 +629,87 @@ describe("MealPlanScreen", () => {
     expect(toastMock.info).toHaveBeenCalledWith(
       "У вибрані дні немає готових страв, які можна додати до щоденника.",
     );
+  });
+
+  it("uses prepared state for recipes and purchased state for products", async () => {
+    const preparedAt = "2026-08-21T08:00:00.000Z";
+    const common = {
+      imageUrl: null,
+      totalTimeMin: null,
+      difficulty: null,
+      dates: ["2026-08-21"],
+      totalPortions: 1,
+      totalWeightGrams: 100,
+      participants: [],
+    } as const;
+    const recipe = {
+      ...common,
+      key: "recipe:recipe-id",
+      kind: "recipe" as const,
+      foodId: "recipe-id",
+      name: "Овочеве рагу",
+      categoryCode: null,
+      categoryName: null,
+      recipeType: { code: "main_dishes", name: "Основні страви" },
+      sources: [
+        {
+          entryId: "recipe-entry",
+          revision: 1,
+          date: "2026-08-21",
+          mealTypeId: "breakfast",
+          preparedAt,
+          cookingSession: null,
+        },
+      ],
+    };
+    const product = {
+      ...common,
+      key: "product:product-id",
+      kind: "product" as const,
+      foodId: "product-id",
+      name: "Йогурт",
+      categoryCode: "dairy",
+      categoryName: "Молочні продукти",
+      recipeType: null,
+      sources: [
+        {
+          entryId: "product-entry",
+          revision: 1,
+          date: "2026-08-21",
+          mealTypeId: "breakfast",
+          preparedAt,
+          cookingSession: null,
+        },
+      ],
+    };
+
+    vi.mocked(getMealPlanWeek).mockResolvedValue({
+      data: createBaseWeek({
+        planId: "plan-id",
+        aggregatedMeals: {
+          nutrition: emptyNutrition,
+          all: [recipe, product],
+          byMealType: [
+            {
+              mealType: breakfastMealType,
+              nutrition: emptyNutrition,
+              entries: [recipe, product],
+            },
+          ],
+        },
+      }),
+    });
+
+    renderPlan();
+
+    expect(await screen.findByText("✓ Приготовано")).toBeVisible();
+    expect(screen.getByText("✓ Придбано")).toBeVisible();
+    expect(
+      screen.getByRole("checkbox", { name: "Позначити всі позиції як неприготовані" }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "Позначити всі позиції як непридбані" }),
+    ).toBeChecked();
   });
 
   it("renders a selected member summary and meal groups for one day", async () => {

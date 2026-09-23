@@ -88,6 +88,12 @@ export interface AggregatedMealPlanEntry {
     readonly date: string;
     readonly mealTypeId: string;
     readonly preparedAt: string | null;
+    readonly cookingSession: {
+      readonly id: string;
+      readonly status: "IN_PROGRESS" | "COMPLETED";
+      readonly resolvedSteps: number;
+      readonly totalSteps: number;
+    } | null;
   }[];
 }
 export interface MealPlanWeek {
