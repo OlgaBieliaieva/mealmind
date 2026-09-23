@@ -55,16 +55,14 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(updateIngredientSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.updateIngredient(
-            userId(request),
-            input.params.sessionId,
-            input.params.ingredientId,
-            input.body,
-          ),
-        });
+      response.status(200).json({
+        data: await service.updateIngredient(
+          userId(request),
+          input.params.sessionId,
+          input.params.ingredientId,
+          input.body,
+        ),
+      });
     }),
   );
   router.post(
@@ -72,11 +70,9 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(addIngredientSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.addIngredient(userId(request), input.params.sessionId, input.body),
-        });
+      response.status(200).json({
+        data: await service.addIngredient(userId(request), input.params.sessionId, input.body),
+      });
     }),
   );
   router.delete(
@@ -84,16 +80,14 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(deleteIngredientSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.deleteIngredient(
-            userId(request),
-            input.params.sessionId,
-            input.params.ingredientId,
-            input.query.expectedRevision,
-          ),
-        });
+      response.status(200).json({
+        data: await service.deleteIngredient(
+          userId(request),
+          input.params.sessionId,
+          input.params.ingredientId,
+          input.query.expectedRevision,
+        ),
+      });
     }),
   );
   router.patch(
@@ -101,16 +95,14 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(updateStepSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.updateStep(
-            userId(request),
-            input.params.sessionId,
-            input.params.stepId,
-            input.body,
-          ),
-        });
+      response.status(200).json({
+        data: await service.updateStep(
+          userId(request),
+          input.params.sessionId,
+          input.params.stepId,
+          input.body,
+        ),
+      });
     }),
   );
   router.patch(
@@ -118,11 +110,9 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(updateYieldSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.updateYield(userId(request), input.params.sessionId, input.body),
-        });
+      response.status(200).json({
+        data: await service.updateYield(userId(request), input.params.sessionId, input.body),
+      });
     }),
   );
   router.post(
@@ -130,11 +120,9 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(completeCookingSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.complete(userId(request), input.params.sessionId, input.body),
-        });
+      response.status(200).json({
+        data: await service.complete(userId(request), input.params.sessionId, input.body),
+      });
     }),
   );
   router.post(
@@ -142,15 +130,13 @@ export function createCookingRouter(
     writeLimiter,
     auth,
     validateRequest(cancelCookingSchema, async (input, request, response) => {
-      response
-        .status(200)
-        .json({
-          data: await service.cancel(
-            userId(request),
-            input.params.sessionId,
-            input.body.expectedRevision,
-          ),
-        });
+      response.status(200).json({
+        data: await service.cancel(
+          userId(request),
+          input.params.sessionId,
+          input.body.expectedRevision,
+        ),
+      });
     }),
   );
   return router;

@@ -13,10 +13,13 @@ import {
   Trash2,
   UserRound,
   X,
+  ImageIcon,
+  PlayCircle,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { ApiClientError, getUserFacingErrorMessage } from "@/shared/api/api-error";
@@ -561,8 +564,13 @@ function CookingAuthorCard({
           <ul className="author-links cooking-author-links" aria-label="Посилання автора">
             {author.links.map((link) => (
               <li key={link.id}>
-                <a href={link.url} target="_blank" rel="noreferrer">
-                  {authorLinkLabel(link.type)}
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={authorLinkLabel(link.type)}
+                >
+                  {authorLinkIcon(link.type)}
                 </a>
               </li>
             ))}
@@ -967,7 +975,7 @@ function IngredientEditor({
           />
         </label>
         <Button
-          variant="ghost"
+          variant="cancel"
           disabled={pending}
           onClick={() => onSave({ ingredientId: ingredient.id, status: "OMITTED" })}
         >
@@ -1148,4 +1156,10 @@ function YieldDialog({
       </form>
     </Modal>
   );
+}
+
+function authorLinkIcon(type: string): ReactNode {
+  if (type === "INSTAGRAM") return <ImageIcon aria-hidden="true" />;
+  if (type === "YOUTUBE") return <PlayCircle aria-hidden="true" />;
+  return <Globe aria-hidden="true" />;
 }
