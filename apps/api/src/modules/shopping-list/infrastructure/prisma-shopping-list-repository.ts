@@ -106,6 +106,7 @@ async function derive(
       id: true,
       entries: {
         where: {
+          removedAt: null,
           date: {
             gte: new Date(`${periodStart}T00:00:00.000Z`),
             lte: new Date(`${periodEnd}T00:00:00.000Z`),

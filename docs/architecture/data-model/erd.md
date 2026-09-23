@@ -131,8 +131,9 @@ erDiagram
 ```mermaid
 erDiagram
     Family ||--o{ CookingSession : "володіє"
-    MealEntry ||--o| CookingSession : "запускає"
     Recipe ||--o{ CookingSession : "є шаблоном"
+    CookingSession ||--o{ CookingSessionMealEntry : "алокує дні"
+    MealEntry ||--o{ CookingSessionMealEntry : "входить у приготування"
     CookingSession ||--o{ CookingSessionIngredient : "фіксує ingredients"
     RecipeIngredient o|--o{ CookingSessionIngredient : "походить із"
     Product ||--o{ CookingSessionIngredient : "planned product"
@@ -145,7 +146,9 @@ erDiagram
     Nutrient ||--o{ CookingSessionNutrient : "визначає показник"
 ```
 
-Cooking session не змінює базовий рецепт. Завершення можливе лише після явного опрацювання ingredient і step snapshots та створення фінального nutrient result.
+Cooking session не змінює базовий рецепт. Одна session може об’єднати кілька
+MealEntry того самого recipe. Завершення є явною транзакційною дією, яка створює
+фінальний nutrient result.
 
 ## Consumption Diary
 

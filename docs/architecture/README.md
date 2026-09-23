@@ -294,36 +294,35 @@ Backend є єдиним власником calendar, timezone, sorting і aggreg
 
 Authorization враховує роль у сім’ї та тип профілю. OWNER читає й змінює щоденники всіх активних профілів своєї сім’ї. MEMBER керує лише власним щоденником. Application administrator не має автоматичного доступу до цих даних.
 
-### Cooking (зарезервована post-MVP модель)
+### Cooking
 
-Цей розділ описує цільову доменну модель, а не активний vertical slice.
-У першому релізі немає Cooking API, application service або UI; Prisma-схема
-зберігає моделі для можливої наступної версії.
+Модуль реалізовано після MVP як active API/web-client vertical slice.
 
 Модуль супроводжує виконання запланованого рецепта і володіє фактичним станом конкретного приготування.
 
 Він відповідає за:
 
-- `CookingSession`, пов’язаний із recipe-based `MealEntry`;
+- `CookingSession`, пов’язаний через allocations з однією або кількома
+  recipe-based `MealEntry` того самого рецепта;
 - snapshots інгредієнтів і кроків на момент запуску;
 - явні стани використання, пропуску або заміни інгредієнтів;
 - явні стани виконання або пропуску кроків;
-- перевірку готовності до завершення;
+- явне завершення з optional підтвердженням pending values;
 - фактичний вихід страви;
 - versioned nutrient snapshot завершеного приготування;
 - audit metadata й optimistic concurrency.
 
-`Recipe` залишається канонічним шаблоном, а майбутній `CookingSession` буде
-фактом виконання конкретної запланованої страви. Сеанс не змінюватиме базовий
-рецепт. Збереження зміненого приготування як окремого family recipe
-використовуватиме copy-on-write через `Recipe.originalRecipeId`.
+`Recipe` залишається канонічним шаблоном, а `CookingSession` є фактом виконання
+конкретних запланованих позицій. Сеанс не змінює базовий рецепт. Збереження
+варіації як окремого family recipe залишається відкладеним copy-on-write flow.
 
-Невідмічений інгредієнт має стан `PENDING`, а не `OMITTED`. Partial preview може тимчасово не включати unresolved інгредієнти лише з явною ознакою неповноти. Завершення дозволене після явного опрацювання всіх інгредієнтів і кроків; фінальний snapshot включає `USED`, враховує `SUBSTITUTED` і виключає тільки `OMITTED`.
+Невідмічений інгредієнт має стан `PENDING`, а не `OMITTED`. Partial preview
+тимчасово не включає unresolved інгредієнти. Завершення завжди є окремою дією;
+explicit `resolvePending` після confirmation застосовує planned defaults.
 
-Поточний Consumption vertical slice використовує канонічний розрахунок продукту
-або рецепта. Якщо Cooking буде реалізовано, завершений `CookingSession` стане
-пріоритетним джерелом nutrient values для пов’язаного факту споживання.
-`ConsumptionEntry` уже має optional traceability для такої сумісності.
+Завершений `CookingSession` є пріоритетним джерелом nutrient values для
+пов’язаного факту споживання. `ConsumptionEntry` зберігає cooking traceability
+і власний історичний snapshot.
 
 ### Shopping List
 

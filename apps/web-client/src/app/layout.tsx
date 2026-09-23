@@ -19,6 +19,7 @@ import "@/features/food-discovery/food-details.css";
 import "@/features/shopping-list/shopping-list.css";
 import "@/features/consumption/consumption.css";
 import "@/features/analytics/dashboard.css";
+import "@/features/cooking/cooking-mode.css";
 
 readWebEnv();
 

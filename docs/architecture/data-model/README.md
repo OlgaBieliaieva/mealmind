@@ -40,7 +40,7 @@ Persistence foundation охоплює весь MVP data scope, але наявн
 | Recipes and Nutrition                | `Recipe`, `Author`, `RecipeIngredient`, `RecipeStep`, source, media, classifications і nutrient snapshot         | Канонічний шаблон рецепта та його розрахована харчова цінність                    |
 | Meal Planning                        | `MealPlan`, `MealEntry`, `MealEntryParticipant`                                                                  | Сімейний календар харчування і персоналізовані порції                             |
 | Shopping List                        | `ShoppingList`, `ShoppingListItem`, `ShoppingListItemSource`                                                     | Збережений редагований snapshot закупівель із простежуваністю до плану            |
-| Reserved Cooking model               | `CookingSession`, ingredient/step snapshots і `CookingSessionNutrient`                                           | Post-MVP структура; API та UI у першому релізі відсутні                           |
+| Cooking                              | `CookingSession`, `CookingSessionMealEntry`, ingredient/step snapshots і `CookingSessionNutrient`                | Фактичне виконання рецептів, yield і nutrient snapshot                            |
 | Consumption Diary                    | `ConsumptionEntry`, `ConsumptionEntryNutrient`, `MealConsumptionResolution`                                      | Історичний факт споживання і зіставлення з планом                                 |
 
 Детальні зв’язки наведено в [доменних ERD](./erd.md), а призначення кожної моделі — у [словнику даних](./data-dictionary.md).
@@ -147,8 +147,8 @@ Application administrator не отримує автоматичного дос�
 
 ## Відомі межі
 
-- CookingSession присутній у persistence foundation як зарезервована post-MVP
-  модель; application service, HTTP API та UI не реалізовані;
+- Cooking Mode реалізований після MVP; history UI, timers, recipe fork і
+  cookware catalog залишаються відкладеними;
 - Supabase Auth users та Storage objects не створюються Prisma migration;
 - Row Level Security і Storage policies належать platform-specific integration;
 - каталожні дані USDA імпортуються окремим контрольованим процесом, а не reference seed;

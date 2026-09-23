@@ -3206,6 +3206,367 @@
           "429": { "description": "Перевищено rate limit" }
         }
       }
+    },
+    "/api/v1/cooking-sessions": {
+      "post": {
+        "summary": "Почати або відновити приготування для вибраних позицій плану",
+        "description": "Створює один immutable recipe snapshot для однієї або кількох MealEntry того самого рецепта. requestId забезпечує ідемпотентність.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/StartCookingSession" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}": {
+      "get": {
+        "summary": "Отримати CookingSession",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/ingredients/{ingredientId}": {
+      "patch": {
+        "summary": "Підтвердити, пропустити або замінити інгредієнт",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "ingredientId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCookingIngredient" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      },
+      "delete": {
+        "summary": "Видалити доданий під час приготування інгредієнт",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "ingredientId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "expectedRevision",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/ingredients": {
+      "post": {
+        "summary": "Додати інгредієнт під час приготування",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddCookingIngredient" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/steps/{stepId}": {
+      "patch": {
+        "summary": "Завершити або пропустити крок",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "stepId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCookingStep" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/yield": {
+      "patch": {
+        "summary": "Зберегти вагу готової страви",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCookingYield" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/complete": {
+      "post": {
+        "summary": "Явно завершити приготування",
+        "description": "Не виконується автоматично після останнього checkbox. resolvePending=true підтверджує нерозв’язані позиції за recipe snapshot.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompleteCookingSession" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/cooking-sessions/{sessionId}/cancel": {
+      "post": {
+        "summary": "Скасувати приготування і звільнити позиції плану",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CookingRevision" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Актуальна проєкція CookingSession",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/CookingSession" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "404": { "description": "Session або пов’язаний ресурс не знайдено" },
+          "409": { "description": "Конфлікт revision, allocation або незавершені позиції" },
+          "422": { "description": "Порушено cooking validation" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
     }
   },
   "components": {
@@ -4318,13 +4679,23 @@
       },
       "AggregatedMealEntrySource": {
         "type": "object",
-        "required": ["entryId", "revision", "date", "mealTypeId", "preparedAt"],
+        "required": ["entryId", "revision", "date", "mealTypeId", "preparedAt", "cookingSession"],
         "properties": {
           "entryId": { "type": "string", "format": "uuid" },
           "revision": { "type": "integer", "minimum": 0 },
           "date": { "type": "string", "format": "date" },
           "mealTypeId": { "type": "string", "format": "uuid" },
-          "preparedAt": { "type": ["string", "null"], "format": "date-time" }
+          "preparedAt": { "type": ["string", "null"], "format": "date-time" },
+          "cookingSession": {
+            "type": ["object", "null"],
+            "required": ["id", "status", "resolvedSteps", "totalSteps"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "status": { "type": "string", "enum": ["IN_PROGRESS", "COMPLETED"] },
+              "resolvedSteps": { "type": "integer", "minimum": 0 },
+              "totalSteps": { "type": "integer", "minimum": 0 }
+            }
+          }
         }
       },
       "MemberNutrition": {
@@ -4636,6 +5007,276 @@
           "foodId": { "type": "string", "format": "uuid" },
           "mealTypeId": { "type": "string", "format": "uuid" },
           "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 }
+        }
+      },
+      "CookingRevision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision"],
+        "properties": { "expectedRevision": { "type": "integer", "minimum": 0 } }
+      },
+      "StartCookingSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requestId", "mealEntries"],
+        "properties": {
+          "requestId": { "type": "string", "format": "uuid" },
+          "mealEntries": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 31,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "expectedRevision"],
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "expectedRevision": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      },
+      "UpdateCookingIngredient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "status"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["USED", "OMITTED", "SUBSTITUTED"] },
+          "productId": { "type": "string", "format": "uuid" },
+          "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+        }
+      },
+      "AddCookingIngredient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "productId", "quantityGrams"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "productId": { "type": "string", "format": "uuid" },
+          "quantityGrams": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+        }
+      },
+      "UpdateCookingStep": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "status"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["COMPLETED", "SKIPPED"] }
+        }
+      },
+      "UpdateCookingYield": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expectedRevision", "method", "actualWeightG"],
+            "properties": {
+              "expectedRevision": { "type": "integer", "minimum": 0 },
+              "method": { "const": "DIRECT" },
+              "actualWeightG": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expectedRevision", "method", "tareWeightG", "grossWeightG"],
+            "properties": {
+              "expectedRevision": { "type": "integer", "minimum": 0 },
+              "method": { "const": "CONTAINER_DIFFERENCE" },
+              "tareWeightG": { "type": "number", "minimum": 0, "maximum": 1000000 },
+              "grossWeightG": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expectedRevision", "method"],
+            "properties": {
+              "expectedRevision": { "type": "integer", "minimum": 0 },
+              "method": { "type": "null" }
+            }
+          }
+        ]
+      },
+      "CompleteCookingSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expectedRevision", "resolvePending"],
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 0 },
+          "resolvePending": { "type": "boolean" }
+        }
+      },
+      "CookingSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "recipeId",
+          "status",
+          "revision",
+          "startedAt",
+          "completedAt",
+          "cancelledAt",
+          "recipe",
+          "planEntries",
+          "ingredients",
+          "steps",
+          "progress",
+          "nutrition",
+          "yield",
+          "hasCookingProgress",
+          "canComplete"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "recipeId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["IN_PROGRESS", "COMPLETED", "CANCELLED"] },
+          "revision": { "type": "integer", "minimum": 0 },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": ["string", "null"], "format": "date-time" },
+          "cancelledAt": { "type": ["string", "null"], "format": "date-time" },
+          "recipe": {
+            "type": "object",
+            "required": [
+              "title",
+              "summary",
+              "description",
+              "difficulty",
+              "prepTimeMin",
+              "cookTimeMin",
+              "restTimeMin",
+              "imageUrl"
+            ],
+            "properties": {
+              "title": { "type": "string" },
+              "summary": { "type": ["string", "null"] },
+              "description": { "type": ["string", "null"] },
+              "difficulty": { "type": ["string", "null"] },
+              "prepTimeMin": { "type": ["integer", "null"] },
+              "cookTimeMin": { "type": ["integer", "null"] },
+              "restTimeMin": { "type": ["integer", "null"] },
+              "imageUrl": { "type": ["string", "null"], "format": "uri" }
+            }
+          },
+          "planEntries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "date", "mealType", "plannedDemandWeightG", "removed"],
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "date": { "type": "string", "format": "date" },
+                "mealType": { "type": "string" },
+                "plannedDemandWeightG": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1000000
+                },
+                "removed": { "type": "boolean" }
+              }
+            }
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "source", "position", "status", "planned", "actual"],
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "source": { "type": "string", "enum": ["RECIPE", "ADDED_DURING_COOKING"] },
+                "position": { "type": "integer", "minimum": 0 },
+                "status": {
+                  "type": "string",
+                  "enum": ["PENDING", "USED", "OMITTED", "SUBSTITUTED"]
+                },
+                "planned": { "$ref": "#/components/schemas/CookingIngredientAmount" },
+                "actual": { "$ref": "#/components/schemas/CookingIngredientAmount" }
+              }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "position", "instruction", "timerSeconds", "status"],
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "position": { "type": "integer", "minimum": 0 },
+                "instruction": { "type": "string" },
+                "timerSeconds": { "type": ["integer", "null"], "minimum": 0 },
+                "status": { "type": "string", "enum": ["PENDING", "COMPLETED", "SKIPPED"] }
+              }
+            }
+          },
+          "progress": {
+            "type": "object",
+            "required": ["resolvedIngredients", "totalIngredients", "resolvedSteps", "totalSteps"],
+            "properties": {
+              "resolvedIngredients": { "type": "integer", "minimum": 0 },
+              "totalIngredients": { "type": "integer", "minimum": 0 },
+              "resolvedSteps": { "type": "integer", "minimum": 0 },
+              "totalSteps": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "nutrition": {
+            "type": "object",
+            "required": ["basis", "completeness", "nutrients"],
+            "properties": {
+              "basis": { "type": "string", "enum": ["ACTUAL", "PLANNED_ESTIMATE", "UNAVAILABLE"] },
+              "completeness": { "type": "string", "enum": ["COMPLETE", "PARTIAL", "UNVERIFIED"] },
+              "nutrients": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["nutrientId", "code", "name", "unit", "valueTotal", "valuePer100g"],
+                  "properties": {
+                    "nutrientId": { "type": "string", "format": "uuid" },
+                    "code": { "type": "string" },
+                    "name": { "type": "string" },
+                    "unit": { "type": "string" },
+                    "valueTotal": { "type": "number" },
+                    "valuePer100g": { "type": ["number", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "yield": {
+            "type": "object",
+            "required": [
+              "plannedWeightG",
+              "actualWeightG",
+              "method",
+              "tareWeightG",
+              "grossWeightG"
+            ],
+            "properties": {
+              "plannedWeightG": { "type": "number", "minimum": 0 },
+              "actualWeightG": { "type": ["number", "null"] },
+              "method": {
+                "type": ["string", "null"],
+                "enum": ["DIRECT", "CONTAINER_DIFFERENCE", null]
+              },
+              "tareWeightG": { "type": ["number", "null"] },
+              "grossWeightG": { "type": ["number", "null"] }
+            }
+          },
+          "hasCookingProgress": { "type": "boolean" },
+          "canComplete": { "type": "boolean" }
+        }
+      },
+      "CookingIngredientAmount": {
+        "type": ["object", "null"],
+        "required": ["productId", "productName", "quantity", "unit", "gramWeight"],
+        "properties": {
+          "productId": { "type": "string", "format": "uuid" },
+          "productName": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit": { "type": ["string", "null"] },
+          "gramWeight": { "type": ["number", "null"] }
         }
       }
     },

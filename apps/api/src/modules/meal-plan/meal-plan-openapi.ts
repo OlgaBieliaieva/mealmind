@@ -1141,7 +1141,7 @@ export const mealPlanOpenApiSchemas = Object.freeze({
   AggregatedMealEntrySource: {
     type: "object",
 
-    required: ["entryId", "revision", "date", "mealTypeId", "preparedAt"],
+    required: ["entryId", "revision", "date", "mealTypeId", "preparedAt", "cookingSession"],
 
     properties: {
       entryId: {
@@ -1167,6 +1167,17 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       preparedAt: {
         type: ["string", "null"],
         format: "date-time",
+      },
+
+      cookingSession: {
+        type: ["object", "null"],
+        required: ["id", "status", "resolvedSteps", "totalSteps"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          status: { type: "string", enum: ["IN_PROGRESS", "COMPLETED"] },
+          resolvedSteps: { type: "integer", minimum: 0 },
+          totalSteps: { type: "integer", minimum: 0 },
+        },
       },
     },
   },

@@ -16,6 +16,7 @@ import {
   Utensils,
   ChevronDown,
   ChevronUp,
+  CookingPot,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,6 +27,7 @@ import { uk } from "react-day-picker/locale";
 import { toast } from "sonner";
 
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
+import { startCookingSession } from "@/shared/api/cooking";
 import {
   deleteMealEntry,
   deleteMealEntryParticipant,
@@ -448,11 +450,52 @@ function AggregatedPlannedFoodCard({
 
   readonly returnTo: string;
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const allPrepared =
     entry.sources.length > 0 && entry.sources.every((source) => source.preparedAt !== null);
+  const completedStateLabel = entry.kind === "recipe" ? "Приготовано" : "Придбано";
+  const markCompletedLabel =
+    entry.kind === "recipe"
+      ? "Позначити всі позиції як приготовані"
+      : "Позначити всі позиції як придбані";
+  const markIncompleteLabel =
+    entry.kind === "recipe"
+      ? "Позначити всі позиції як неприготовані"
+      : "Позначити всі позиції як непридбані";
+  const cookingSessions = [
+    ...new Map(
+      entry.sources.flatMap((source) =>
+        source.cookingSession ? [[source.cookingSession.id, source.cookingSession] as const] : [],
+      ),
+    ).values(),
+  ];
+  const activeCookingSession = cookingSessions.find((session) => session.status === "IN_PROGRESS");
+  const cookingControlled = cookingSessions.length > 0;
+  const availableForCooking = entry.sources.filter(
+    (source) => source.cookingSession === null && source.preparedAt === null,
+  );
+
+  const startCooking = useMutation({
+    mutationFn: () =>
+      startCookingSession(
+        getBrowserApiClient(),
+        availableForCooking.map((source) => ({
+          id: source.entryId,
+          expectedRevision: source.revision,
+        })),
+      ),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+      router.push(`/plan/cooking/${response.data.id}`);
+    },
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+      toast.error("Не вдалося почати приготування. План міг змінитися — перевірте його ще раз.");
+    },
+  });
 
   const remove = useMutation({
     mutationFn: async () => {
@@ -546,6 +589,17 @@ function AggregatedPlannedFoodCard({
           {dayCount > 1 ? ` · ${dayCount} дн.` : ""}
         </p>
 
+        {activeCookingSession ? (
+          <p className="planned-food-card__cooking-status">
+            ◔ Готується · {activeCookingSession.resolvedSteps}/{activeCookingSession.totalSteps}{" "}
+            кроків
+          </p>
+        ) : allPrepared ? (
+          <p className="planned-food-card__cooking-status">✓ {completedStateLabel}</p>
+        ) : (
+          <p className="planned-food-card__cooking-status">○ Заплановано</p>
+        )}
+
         <div className="planned-food-card__avatars" aria-label="Заплановано для: ">
           {entry.participants.map((participant) => (
             <span
@@ -577,6 +631,27 @@ function AggregatedPlannedFoodCard({
               Переглянути
             </Link>
 
+            {activeCookingSession ? (
+              <Link href={`/plan/cooking/${activeCookingSession.id}`}>
+                <CookingPot />
+                Продовжити приготування
+              </Link>
+            ) : null}
+
+            {entry.kind === "recipe" && availableForCooking.length > 0 ? (
+              <button
+                type="button"
+                disabled={startCooking.isPending}
+                onClick={() => {
+                  setMenuOpen(false);
+                  startCooking.mutate();
+                }}
+              >
+                <CookingPot />
+                {cookingSessions.length > 0 ? "Готувати решту" : "Готувати"}
+              </button>
+            ) : null}
+
             <button
               type="button"
               disabled={remove.isPending}
@@ -604,21 +679,13 @@ function AggregatedPlannedFoodCard({
 
         <label
           className="prepared-toggle"
-          title={
-            allPrepared
-              ? "Позначити всі позиції як неготові"
-              : "Позначити всі позиції як приготовані"
-          }
+          title={allPrepared ? markIncompleteLabel : markCompletedLabel}
         >
           <input
             type="checkbox"
-            aria-label={
-              allPrepared
-                ? "Скасувати позначку для всіх позицій"
-                : "Позначити всі позиції як приготовані"
-            }
+            aria-label={allPrepared ? markIncompleteLabel : markCompletedLabel}
             checked={allPrepared}
-            disabled={prepared.isPending}
+            disabled={prepared.isPending || cookingControlled}
             onChange={() => prepared.mutate()}
           />
 

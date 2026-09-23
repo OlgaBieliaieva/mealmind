@@ -171,9 +171,12 @@ try {
     entryId,
     expectedRevision: prepared.revision + 1,
   });
-  assert.equal(await database.mealEntry.count({ where: { id: entryId } }), 0);
+  const removed = await database.mealEntry.findUniqueOrThrow({ where: { id: entryId } });
+  assert.ok(removed.removedAt instanceof Date);
+  assert.equal(removed.removedByUserId, owner.id);
   console.info("Meal plan PostgreSQL integration test passed.");
 } finally {
+  await database.mealPlan.deleteMany({ where: { familyId: family.id } });
   await database.family.delete({ where: { id: family.id } });
   await database.product.delete({ where: { id: product.id } });
   await database.personProfile.deleteMany({

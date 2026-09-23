@@ -27,6 +27,7 @@ const EXPECTED_MIGRATIONS = [
   "20260901100000_consumption_meal_type_and_restore",
   "20260901120000_consumption_deviation_controls",
   "20260918120000_product_source_origins",
+  "20260922120000_cooking_mode",
 ] as const;
 
 loadEnvironment({
@@ -216,6 +217,33 @@ async function verifyAppliedMigrations(
 
     if (productSourceEnumResult.rows.length !== 4) {
       throw new Error("Product source origin enum migration was not applied");
+    }
+
+    const cookingModeResult = await client.query<{ readonly object_name: string }>(`
+      SELECT table_name AS object_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = 'cooking_session_meal_entries'
+      UNION ALL
+      SELECT column_name AS object_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'meal_entries'
+        AND column_name IN ('removed_at', 'removed_by_user_id')
+      UNION ALL
+      SELECT column_name AS object_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'cooking_sessions'
+        AND column_name IN (
+          'start_request_id',
+          'recipe_title_snapshot',
+          'yield_measurement_method'
+        )
+    `);
+
+    if (cookingModeResult.rows.length !== 6) {
+      throw new Error("Cooking mode migration was not applied");
     }
 
     return {

@@ -549,6 +549,20 @@ enum CookingYieldBasis {
   @@map("cooking_yield_basis")
 }
 
+enum CookingYieldMeasurementMethod {
+  DIRECT               @map("direct")
+  CONTAINER_DIFFERENCE @map("container_difference")
+
+  @@map("cooking_yield_measurement_method")
+}
+
+enum CookingIngredientSource {
+  RECIPE               @map("recipe")
+  ADDED_DURING_COOKING @map("added_during_cooking")
+
+  @@map("cooking_ingredient_source")
+}
+
 enum CookingIngredientStatus {
   PENDING     @map("pending")
   USED        @map("used")
@@ -651,6 +665,7 @@ model User {
   createdShoppingListItems   ShoppingListItem[]              @relation("ShoppingListItemCreator")
   cookingSessionsStarted     CookingSession[]                @relation("CookingSessionStarter")
   cookingSessionsCompleted   CookingSession[]                @relation("CookingSessionCompleter")
+  cookingSessionsCancelled   CookingSession[]                @relation("CookingSessionCanceller")
   recordedConsumptionEntries ConsumptionEntry[]              @relation("ConsumptionEntryRecorder")
   resolvedMealConsumptions   MealConsumptionResolution[]     @relation("MealConsumptionResolver")
   cookingIngredientsResolved CookingSessionIngredient[]      @relation("CookingIngredientResolver")
@@ -658,6 +673,7 @@ model User {
   familyAccountInvitations   FamilyMemberAccountInvitation[] @relation("FamilyAccountInvitationInviter")
   mealPlanMutationRequests   MealPlanMutationRequest[]       @relation("MealPlanMutationActor")
   preparedMealEntries        MealEntry[]                     @relation("MealEntryPreparer")
+  removedMealEntries         MealEntry[]                     @relation("MealEntryRemover")
 
   @@index([applicationRole])
   @@index([deletedAt])
@@ -1508,17 +1524,20 @@ model MealEntry {
   revision         Int       @default(0)
   preparedAt       DateTime? @map("prepared_at") @db.Timestamptz(3)
   preparedByUserId String?   @map("prepared_by_user_id") @db.Uuid
+  removedAt        DateTime? @map("removed_at") @db.Timestamptz(3)
+  removedByUserId  String?   @map("removed_by_user_id") @db.Uuid
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  mealPlan                MealPlan                 @relation(fields: [mealPlanId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  mealType                MealType                 @relation(fields: [mealTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  recipe                  Recipe?                  @relation(fields: [recipeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  product                 Product?                 @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  mealPlan                MealPlan                  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mealType                MealType                  @relation(fields: [mealTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  recipe                  Recipe?                   @relation(fields: [recipeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  product                 Product?                  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   participants            MealEntryParticipant[]
   shoppingListItemSources ShoppingListItemSource[]
-  cookingSession          CookingSession?
-  preparedBy              User?                    @relation("MealEntryPreparer", fields: [preparedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cookingAllocations      CookingSessionMealEntry[]
+  preparedBy              User?                     @relation("MealEntryPreparer", fields: [preparedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  removedBy               User?                     @relation("MealEntryRemover", fields: [removedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([mealPlanId, date, mealTypeId, position])
   @@index([mealTypeId])
@@ -1526,6 +1545,8 @@ model MealEntry {
   @@index([productId])
   @@index([date])
   @@index([preparedByUserId])
+  @@index([removedAt])
+  @@index([removedByUserId])
   @@map("meal_entries")
 }
 
@@ -1687,29 +1708,42 @@ model ShoppingListItemSource {
 //------------------ COOKING --------------------------
 
 model CookingSession {
-  id                  String               @id @default(uuid()) @db.Uuid
-  familyId            String               @map("family_id") @db.Uuid
-  mealEntryId         String               @unique @map("meal_entry_id") @db.Uuid
-  recipeId            String               @map("recipe_id") @db.Uuid
-  startedByUserId     String               @map("started_by_user_id") @db.Uuid
-  completedByUserId   String?              @map("completed_by_user_id") @db.Uuid
-  status              CookingSessionStatus @default(IN_PROGRESS)
-  revision            Int                  @default(0)
-  recipeTitleSnapshot String               @map("recipe_title_snapshot") @db.VarChar(240)
-  plannedYieldWeightG Decimal?             @map("planned_yield_weight_g") @db.Decimal(12, 3)
-  actualYieldWeightG  Decimal?             @map("actual_yield_weight_g") @db.Decimal(12, 3)
-  yieldBasis          CookingYieldBasis?   @map("yield_basis")
-  startedAt           DateTime             @map("started_at") @db.Timestamptz(3)
-  completedAt         DateTime?            @map("completed_at") @db.Timestamptz(3)
-  cancelledAt         DateTime?            @map("cancelled_at") @db.Timestamptz(3)
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                        String                         @id @default(uuid()) @db.Uuid
+  startRequestId            String                         @unique @map("start_request_id") @db.Uuid
+  startRequestFingerprint   String                         @map("start_request_fingerprint") @db.Char(64)
+  familyId                  String                         @map("family_id") @db.Uuid
+  recipeId                  String                         @map("recipe_id") @db.Uuid
+  startedByUserId           String                         @map("started_by_user_id") @db.Uuid
+  completedByUserId         String?                        @map("completed_by_user_id") @db.Uuid
+  cancelledByUserId         String?                        @map("cancelled_by_user_id") @db.Uuid
+  status                    CookingSessionStatus           @default(IN_PROGRESS)
+  revision                  Int                            @default(0)
+  recipeTitleSnapshot       String                         @map("recipe_title_snapshot") @db.VarChar(240)
+  recipeSummarySnapshot     String?                        @map("recipe_summary_snapshot") @db.VarChar(500)
+  recipeDescriptionSnapshot String?                        @map("recipe_description_snapshot") @db.Text
+  recipeDifficultySnapshot  RecipeDifficulty?              @map("recipe_difficulty_snapshot")
+  prepTimeMinSnapshot       Int?                           @map("prep_time_min_snapshot") @db.SmallInt
+  cookTimeMinSnapshot       Int?                           @map("cook_time_min_snapshot") @db.SmallInt
+  restTimeMinSnapshot       Int?                           @map("rest_time_min_snapshot") @db.SmallInt
+  imageObjectPathSnapshot   String?                        @map("image_object_path_snapshot") @db.VarChar(500)
+  plannedYieldWeightG       Decimal?                       @map("planned_yield_weight_g") @db.Decimal(12, 3)
+  actualYieldWeightG        Decimal?                       @map("actual_yield_weight_g") @db.Decimal(12, 3)
+  yieldBasis                CookingYieldBasis?             @map("yield_basis")
+  yieldMeasurementMethod    CookingYieldMeasurementMethod? @map("yield_measurement_method")
+  containerTareWeightG      Decimal?                       @map("container_tare_weight_g") @db.Decimal(12, 3)
+  containerGrossWeightG     Decimal?                       @map("container_gross_weight_g") @db.Decimal(12, 3)
+  startedAt                 DateTime                       @map("started_at") @db.Timestamptz(3)
+  completedAt               DateTime?                      @map("completed_at") @db.Timestamptz(3)
+  cancelledAt               DateTime?                      @map("cancelled_at") @db.Timestamptz(3)
+  createdAt                 DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   family             Family                     @relation(fields: [familyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  mealEntry          MealEntry                  @relation(fields: [mealEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   recipe             Recipe                     @relation(fields: [recipeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   startedByUser      User                       @relation("CookingSessionStarter", fields: [startedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   completedByUser    User?                      @relation("CookingSessionCompleter", fields: [completedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cancelledByUser    User?                      @relation("CookingSessionCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  mealEntries        CookingSessionMealEntry[]
   ingredients        CookingSessionIngredient[]
   steps              CookingSessionStep[]
   nutrients          CookingSessionNutrient[]
@@ -1720,7 +1754,26 @@ model CookingSession {
   @@index([recipeId])
   @@index([startedByUserId])
   @@index([completedByUserId])
+  @@index([cancelledByUserId])
   @@map("cooking_sessions")
+}
+
+model CookingSessionMealEntry {
+  cookingSessionId     String    @map("cooking_session_id") @db.Uuid
+  mealEntryId          String    @map("meal_entry_id") @db.Uuid
+  plannedDemandWeightG Decimal   @map("planned_demand_weight_g") @db.Decimal(12, 3)
+  dateSnapshot         DateTime  @map("date_snapshot") @db.Date
+  mealTypeNameSnapshot String    @map("meal_type_name_snapshot") @db.VarChar(120)
+  releasedAt           DateTime? @map("released_at") @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cookingSession CookingSession @relation(fields: [cookingSessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mealEntry      MealEntry      @relation(fields: [mealEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([cookingSessionId, mealEntryId])
+  @@index([mealEntryId])
+  @@index([mealEntryId, releasedAt])
+  @@map("cooking_session_meal_entries")
 }
 
 model CookingSessionIngredient {
@@ -1728,9 +1781,10 @@ model CookingSessionIngredient {
   cookingSessionId          String                  @map("cooking_session_id") @db.Uuid
   recipeIngredientId        String?                 @map("recipe_ingredient_id") @db.Uuid
   position                  Int                     @db.SmallInt
-  productNameSnapshot       String                  @map("product_name_snapshot") @db.VarChar(240)
-  plannedProductId          String                  @map("planned_product_id") @db.Uuid
-  plannedQuantity           Decimal                 @map("planned_quantity") @db.Decimal(12, 4)
+  source                    CookingIngredientSource @default(RECIPE)
+  productNameSnapshot       String?                 @map("product_name_snapshot") @db.VarChar(240)
+  plannedProductId          String?                 @map("planned_product_id") @db.Uuid
+  plannedQuantity           Decimal?                @map("planned_quantity") @db.Decimal(12, 4)
   plannedMeasurementUnitId  String?                 @map("planned_measurement_unit_id") @db.Uuid
   plannedGramWeight         Decimal?                @map("planned_gram_weight") @db.Decimal(12, 4)
   status                    CookingIngredientStatus @default(PENDING)
@@ -1746,7 +1800,7 @@ model CookingSessionIngredient {
 
   cookingSession         CookingSession    @relation(fields: [cookingSessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   recipeIngredient       RecipeIngredient? @relation(fields: [recipeIngredientId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  plannedProduct         Product           @relation("CookingIngredientPlannedProduct", fields: [plannedProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  plannedProduct         Product?          @relation("CookingIngredientPlannedProduct", fields: [plannedProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   plannedMeasurementUnit MeasurementUnit?  @relation("CookingIngredientPlannedUnit", fields: [plannedMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actualProduct          Product?          @relation("CookingIngredientActualProduct", fields: [actualProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actualMeasurementUnit  MeasurementUnit?  @relation("CookingIngredientActualUnit", fields: [actualMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
