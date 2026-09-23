@@ -141,6 +141,13 @@ revision, item/list lifecycle та cross-family isolation. Component tests
 покривають month/category accordions, product-only picker, quantity editing,
 purchased controls і confirmation незавершеного списку.
 
+Cooking tests окремо перевіряють idempotent multi-entry start, snapshot і
+scaling, cancellation/retry allocations, ingredient/step state machines,
+direct і tare/gross yield, explicit/forced completion, final nutrition,
+optimistic revision, OWNER/MEMBER policy та cross-family isolation. Component
+tests покривають tabs, ingredient actions, completion dialog, full-width bottom
+sheets, recipe-details composition, Wake Lock degradation і Meal Plan statuses.
+
 Перевірки не використовують staging або production credentials і не змінюють локальну development database.
 
 ## Перевірки Sentry
@@ -231,6 +238,7 @@ npm run api:test:families:db
 npm run api:test:recipes:db
 npm run api:test:meal-plans:db
 npm run api:test:consumption:db
+npm run api:test:cooking:db
 npm run check
 npm run test:ui-quality
 ```
@@ -253,6 +261,9 @@ npm run test:ui-quality
   pending candidates, confirm, зміну порції й snapshot, reversible checkbox,
   ручні записи та OWNER/MEMBER projection лише в ізольованій test database;
   bootstrap repository у тій самій ізольованій test database;
+- `npm run api:test:cooking:db` після `npm run db:test` перевіряє CookingSession
+  persistence, state transitions, allocations, nutrition й authorization лише
+  в ізольованій test database;
 - `npm run check` послідовно перевіряє форматування, lint, типи, frontend
   markup/accessibility baseline, тести з coverage та production build.
 - `npm run test:ui-quality` перевіряє валідність згенерованої HTML-розмітки

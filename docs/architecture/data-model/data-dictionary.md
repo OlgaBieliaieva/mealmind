@@ -573,9 +573,20 @@ Aggregate root збереженого snapshot покупок для періо�
 
 | Аспект       | Опис                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------- |
-| Ownership    | Family та MealEntry                                                                               |
-| Основні поля | status, revision, planned/actual yield, started/completed actors і timestamps                     |
-| Інваріанти   | Recipe та family відповідають MealEntry; завершення потребує resolved snapshots і nutrient result |
+| Ownership    | Family; recipe та MealEntry allocations                                                           |
+| Основні поля | status, revision, idempotency fingerprint, recipe metadata snapshot, planned/actual yield і audit |
+| Інваріанти   | Усі allocations належать тій самій family і recipe; terminal session immutable                    |
+
+### CookingSessionMealEntry
+
+Allocation конкретної позиції плану до cooking session.
+
+| Аспект     | Опис                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------- |
+| Ключ       | Compound primary key `(cookingSessionId, mealEntryId)`                                 |
+| Snapshot   | Planned demand, дата і назва meal type                                                 |
+| Lifecycle  | `releasedAt` звільняє entry після cancellation або синхронізації session без progress  |
+| Інваріанти | Один невивільнений allocation на MealEntry; family і recipe узгоджені з CookingSession |
 
 ### CookingSessionIngredient
 
@@ -592,11 +603,11 @@ Snapshot інгредієнта конкретного cooking session.
 
 Snapshot кроку конкретного cooking session.
 
-| Аспект       | Опис                                         |
-| ------------ | -------------------------------------------- |
-| Ключ         | Unique `(cookingSessionId, position)`        |
-| Основні поля | instruction/timer snapshot, status, resolver |
-| Інваріанти   | Завершений session не має pending steps      |
+| Аспект       | Опис                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------- |
+| Ключ         | Unique `(cookingSessionId, position)`                                                   |
+| Основні поля | instruction/timer snapshot, status, resolver                                            |
+| Інваріанти   | Terminal session immutable; explicit completion може resolve pending після confirmation |
 
 ### CookingSessionNutrient
 
