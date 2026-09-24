@@ -25,6 +25,23 @@ function authenticationService(role: "USER" | "ADMIN"): AuthenticationService {
 
 function service(): AdminAnalyticsService {
   return {
+    getReferences: vi.fn(async () => ({
+      generatedAt: "2026-09-24T10:00:00.000Z",
+      resources: [],
+      brands: {
+        statuses: { DRAFT: 0, ACTIVE: 0, ARCHIVED: 0 },
+        verification: { UNVERIFIED: 0, VERIFIED: 0, REJECTED: 0 },
+      },
+      authors: { types: { MEALMIND: 0, EXPERT: 0, BLOGGER: 0 } },
+      quality: {
+        brandsAwaitingVerification: 0,
+        draftBrands: 0,
+        categoriesWithoutProducts: 0,
+        recipeTypesWithoutRecipes: 0,
+        cuisinesWithoutRecipes: 0,
+        dietaryTagsWithoutUsage: 0,
+      },
+    })),
     getUsers: vi.fn<AdminAnalyticsService["getUsers"]>(async () => ({
       meta: {
         from: "2026-09-01",
@@ -93,6 +110,14 @@ describe("admin analytics router", () => {
       .get("/api/v1/admin/analytics/users")
       .set("authorization", "Bearer token");
     expect(response.status).toBe(403);
+  });
+
+  it("returns reference analytics only to ADMIN", async () => {
+    const response = await request(app("ADMIN"))
+      .get("/api/v1/admin/analytics/references")
+      .set("authorization", "Bearer token");
+    expect(response.status).toBe(200);
+    expect(response.body.data.resources).toEqual([]);
   });
 
   it("rejects an incomplete or invalid period", async () => {

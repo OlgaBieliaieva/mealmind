@@ -52,6 +52,29 @@ export const adminAnalyticsOpenApiPaths = Object.freeze({
       },
     },
   },
+  "/api/v1/admin/analytics/references": {
+    get: {
+      summary: "Отримати стан довідників і сигнали якості даних",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        "200": {
+          description: "Агреговані reference metrics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["data"],
+                properties: { data: { $ref: "#/components/schemas/ReferencesAnalytics" } },
+              },
+            },
+          },
+        },
+        "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        "403": { description: "Потрібна роль ADMIN" },
+        "429": { description: "Перевищено rate limit" },
+      },
+    },
+  },
 });
 
 export const adminAnalyticsOpenApiSchemas = Object.freeze({
@@ -94,6 +117,29 @@ export const adminAnalyticsOpenApiSchemas = Object.freeze({
           },
         },
       },
+    },
+  },
+  ReferencesAnalytics: {
+    type: "object",
+    required: ["generatedAt", "resources", "brands", "authors", "quality"],
+    properties: {
+      generatedAt: { type: "string", format: "date-time" },
+      resources: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["resource", "total", "active", "inactive"],
+          properties: {
+            resource: { type: "string" },
+            total: { type: "integer", minimum: 0 },
+            active: { type: "integer", minimum: 0 },
+            inactive: { type: "integer", minimum: 0 },
+          },
+        },
+      },
+      brands: { type: "object" },
+      authors: { type: "object" },
+      quality: { type: "object" },
     },
   },
 });

@@ -95,7 +95,148 @@ export function createPrismaAdminAnalyticsRepository(
         series,
       });
     },
+    async getReferences() {
+      const [
+        allergens,
+        authors,
+        brands,
+        cuisines,
+        dietaryTags,
+        mealTypes,
+        measurementUnits,
+        nutrients,
+        productCategories,
+        recipeTypes,
+        brandStatuses,
+        brandVerification,
+        activeUnverifiedBrands,
+        authorTypes,
+        categoriesWithoutProducts,
+        recipeTypesWithoutRecipes,
+        cuisinesWithoutRecipes,
+        dietaryTagsWithoutUsage,
+      ] = await Promise.all([
+        booleanResource(database.allergen),
+        archivedResource(database.author),
+        brandResource(database),
+        booleanResource(database.cuisine),
+        booleanResource(database.dietaryTag),
+        booleanResource(database.mealType),
+        booleanResource(database.measurementUnit),
+        booleanResource(database.nutrient),
+        booleanResource(database.productCategory),
+        booleanResource(database.recipeType),
+        database.brand.groupBy({ by: ["status"], _count: { _all: true } }),
+        database.brand.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
+        database.brand.count({
+          where: {
+            archivedAt: null,
+            status: { not: "ARCHIVED" },
+            verificationStatus: "UNVERIFIED",
+          },
+        }),
+        database.author.groupBy({ by: ["type"], _count: { _all: true } }),
+        database.productCategory.count({ where: { products: { none: {} } } }),
+        database.recipeType.count({ where: { recipes: { none: {} } } }),
+        database.cuisine.count({ where: { recipeLinks: { none: {} } } }),
+        database.dietaryTag.count({
+          where: { recipeLinks: { none: {} }, productLinks: { none: {} } },
+        }),
+      ]);
+
+      const statusCounts = countsByKey(brandStatuses, "status");
+      const verificationCounts = countsByKey(brandVerification, "verificationStatus");
+      const authorTypeCounts = countsByKey(authorTypes, "type");
+      return Object.freeze({
+        resources: Object.freeze([
+          resourceMetric("allergens", allergens),
+          resourceMetric("authors", authors),
+          resourceMetric("brands", brands),
+          resourceMetric("cuisines", cuisines),
+          resourceMetric("dietary-tags", dietaryTags),
+          resourceMetric("meal-types", mealTypes),
+          resourceMetric("measurement-units", measurementUnits),
+          resourceMetric("nutrients", nutrients),
+          resourceMetric("product-categories", productCategories),
+          resourceMetric("recipe-types", recipeTypes),
+        ]),
+        brands: Object.freeze({
+          statuses: Object.freeze({
+            DRAFT: statusCounts.get("DRAFT") ?? 0,
+            ACTIVE: statusCounts.get("ACTIVE") ?? 0,
+            ARCHIVED: statusCounts.get("ARCHIVED") ?? 0,
+          }),
+          verification: Object.freeze({
+            UNVERIFIED: verificationCounts.get("UNVERIFIED") ?? 0,
+            VERIFIED: verificationCounts.get("VERIFIED") ?? 0,
+            REJECTED: verificationCounts.get("REJECTED") ?? 0,
+          }),
+        }),
+        authors: Object.freeze({
+          types: Object.freeze({
+            MEALMIND: authorTypeCounts.get("MEALMIND") ?? 0,
+            EXPERT: authorTypeCounts.get("EXPERT") ?? 0,
+            BLOGGER: authorTypeCounts.get("BLOGGER") ?? 0,
+          }),
+        }),
+        quality: Object.freeze({
+          brandsAwaitingVerification: activeUnverifiedBrands,
+          draftBrands: statusCounts.get("DRAFT") ?? 0,
+          categoriesWithoutProducts,
+          recipeTypesWithoutRecipes,
+          cuisinesWithoutRecipes,
+          dietaryTagsWithoutUsage,
+        }),
+      });
+    },
   });
+}
+
+type CountDelegate = {
+  count(args?: { readonly where?: Readonly<Record<string, unknown>> }): Promise<number>;
+};
+
+async function booleanResource(delegate: CountDelegate) {
+  const [total, active] = await Promise.all([
+    delegate.count(),
+    delegate.count({ where: { isActive: true } }),
+  ]);
+  return { total, active };
+}
+
+async function archivedResource(delegate: CountDelegate) {
+  const [total, active] = await Promise.all([
+    delegate.count(),
+    delegate.count({ where: { archivedAt: null } }),
+  ]);
+  return { total, active };
+}
+
+async function brandResource(database: DatabaseClient) {
+  const [total, active] = await Promise.all([
+    database.brand.count(),
+    database.brand.count({ where: { status: "ACTIVE", archivedAt: null } }),
+  ]);
+  return { total, active };
+}
+
+function resourceMetric(
+  resource: import("../domain/admin-analytics-types.js").AnalyticsReferenceResource,
+  counts: { readonly total: number; readonly active: number },
+) {
+  return Object.freeze({
+    resource,
+    total: counts.total,
+    active: counts.active,
+    inactive: counts.total - counts.active,
+  });
+}
+
+function countsByKey<TKey extends string, TField extends string>(
+  rows: readonly (Record<TField, TKey> & { readonly _count: { readonly _all: number } })[],
+  field: TField,
+): ReadonlyMap<TKey, number> {
+  return new Map(rows.map((row) => [row[field], row._count._all]));
 }
 
 async function usersSeries(

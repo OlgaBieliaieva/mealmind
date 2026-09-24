@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClient } from "@/shared/api/api-client";
 
-import { getUsersAnalytics } from "./admin-analytics";
+import { getReferencesAnalytics, getUsersAnalytics } from "./admin-analytics";
 
 describe("admin analytics API", () => {
   it("builds the users analytics URL", async () => {
@@ -17,5 +17,11 @@ describe("admin analytics API", () => {
     expect(get).toHaveBeenCalledWith(
       "/api/v1/admin/analytics/users?from=2026-09-01&to=2026-09-30&granularity=day&timezone=Europe%2FKyiv",
     );
+  });
+
+  it("uses the reference analytics endpoint", async () => {
+    const get = vi.fn(async () => ({ data: {} }));
+    await getReferencesAnalytics({ get } as unknown as ApiClient);
+    expect(get).toHaveBeenCalledWith("/api/v1/admin/analytics/references");
   });
 });

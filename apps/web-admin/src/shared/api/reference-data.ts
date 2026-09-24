@@ -31,6 +31,8 @@ export interface ReferenceListParameters {
   readonly page?: number;
   readonly pageSize?: number;
   readonly includeInactive?: boolean;
+  readonly status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED";
 }
 
 export type ReferenceWriteData = Readonly<Record<string, unknown>>;
@@ -42,6 +44,10 @@ export function buildReferencePath(parameters: ReferenceListParameters): string 
   if (parameters.pageSize !== undefined) query.set("pageSize", String(parameters.pageSize));
   if (parameters.includeInactive !== undefined) {
     query.set("includeInactive", String(parameters.includeInactive));
+  }
+  if (parameters.status !== undefined) query.set("status", parameters.status);
+  if (parameters.verificationStatus !== undefined) {
+    query.set("verificationStatus", parameters.verificationStatus);
   }
   const suffix = query.size === 0 ? "" : `?${query.toString()}`;
   return `/api/v1/admin/reference/${parameters.resource}${suffix}`;

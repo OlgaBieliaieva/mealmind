@@ -53,6 +53,43 @@ export interface UsersAnalytics {
   }[];
 }
 
+export type AnalyticsReferenceResource =
+  | "allergens"
+  | "authors"
+  | "brands"
+  | "cuisines"
+  | "dietary-tags"
+  | "meal-types"
+  | "measurement-units"
+  | "nutrients"
+  | "product-categories"
+  | "recipe-types";
+
+export interface ReferencesAnalytics {
+  readonly generatedAt: string;
+  readonly resources: readonly {
+    readonly resource: AnalyticsReferenceResource;
+    readonly total: number;
+    readonly active: number;
+    readonly inactive: number;
+  }[];
+  readonly brands: {
+    readonly statuses: Readonly<Record<"DRAFT" | "ACTIVE" | "ARCHIVED", number>>;
+    readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
+  };
+  readonly authors: {
+    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER", number>>;
+  };
+  readonly quality: {
+    readonly brandsAwaitingVerification: number;
+    readonly draftBrands: number;
+    readonly categoriesWithoutProducts: number;
+    readonly recipeTypesWithoutRecipes: number;
+    readonly cuisinesWithoutRecipes: number;
+    readonly dietaryTagsWithoutUsage: number;
+  };
+}
+
 interface CompletionMetric {
   readonly completed: number;
   readonly total: number;
@@ -66,5 +103,11 @@ export function getUsersAnalytics(apiClient: ApiClient, parameters: AnalyticsPer
   }
   return apiClient.get<{ readonly data: UsersAnalytics }>(
     `/api/v1/admin/analytics/users${query.size === 0 ? "" : `?${query.toString()}`}`,
+  );
+}
+
+export function getReferencesAnalytics(apiClient: ApiClient) {
+  return apiClient.get<{ readonly data: ReferencesAnalytics }>(
+    "/api/v1/admin/analytics/references",
   );
 }

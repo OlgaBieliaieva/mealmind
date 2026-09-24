@@ -48,6 +48,12 @@ export const usersAnalyticsSchema = z
     }
   });
 
+export const referencesAnalyticsSchema = z.object({
+  params: z.object({}),
+  query: z.object({}),
+  body: z.unknown().optional(),
+});
+
 function validDate(value: string): Date | null {
   const parsed = new Date(`${value}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value

@@ -16,6 +16,13 @@ export function createAdminAnalyticsRouter(
   const authenticated = authenticate(authenticationService);
 
   router.get("/admin/analytics/users", limiter, authenticated, requireAdmin, controller.users);
+  router.get(
+    "/admin/analytics/references",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.references,
+  );
 
   return router;
 }

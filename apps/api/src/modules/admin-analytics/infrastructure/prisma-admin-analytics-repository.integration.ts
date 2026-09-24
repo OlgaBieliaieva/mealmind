@@ -78,6 +78,11 @@ try {
   assert.equal(result.activeMemberships >= 1, true);
   assert.equal(result.activeFamilyMembers >= 1, true);
 
+  const references = await repository.getReferences();
+  assert.equal(references.resources.length, 10);
+  assert.equal(references.resources.find((item) => item.resource === "allergens")?.total, 14);
+  assert.equal(references.resources.find((item) => item.resource === "nutrients")?.total, 36);
+
   console.info("Admin analytics repository PostgreSQL integration test passed.");
 } finally {
   if (familyId !== undefined) await database.family.deleteMany({ where: { id: familyId } });

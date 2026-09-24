@@ -21,6 +21,7 @@ describe("admin analytics service", () => {
 
   it("maps stable completion, averages and comparison values", async () => {
     const repository: AdminAnalyticsRepository = {
+      getReferences: vi.fn(),
       getUsers: vi.fn(async () => ({
         activeUsers: 4,
         deletedUsers: 1,

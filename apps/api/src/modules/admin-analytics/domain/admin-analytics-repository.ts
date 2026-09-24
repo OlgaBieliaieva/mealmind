@@ -1,4 +1,8 @@
-import type { ResolvedAnalyticsPeriod, UsersAnalyticsPoint } from "./admin-analytics-types.js";
+import type {
+  ReferencesAnalytics,
+  ResolvedAnalyticsPeriod,
+  UsersAnalyticsPoint,
+} from "./admin-analytics-types.js";
 
 export interface UsersAnalyticsSnapshot {
   readonly activeUsers: number;
@@ -22,4 +26,5 @@ export interface UsersAnalyticsSnapshot {
 
 export interface AdminAnalyticsRepository {
   getUsers(period: ResolvedAnalyticsPeriod): Promise<UsersAnalyticsSnapshot>;
+  getReferences(): Promise<Omit<ReferencesAnalytics, "generatedAt">>;
 }

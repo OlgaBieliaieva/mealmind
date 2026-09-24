@@ -4,6 +4,7 @@ import type {
   AnalyticsPeriodQuery,
   ComparisonMetric,
   ResolvedAnalyticsPeriod,
+  ReferencesAnalytics,
   UsersAnalytics,
 } from "../domain/admin-analytics-types.js";
 
@@ -12,6 +13,7 @@ const MAX_PERIOD_DAYS = 732;
 
 export interface AdminAnalyticsService {
   getUsers(query: AnalyticsPeriodQuery): Promise<UsersAnalytics>;
+  getReferences(): Promise<ReferencesAnalytics>;
 }
 
 export function createAdminAnalyticsService(
@@ -54,6 +56,10 @@ export function createAdminAnalyticsService(
         }),
         series: Object.freeze(snapshot.series),
       });
+    },
+    async getReferences() {
+      const snapshot = await repository.getReferences();
+      return Object.freeze({ ...snapshot, generatedAt: now().toISOString() });
     },
   });
 }

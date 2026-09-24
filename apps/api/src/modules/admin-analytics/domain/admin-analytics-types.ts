@@ -69,3 +69,45 @@ export interface UsersAnalytics {
   };
   readonly series: readonly UsersAnalyticsPoint[];
 }
+
+export const ANALYTICS_REFERENCE_RESOURCES = [
+  "allergens",
+  "authors",
+  "brands",
+  "cuisines",
+  "dietary-tags",
+  "meal-types",
+  "measurement-units",
+  "nutrients",
+  "product-categories",
+  "recipe-types",
+] as const;
+
+export type AnalyticsReferenceResource = (typeof ANALYTICS_REFERENCE_RESOURCES)[number];
+
+export interface ReferenceResourceMetric {
+  readonly resource: AnalyticsReferenceResource;
+  readonly total: number;
+  readonly active: number;
+  readonly inactive: number;
+}
+
+export interface ReferencesAnalytics {
+  readonly generatedAt: string;
+  readonly resources: readonly ReferenceResourceMetric[];
+  readonly brands: {
+    readonly statuses: Readonly<Record<"DRAFT" | "ACTIVE" | "ARCHIVED", number>>;
+    readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
+  };
+  readonly authors: {
+    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER", number>>;
+  };
+  readonly quality: {
+    readonly brandsAwaitingVerification: number;
+    readonly draftBrands: number;
+    readonly categoriesWithoutProducts: number;
+    readonly recipeTypesWithoutRecipes: number;
+    readonly cuisinesWithoutRecipes: number;
+    readonly dietaryTagsWithoutUsage: number;
+  };
+}

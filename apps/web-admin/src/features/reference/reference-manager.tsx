@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { readWebEnv } from "@/config/env";
@@ -20,7 +21,7 @@ import {
   type ReferenceWriteData,
 } from "@/shared/api/reference-data";
 import { getBrowserSupabaseClient } from "@/shared/supabase/browser-client";
-import { Button, Card, Modal, PageState, TextInput } from "@/shared/ui";
+import { Button, Card, Modal, PageState, SelectField, TextInput } from "@/shared/ui";
 
 import { REFERENCE_CONFIGS, REFERENCE_NAVIGATION, type ReferenceOption } from "./reference-config";
 import { ReferenceForm } from "./reference-form";
@@ -34,11 +35,20 @@ interface FlatReferenceItem {
 
 export function ReferenceManager({ resource }: { readonly resource: ReferenceResource }) {
   const api = getBrowserApiClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const config = REFERENCE_CONFIGS[resource];
-  const [searchDraft, setSearchDraft] = useState("");
-  const [search, setSearch] = useState("");
-  const [includeInactive, setIncludeInactive] = useState(true);
+  const initialSearch = searchParams.get("search") ?? "";
+  const [searchDraft, setSearchDraft] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [includeInactive, setIncludeInactive] = useState(
+    searchParams.get("includeInactive") !== "false",
+  );
+  const [brandStatus, setBrandStatus] = useState(searchParams.get("status") ?? "");
+  const [verificationStatus, setVerificationStatus] = useState(
+    searchParams.get("verificationStatus") ?? "",
+  );
   const [page, setPage] = useState(1);
   const [formState, setFormState] = useState<
     { readonly mode: "create" } | { readonly mode: "edit"; readonly item: ReferenceItem } | null
@@ -47,18 +57,25 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
   const [operationMessage, setOperationMessage] = useState<string>();
 
   const query = useQuery({
-    queryKey: ["admin-reference", resource, { search, includeInactive, page }],
+    queryKey: [
+      "admin-reference",
+      resource,
+      { search, includeInactive, brandStatus, verificationStatus, page },
+    ],
     queryFn: () =>
       listReferenceData(api, {
         resource,
         ...(search === "" ? {} : { search }),
         includeInactive,
+        ...(resource === "brands" && isBrandStatus(brandStatus) ? { status: brandStatus } : {}),
+        ...(resource === "brands" && isBrandVerificationStatus(verificationStatus)
+          ? { verificationStatus }
+          : {}),
         page,
         pageSize: PAGE_SIZE,
       }),
   });
   const items = flattenReferenceItems(query.data?.data.items ?? []);
-  console.log(items);
   const categoryOptions: readonly ReferenceOption[] = [
     { value: "", label: "Без батьківської категорії" },
     ...items.map(({ item, depth }) => ({
@@ -144,6 +161,14 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
     event.preventDefault();
     setSearch(searchDraft.trim());
     setPage(1);
+    const query = new URLSearchParams();
+    if (searchDraft.trim()) query.set("search", searchDraft.trim());
+    query.set("includeInactive", String(includeInactive));
+    if (resource === "brands" && isBrandStatus(brandStatus)) query.set("status", brandStatus);
+    if (resource === "brands" && isBrandVerificationStatus(verificationStatus)) {
+      query.set("verificationStatus", verificationStatus);
+    }
+    router.replace(`/reference/${resource}?${query.toString()}`);
   }
 
   function openCreateForm() {
@@ -206,6 +231,32 @@ export function ReferenceManager({ resource }: { readonly resource: ReferenceRes
             />
             Показувати архівні
           </label>
+          {resource === "brands" ? (
+            <>
+              <SelectField
+                label="Статус"
+                value={brandStatus}
+                options={[
+                  { value: "", label: "Усі статуси" },
+                  { value: "DRAFT", label: "Чернетка" },
+                  { value: "ACTIVE", label: "Активний" },
+                  { value: "ARCHIVED", label: "Архівний" },
+                ]}
+                onChange={(event) => setBrandStatus(event.target.value)}
+              />
+              <SelectField
+                label="Верифікація"
+                value={verificationStatus}
+                options={[
+                  { value: "", label: "Усі статуси" },
+                  { value: "UNVERIFIED", label: "Не перевірено" },
+                  { value: "VERIFIED", label: "Перевірено" },
+                  { value: "REJECTED", label: "Відхилено" },
+                ]}
+                onChange={(event) => setVerificationStatus(event.target.value)}
+              />
+            </>
+          ) : null}
           <Button type="submit" variant="secondary">
             Застосувати
           </Button>
@@ -428,4 +479,12 @@ function statusPresentation(
   return item.isActive === false
     ? { label: "Архівне", style: "archived" }
     : { label: "Активне", style: "active" };
+}
+
+function isBrandStatus(value: string): value is "DRAFT" | "ACTIVE" | "ARCHIVED" {
+  return value === "DRAFT" || value === "ACTIVE" || value === "ARCHIVED";
+}
+
+function isBrandVerificationStatus(value: string): value is "UNVERIFIED" | "VERIFIED" | "REJECTED" {
+  return value === "UNVERIFIED" || value === "VERIFIED" || value === "REJECTED";
 }

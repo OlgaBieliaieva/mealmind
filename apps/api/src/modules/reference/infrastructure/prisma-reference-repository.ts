@@ -71,7 +71,14 @@ export function createPrismaReferenceRepository(database: DatabaseClient): Refer
           return mapRecords(
             await database.brand.findMany({
               where: {
-                ...(query.includeInactive ? {} : { status: "ACTIVE", archivedAt: null }),
+                ...(query.status !== undefined
+                  ? { status: query.status }
+                  : query.includeInactive
+                    ? {}
+                    : { status: "ACTIVE" as const, archivedAt: null }),
+                ...(query.verificationStatus === undefined
+                  ? {}
+                  : { verificationStatus: query.verificationStatus }),
                 ...(query.search === undefined
                   ? {}
                   : {
