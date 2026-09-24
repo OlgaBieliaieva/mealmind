@@ -12,8 +12,7 @@ export function AdminNavigation() {
     <nav aria-label="Основна навігація">
       <ul className="admin-navigation">
         {adminNavigationItems.map((item) => {
-          const isCurrent =
-            pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+          const isCurrent = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <li key={item.href}>

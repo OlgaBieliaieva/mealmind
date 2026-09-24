@@ -1,5 +1,5 @@
 export const adminRoutes = {
-  home: "/",
+  home: "/analytics",
   reference: "/reference",
   products: "/products",
   recipes: "/recipes",

@@ -12,6 +12,7 @@ import { createPinoLogger } from "./infrastructure/logging/pino-logger.js";
 import { createPrismaReadinessProbe } from "./infrastructure/persistence/prisma-readiness-probe.js";
 import { createPrismaUserIdentityRepository } from "./infrastructure/persistence/prisma-user-identity-repository.js";
 import { createAccountModule } from "./modules/account/account-module.js";
+import { createAdminAnalyticsModule } from "./modules/admin-analytics/admin-analytics-module.js";
 import { createFamilyModule } from "./modules/family/family-module.js";
 import { createFoodModule } from "./modules/food/food-module.js";
 import { createMealPlanModule } from "./modules/meal-plan/meal-plan-module.js";
@@ -57,6 +58,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
   });
 
   const accountModule = createAccountModule(database, identityProvider);
+  const adminAnalyticsModule = createAdminAnalyticsModule(database, authenticationService);
 
   const referenceModule = createReferenceModule(database, authenticationService, {
     url: config.supabase.url,
@@ -99,6 +101,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     healthService,
     readinessService,
     authenticationService,
+    adminAnalyticsRouter: adminAnalyticsModule.router,
     accountRouter: accountModule.router,
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,

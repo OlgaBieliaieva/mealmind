@@ -12,6 +12,7 @@ import "@/features/products/products.css";
 import "@/features/recipes/recipes.css";
 import "@/features/reference/reference.css";
 import "@/features/auth/auth.css";
+import "@/features/analytics/analytics.css";
 
 readWebEnv();
 
