@@ -481,6 +481,45 @@
         }
       }
     },
+    "/api/v1/admin/analytics/products": {
+      "get": {
+        "summary": "Отримати агреговану аналітику продуктів",
+        "description": "Totals і breakdowns охоплюють увесь каталог. Операційні KPI та rankings виключають архівні продукти. Creation series є історичною.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          {
+            "name": "granularity",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["day", "week", "month"] }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": { "type": "string", "default": "Europe/Kyiv" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/ProductsAnalytics" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "Некоректний period або timezone" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Потрібна роль ADMIN" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
     "/api/v1/account/bootstrap": {
       "post": {
         "summary": "Створити або повернути локальний обліковий запис",
@@ -590,6 +629,37 @@
             "name": "status",
             "in": "query",
             "schema": { "type": "string", "enum": ["DRAFT", "ACTIVE", "ARCHIVED"] }
+          },
+          {
+            "name": "verificationStatus",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["UNVERIFIED", "VERIFIED", "REJECTED"] }
+          },
+          {
+            "name": "foodState",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
+            }
+          },
+          {
+            "name": "sourceProvider",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER", "UNASSIGNED"]
+            }
+          },
+          {
+            "name": "createdFrom",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": { "type": "boolean", "default": true }
           },
           { "name": "categoryId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
           { "name": "brandId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
@@ -3749,6 +3819,50 @@
           "brands": { "type": "object" },
           "authors": { "type": "object" },
           "quality": { "type": "object" }
+        }
+      },
+      "ProductsAnalytics": {
+        "type": "object",
+        "required": ["meta", "totals", "created", "breakdowns", "rankings", "series"],
+        "properties": {
+          "meta": {
+            "type": "object",
+            "required": ["from", "to", "granularity", "timezone", "generatedAt"],
+            "properties": {
+              "from": { "type": "string", "format": "date" },
+              "to": { "type": "string", "format": "date" },
+              "granularity": { "type": "string", "enum": ["day", "week", "month"] },
+              "timezone": { "type": "string" },
+              "generatedAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          },
+          "created": {
+            "type": "object",
+            "required": ["value", "previousValue", "delta", "deltaPercent"],
+            "properties": {
+              "value": { "type": "number" },
+              "previousValue": { "type": "number" },
+              "delta": { "type": "number" },
+              "deltaPercent": { "type": ["number", "null"] }
+            }
+          },
+          "breakdowns": { "type": "object" },
+          "rankings": { "type": "object" },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["period", "value"],
+              "properties": {
+                "period": { "type": "string", "format": "date" },
+                "value": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
         }
       },
       "ProductSearchItem": {

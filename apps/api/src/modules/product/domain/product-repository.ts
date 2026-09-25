@@ -173,6 +173,11 @@ export interface ProductListQuery {
   readonly search?: string | undefined;
   readonly type?: ProductType | undefined;
   readonly status?: ProductStatus | undefined;
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
+  readonly foodState?: ProductFoodState | undefined;
+  readonly sourceProvider?: ProductSourceProvider | "UNASSIGNED" | undefined;
+  readonly createdFrom?: string | undefined;
+  readonly includeArchived?: boolean | undefined;
   readonly categoryId?: string | undefined;
   readonly brandId?: string | undefined;
   readonly page: number;

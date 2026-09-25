@@ -25,6 +25,26 @@ function authenticationService(role: "USER" | "ADMIN"): AuthenticationService {
 
 function service(): AdminAnalyticsService {
   return {
+    getProducts: vi.fn<AdminAnalyticsService["getProducts"]>(async () => ({
+      meta: {
+        from: "2026-09-01",
+        to: "2026-09-30",
+        granularity: "day",
+        timezone: "Europe/Kyiv",
+        generatedAt: "2026-09-24T10:00:00.000Z",
+      },
+      totals: { all: 0, createdLast24Hours: 0, awaitingVerification: 0, drafts: 0 },
+      created: { value: 0, previousValue: 0, delta: 0, deltaPercent: null },
+      breakdowns: {
+        types: { GENERIC: 0, BRANDED: 0 },
+        foodStates: { UNSPECIFIED: 0, RAW: 0, COOKED: 0, PROCESSED: 0, READY_TO_EAT: 0 },
+        statuses: { DRAFT: 0, ACTIVE: 0, ARCHIVED: 0 },
+        verification: { UNVERIFIED: 0, VERIFIED: 0, REJECTED: 0 },
+        sources: { USDA: 0, MEALMIND_ADMIN: 0, MEALMIND_USER: 0, UNASSIGNED: 0 },
+      },
+      rankings: { categories: [], brands: [], favorites: [] },
+      series: [],
+    })),
     getReferences: vi.fn(async () => ({
       generatedAt: "2026-09-24T10:00:00.000Z",
       resources: [],
@@ -118,6 +138,21 @@ describe("admin analytics router", () => {
       .set("authorization", "Bearer token");
     expect(response.status).toBe(200);
     expect(response.body.data.resources).toEqual([]);
+  });
+
+  it("returns product analytics with a validated period", async () => {
+    const analyticsService = service();
+    const response = await request(app("ADMIN", analyticsService))
+      .get("/api/v1/admin/analytics/products")
+      .query({ from: "2026-09-01", to: "2026-09-30", granularity: "week" })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(analyticsService.getProducts).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      granularity: "week",
+    });
   });
 
   it("rejects an incomplete or invalid period", async () => {

@@ -6,7 +6,12 @@ import { validateRenderedUi } from "@/test/ui-quality";
 
 import { ProductList } from "./product-list";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), searchParams: "" }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mocks.searchParams),
+}));
 
 vi.mock("@/shared/api/browser-api-client", () => ({
   getBrowserApiClient: () => ({ get: mocks.get }),
@@ -14,6 +19,7 @@ vi.mock("@/shared/api/browser-api-client", () => ({
 
 describe("ProductList", () => {
   it("renders server-paginated product data with filters and accessible markup", async () => {
+    mocks.searchParams = "";
     mocks.get.mockResolvedValue({
       data: {
         items: [
@@ -52,5 +58,25 @@ describe("ProductList", () => {
     expect(screen.getByRole("table")).toHaveAccessibleName("Знайдено продуктів: 1");
     await waitFor(() => expect(mocks.get).toHaveBeenCalledOnce());
     await validateRenderedUi(container);
+  });
+
+  it("applies analytics drill-down filters from the URL", async () => {
+    mocks.searchParams = "verificationStatus=UNVERIFIED&sourceProvider=USDA&includeArchived=false";
+    mocks.get.mockResolvedValue({
+      data: { items: [] },
+      meta: { page: 1, pageSize: 20, total: 0 },
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductList />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(mocks.get).toHaveBeenCalledWith(
+        "/api/v1/admin/products?verificationStatus=UNVERIFIED&sourceProvider=USDA&includeArchived=false&page=1&pageSize=20",
+      ),
+    );
   });
 });

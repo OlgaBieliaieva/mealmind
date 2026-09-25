@@ -153,6 +153,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
+.analytics-breakdown-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .analytics-breakdown {
   display: grid;
   gap: 0.6rem;
@@ -169,8 +172,38 @@
   margin: 0;
   font-weight: 700;
 }
+.analytics-breakdown a,
+.analytics-ranking a {
+  color: var(--admin-color-primary);
+}
+.analytics-ranking-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.analytics-ranking {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+  padding-left: 1.4rem;
+}
+.analytics-ranking li {
+  padding-left: 0.25rem;
+}
+.analytics-ranking li::marker {
+  color: var(--admin-color-text-muted);
+}
+.analytics-ranking li > span {
+  float: right;
+  margin-left: 1rem;
+  font-weight: 700;
+}
 @media (max-width: 1100px) {
   .analytics-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .analytics-breakdown-grid--four,
+  .analytics-ranking-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -192,6 +225,9 @@
     height: 18rem;
   }
   .analytics-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+  .analytics-ranking-grid {
     grid-template-columns: 1fr;
   }
 }

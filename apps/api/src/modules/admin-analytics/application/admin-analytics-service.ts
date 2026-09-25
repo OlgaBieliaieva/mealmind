@@ -3,6 +3,7 @@ import type {
   AnalyticsGranularity,
   AnalyticsPeriodQuery,
   ComparisonMetric,
+  ProductsAnalytics,
   ResolvedAnalyticsPeriod,
   ReferencesAnalytics,
   UsersAnalytics,
@@ -13,6 +14,7 @@ const MAX_PERIOD_DAYS = 732;
 
 export interface AdminAnalyticsService {
   getUsers(query: AnalyticsPeriodQuery): Promise<UsersAnalytics>;
+  getProducts(query: AnalyticsPeriodQuery): Promise<ProductsAnalytics>;
   getReferences(): Promise<ReferencesAnalytics>;
 }
 
@@ -53,6 +55,40 @@ export function createAdminAnalyticsService(
           users: comparison(snapshot.currentCreatedUsers, snapshot.previousCreatedUsers),
           families: comparison(snapshot.currentCreatedFamilies, snapshot.previousCreatedFamilies),
           profiles: comparison(snapshot.currentCreatedProfiles, snapshot.previousCreatedProfiles),
+        }),
+        series: Object.freeze(snapshot.series),
+      });
+    },
+    async getProducts(query: AnalyticsPeriodQuery) {
+      const generatedAt = now();
+      const period = resolveAnalyticsPeriod(query, generatedAt);
+      const snapshot = await repository.getProducts(period, generatedAt);
+      return Object.freeze({
+        meta: Object.freeze({
+          from: period.from,
+          to: period.to,
+          granularity: period.granularity,
+          timezone: period.timezone,
+          generatedAt: generatedAt.toISOString(),
+        }),
+        totals: Object.freeze({
+          all: snapshot.total,
+          createdLast24Hours: snapshot.createdLast24Hours,
+          awaitingVerification: snapshot.awaitingVerification,
+          drafts: snapshot.drafts,
+        }),
+        created: comparison(snapshot.currentCreated, snapshot.previousCreated),
+        breakdowns: Object.freeze({
+          types: snapshot.types,
+          foodStates: snapshot.foodStates,
+          statuses: snapshot.statuses,
+          verification: snapshot.verification,
+          sources: snapshot.sources,
+        }),
+        rankings: Object.freeze({
+          categories: snapshot.categories,
+          brands: snapshot.brands,
+          favorites: snapshot.favorites,
         }),
         series: Object.freeze(snapshot.series),
       });

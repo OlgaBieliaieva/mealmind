@@ -2,6 +2,8 @@ import type { ApiClient } from "./api-client";
 
 export type ProductType = "GENERIC" | "BRANDED";
 export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+export type ProductVerificationStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED";
+export type ProductSourceProvider = "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER";
 export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
 export type ProductMediaKind =
   "PRODUCT" | "PACKAGING" | "INGREDIENTS_LABEL" | "NUTRITION_LABEL" | "BARCODE" | "OTHER";
@@ -98,6 +100,11 @@ export interface ProductListParameters {
   readonly search?: string;
   readonly type?: ProductType;
   readonly status?: ProductStatus;
+  readonly verificationStatus?: ProductVerificationStatus;
+  readonly foodState?: ProductFoodState;
+  readonly sourceProvider?: ProductSourceProvider | "UNASSIGNED";
+  readonly createdFrom?: string;
+  readonly includeArchived?: boolean;
   readonly categoryId?: string;
   readonly brandId?: string;
   readonly page?: number;

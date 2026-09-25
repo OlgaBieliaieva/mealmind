@@ -2,10 +2,13 @@ import { Prisma, type DatabaseClient } from "@mealmind/db";
 
 import type {
   AdminAnalyticsRepository,
+  ProductsAnalyticsSnapshot,
   UsersAnalyticsSnapshot,
 } from "../domain/admin-analytics-repository.js";
 import type {
+  AnalyticsRankingItem,
   AnalyticsGranularity,
+  ProductsAnalyticsPoint,
   ResolvedAnalyticsPeriod,
   UsersAnalyticsPoint,
 } from "../domain/admin-analytics-types.js";
@@ -15,6 +18,16 @@ interface SeriesRow {
   readonly users: bigint;
   readonly families: bigint;
   readonly profiles: bigint;
+}
+
+interface ProductSeriesRow {
+  readonly period: Date;
+  readonly value: bigint;
+}
+
+interface ProductSourceRow {
+  readonly source: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED";
+  readonly value: bigint;
 }
 
 export function createPrismaAdminAnalyticsRepository(
@@ -92,6 +105,100 @@ export function createPrismaAdminAnalyticsRepository(
         previousCreatedFamilies,
         currentCreatedProfiles,
         previousCreatedProfiles,
+        series,
+      });
+    },
+    async getProducts(
+      period: ResolvedAnalyticsPeriod,
+      generatedAt: Date,
+    ): Promise<ProductsAnalyticsSnapshot> {
+      const currentRange = createdAtRange(period.from, addOneDay(period.to), period.timezone);
+      const previousRange = createdAtRange(period.previousFrom, period.from, period.timezone);
+      const activeWhere = { archivedAt: null, status: { not: "ARCHIVED" as const } };
+      const [
+        total,
+        createdLast24Hours,
+        awaitingVerification,
+        drafts,
+        currentCreated,
+        previousCreated,
+        types,
+        foodStates,
+        statuses,
+        verification,
+        sources,
+        categories,
+        brands,
+        favorites,
+        series,
+      ] = await Promise.all([
+        database.product.count(),
+        database.product.count({
+          where: {
+            ...activeWhere,
+            createdAt: { gte: new Date(generatedAt.getTime() - 86_400_000) },
+          },
+        }),
+        database.product.count({
+          where: { ...activeWhere, verificationStatus: "UNVERIFIED" },
+        }),
+        database.product.count({ where: { archivedAt: null, status: "DRAFT" } }),
+        database.product.count({ where: { createdAt: currentRange } }),
+        database.product.count({ where: { createdAt: previousRange } }),
+        database.product.groupBy({ by: ["type"], _count: { _all: true } }),
+        database.product.groupBy({ by: ["foodState"], _count: { _all: true } }),
+        database.product.groupBy({ by: ["status"], _count: { _all: true } }),
+        database.product.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
+        productSources(database),
+        productCategoryRanking(database),
+        productBrandRanking(database),
+        productFavoriteRanking(database),
+        productsSeries(database, period),
+      ]);
+
+      const typeCounts = countsByKey(types, "type");
+      const foodStateCounts = countsByKey(foodStates, "foodState");
+      const statusCounts = countsByKey(statuses, "status");
+      const verificationCounts = countsByKey(verification, "verificationStatus");
+      const sourceCounts = new Map(sources.map((row) => [row.source, Number(row.value)]));
+
+      return Object.freeze({
+        total,
+        createdLast24Hours,
+        awaitingVerification,
+        drafts,
+        currentCreated,
+        previousCreated,
+        types: Object.freeze({
+          GENERIC: typeCounts.get("GENERIC") ?? 0,
+          BRANDED: typeCounts.get("BRANDED") ?? 0,
+        }),
+        foodStates: Object.freeze({
+          UNSPECIFIED: foodStateCounts.get("UNSPECIFIED") ?? 0,
+          RAW: foodStateCounts.get("RAW") ?? 0,
+          COOKED: foodStateCounts.get("COOKED") ?? 0,
+          PROCESSED: foodStateCounts.get("PROCESSED") ?? 0,
+          READY_TO_EAT: foodStateCounts.get("READY_TO_EAT") ?? 0,
+        }),
+        statuses: Object.freeze({
+          DRAFT: statusCounts.get("DRAFT") ?? 0,
+          ACTIVE: statusCounts.get("ACTIVE") ?? 0,
+          ARCHIVED: statusCounts.get("ARCHIVED") ?? 0,
+        }),
+        verification: Object.freeze({
+          UNVERIFIED: verificationCounts.get("UNVERIFIED") ?? 0,
+          VERIFIED: verificationCounts.get("VERIFIED") ?? 0,
+          REJECTED: verificationCounts.get("REJECTED") ?? 0,
+        }),
+        sources: Object.freeze({
+          USDA: sourceCounts.get("USDA") ?? 0,
+          MEALMIND_ADMIN: sourceCounts.get("MEALMIND_ADMIN") ?? 0,
+          MEALMIND_USER: sourceCounts.get("MEALMIND_USER") ?? 0,
+          UNASSIGNED: sourceCounts.get("UNASSIGNED") ?? 0,
+        }),
+        categories,
+        brands,
+        favorites,
         series,
       });
     },
@@ -237,6 +344,155 @@ function countsByKey<TKey extends string, TField extends string>(
   field: TField,
 ): ReadonlyMap<TKey, number> {
   return new Map(rows.map((row) => [row[field], row._count._all]));
+}
+
+async function productSources(database: DatabaseClient): Promise<readonly ProductSourceRow[]> {
+  return database.$queryRaw<ProductSourceRow[]>(Prisma.sql`
+    WITH primary_sources AS (
+      SELECT DISTINCT ON (product_id)
+        product_id,
+        provider
+      FROM product_source_references
+      WHERE is_primary = true
+      ORDER BY product_id, created_at ASC, id ASC
+    )
+    SELECT
+      CASE primary_sources.provider::text
+        WHEN 'usda' THEN 'USDA'
+        WHEN 'mealmind_admin' THEN 'MEALMIND_ADMIN'
+        WHEN 'mealmind_user' THEN 'MEALMIND_USER'
+        ELSE 'UNASSIGNED'
+      END AS source,
+      COUNT(products.id)::bigint AS value
+    FROM products
+    LEFT JOIN primary_sources ON primary_sources.product_id = products.id
+    GROUP BY source
+  `);
+}
+
+async function productCategoryRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.product.groupBy({
+    by: ["categoryId"],
+    where: { archivedAt: null, status: { not: "ARCHIVED" } },
+    _count: { _all: true },
+    orderBy: { _count: { categoryId: "desc" } },
+    take: 10,
+  });
+  const labels = await database.productCategory.findMany({
+    where: { id: { in: rows.map((row) => row.categoryId) } },
+    select: { id: true, nameUa: true, nameEn: true },
+  });
+  return rankingWithLabels(
+    rows,
+    labels.map((category) => ({
+      id: category.id,
+      name: category.nameUa || category.nameEn,
+    })),
+    "categoryId",
+  );
+}
+
+async function productBrandRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.product.groupBy({
+    by: ["brandId"],
+    where: { archivedAt: null, status: { not: "ARCHIVED" }, brandId: { not: null } },
+    _count: { _all: true },
+    orderBy: { _count: { brandId: "desc" } },
+    take: 10,
+  });
+  const normalizedRows = rows.filter(
+    (row): row is typeof row & { readonly brandId: string } => row.brandId !== null,
+  );
+  const labels = await database.brand.findMany({
+    where: { id: { in: normalizedRows.map((row) => row.brandId) } },
+    select: { id: true, name: true },
+  });
+  return rankingWithLabels(normalizedRows, labels, "brandId");
+}
+
+async function productFavoriteRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.productFavorite.groupBy({
+    by: ["productId"],
+    where: { product: { archivedAt: null, status: { not: "ARCHIVED" } } },
+    _count: { _all: true },
+    orderBy: { _count: { productId: "desc" } },
+    take: 10,
+  });
+  const products = await database.product.findMany({
+    where: { id: { in: rows.map((row) => row.productId) } },
+    select: { id: true, nameUa: true, nameEn: true },
+  });
+  const labels = products.map((product) => ({
+    id: product.id,
+    name: product.nameUa ?? product.nameEn,
+  }));
+  return rankingWithLabels(rows, labels, "productId");
+}
+
+function rankingWithLabels<
+  TKey extends "categoryId" | "brandId" | "productId",
+  TRow extends Record<TKey, string> & { readonly _count: { readonly _all: number } },
+>(
+  rows: readonly TRow[],
+  labels: readonly { readonly id: string; readonly name: string }[],
+  key: TKey,
+): readonly AnalyticsRankingItem[] {
+  const labelsById = new Map(labels.map((item) => [item.id, item.name]));
+  return Object.freeze(
+    rows.map((row) =>
+      Object.freeze({
+        id: row[key],
+        label: labelsById.get(row[key]) ?? "Невідомо",
+        value: row._count._all,
+      }),
+    ),
+  );
+}
+
+async function productsSeries(
+  database: DatabaseClient,
+  period: ResolvedAnalyticsPeriod,
+): Promise<readonly ProductsAnalyticsPoint[]> {
+  const unit = period.granularity;
+  const step = seriesStep(period.granularity);
+  const rows = await database.$queryRaw<ProductSeriesRow[]>(Prisma.sql`
+    WITH parameters AS (
+      SELECT
+        ${period.from}::date AS from_date,
+        ${period.to}::date AS to_date,
+        ${period.timezone}::text AS timezone
+    ), buckets AS (
+      SELECT generate_series(
+        date_trunc(${unit}, from_date::timestamp),
+        date_trunc(${unit}, to_date::timestamp),
+        ${step}
+      ) AS bucket
+      FROM parameters
+    )
+    SELECT
+      buckets.bucket::date AS period,
+      COUNT(products.id)::bigint AS value
+    FROM buckets
+    CROSS JOIN parameters
+    LEFT JOIN products
+      ON (products.created_at AT TIME ZONE parameters.timezone) >= buckets.bucket
+      AND (products.created_at AT TIME ZONE parameters.timezone) < buckets.bucket + ${step}
+      AND (products.created_at AT TIME ZONE parameters.timezone) >= parameters.from_date
+      AND (products.created_at AT TIME ZONE parameters.timezone) < parameters.to_date + INTERVAL '1 day'
+    GROUP BY buckets.bucket
+    ORDER BY buckets.bucket
+  `);
+  return Object.freeze(
+    rows.map((row) =>
+      Object.freeze({ period: row.period.toISOString().slice(0, 10), value: Number(row.value) }),
+    ),
+  );
 }
 
 async function usersSeries(

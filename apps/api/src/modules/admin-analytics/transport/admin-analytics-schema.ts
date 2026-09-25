@@ -54,6 +54,8 @@ export const referencesAnalyticsSchema = z.object({
   body: z.unknown().optional(),
 });
 
+export const productsAnalyticsSchema = usersAnalyticsSchema;
+
 function validDate(value: string): Date | null {
   const parsed = new Date(`${value}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value

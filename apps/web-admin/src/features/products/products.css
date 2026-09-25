@@ -18,6 +18,12 @@
   align-items: end;
 }
 
+.product-filters__context {
+  margin: 0.75rem 0 0;
+  color: var(--admin-color-text-muted);
+  font-size: 0.875rem;
+}
+
 .product-table-scroll {
   overflow-x: auto;
 }

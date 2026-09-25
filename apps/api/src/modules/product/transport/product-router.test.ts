@@ -213,6 +213,33 @@ describe("product router", () => {
     expect(service.list).not.toHaveBeenCalled();
   });
 
+  it("passes analytics drill-down filters to the admin product list", async () => {
+    const service = productService();
+    const response = await request(createTestApp(service, "ADMIN"))
+      .get("/api/v1/admin/products")
+      .query({
+        status: "DRAFT",
+        verificationStatus: "UNVERIFIED",
+        foodState: "RAW",
+        sourceProvider: "USDA",
+        createdFrom: "2026-09-23T10:00:00.000Z",
+        includeArchived: "false",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(service.list).toHaveBeenCalledWith({
+      status: "DRAFT",
+      verificationStatus: "UNVERIFIED",
+      foodState: "RAW",
+      sourceProvider: "USDA",
+      createdFrom: "2026-09-23T10:00:00.000Z",
+      includeArchived: false,
+      page: 1,
+      pageSize: 20,
+    });
+  });
+
   it("enforces administrator permission in the API", async () => {
     const service = productService();
     const response = await request(createTestApp(service, "USER"))

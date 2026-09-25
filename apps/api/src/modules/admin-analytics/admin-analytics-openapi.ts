@@ -75,6 +75,33 @@ export const adminAnalyticsOpenApiPaths = Object.freeze({
       },
     },
   },
+  "/api/v1/admin/analytics/products": {
+    get: {
+      summary: "Отримати агреговану аналітику продуктів",
+      description:
+        "Totals і breakdowns охоплюють увесь каталог. Операційні KPI та rankings виключають архівні продукти. Creation series є історичною.",
+      security: [{ bearerAuth: [] }],
+      parameters: periodParameters,
+      responses: {
+        "200": {
+          description: "Products analytics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["data"],
+                properties: { data: { $ref: "#/components/schemas/ProductsAnalytics" } },
+              },
+            },
+          },
+        },
+        "400": { description: "Некоректний period або timezone" },
+        "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        "403": { description: "Потрібна роль ADMIN" },
+        "429": { description: "Перевищено rate limit" },
+      },
+    },
+  },
 });
 
 export const adminAnalyticsOpenApiSchemas = Object.freeze({
@@ -140,6 +167,38 @@ export const adminAnalyticsOpenApiSchemas = Object.freeze({
       brands: { type: "object" },
       authors: { type: "object" },
       quality: { type: "object" },
+    },
+  },
+  ProductsAnalytics: {
+    type: "object",
+    required: ["meta", "totals", "created", "breakdowns", "rankings", "series"],
+    properties: {
+      meta: {
+        type: "object",
+        required: ["from", "to", "granularity", "timezone", "generatedAt"],
+        properties: {
+          from: { type: "string", format: "date" },
+          to: { type: "string", format: "date" },
+          granularity: { type: "string", enum: ["day", "week", "month"] },
+          timezone: { type: "string" },
+          generatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      totals: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+      created: metric,
+      breakdowns: { type: "object" },
+      rankings: { type: "object" },
+      series: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["period", "value"],
+          properties: {
+            period: { type: "string", format: "date" },
+            value: { type: "integer", minimum: 0 },
+          },
+        },
+      },
     },
   },
 });

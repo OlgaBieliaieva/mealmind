@@ -1,8 +1,29 @@
 import type {
+  AnalyticsRankingItem,
+  ProductsAnalytics,
+  ProductsAnalyticsPoint,
   ReferencesAnalytics,
   ResolvedAnalyticsPeriod,
   UsersAnalyticsPoint,
 } from "./admin-analytics-types.js";
+
+export interface ProductsAnalyticsSnapshot {
+  readonly total: number;
+  readonly createdLast24Hours: number;
+  readonly awaitingVerification: number;
+  readonly drafts: number;
+  readonly currentCreated: number;
+  readonly previousCreated: number;
+  readonly types: ProductsAnalytics["breakdowns"]["types"];
+  readonly foodStates: ProductsAnalytics["breakdowns"]["foodStates"];
+  readonly statuses: ProductsAnalytics["breakdowns"]["statuses"];
+  readonly verification: ProductsAnalytics["breakdowns"]["verification"];
+  readonly sources: ProductsAnalytics["breakdowns"]["sources"];
+  readonly categories: readonly AnalyticsRankingItem[];
+  readonly brands: readonly AnalyticsRankingItem[];
+  readonly favorites: readonly AnalyticsRankingItem[];
+  readonly series: readonly ProductsAnalyticsPoint[];
+}
 
 export interface UsersAnalyticsSnapshot {
   readonly activeUsers: number;
@@ -26,5 +47,9 @@ export interface UsersAnalyticsSnapshot {
 
 export interface AdminAnalyticsRepository {
   getUsers(period: ResolvedAnalyticsPeriod): Promise<UsersAnalyticsSnapshot>;
+  getProducts(
+    period: ResolvedAnalyticsPeriod,
+    generatedAt: Date,
+  ): Promise<ProductsAnalyticsSnapshot>;
   getReferences(): Promise<Omit<ReferencesAnalytics, "generatedAt">>;
 }

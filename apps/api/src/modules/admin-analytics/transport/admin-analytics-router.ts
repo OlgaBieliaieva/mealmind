@@ -17,6 +17,13 @@ export function createAdminAnalyticsRouter(
 
   router.get("/admin/analytics/users", limiter, authenticated, requireAdmin, controller.users);
   router.get(
+    "/admin/analytics/products",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.products,
+  );
+  router.get(
     "/admin/analytics/references",
     limiter,
     authenticated,

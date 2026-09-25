@@ -111,3 +111,48 @@ export interface ReferencesAnalytics {
     readonly dietaryTagsWithoutUsage: number;
   };
 }
+
+export interface ProductsAnalyticsPoint {
+  readonly period: string;
+  readonly value: number;
+}
+
+export interface AnalyticsRankingItem {
+  readonly id: string;
+  readonly label: string;
+  readonly value: number;
+}
+
+export interface ProductsAnalytics {
+  readonly meta: {
+    readonly from: string;
+    readonly to: string;
+    readonly granularity: AnalyticsGranularity;
+    readonly timezone: string;
+    readonly generatedAt: string;
+  };
+  readonly totals: {
+    readonly all: number;
+    readonly createdLast24Hours: number;
+    readonly awaitingVerification: number;
+    readonly drafts: number;
+  };
+  readonly created: ComparisonMetric;
+  readonly breakdowns: {
+    readonly types: Readonly<Record<"GENERIC" | "BRANDED", number>>;
+    readonly foodStates: Readonly<
+      Record<"UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT", number>
+    >;
+    readonly statuses: Readonly<Record<"DRAFT" | "ACTIVE" | "ARCHIVED", number>>;
+    readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
+    readonly sources: Readonly<
+      Record<"USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED", number>
+    >;
+  };
+  readonly rankings: {
+    readonly categories: readonly AnalyticsRankingItem[];
+    readonly brands: readonly AnalyticsRankingItem[];
+    readonly favorites: readonly AnalyticsRankingItem[];
+  };
+  readonly series: readonly ProductsAnalyticsPoint[];
+}

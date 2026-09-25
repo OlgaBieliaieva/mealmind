@@ -21,6 +21,7 @@ describe("admin analytics service", () => {
 
   it("maps stable completion, averages and comparison values", async () => {
     const repository: AdminAnalyticsRepository = {
+      getProducts: vi.fn(),
       getReferences: vi.fn(),
       getUsers: vi.fn(async () => ({
         activeUsers: 4,
@@ -59,5 +60,48 @@ describe("admin analytics service", () => {
     });
     expect(result.created.families.deltaPercent).toBeNull();
     expect(result.meta.generatedAt).toBe("2026-09-24T10:00:00.000Z");
+  });
+
+  it("maps products totals and creation comparison", async () => {
+    const repository: AdminAnalyticsRepository = {
+      getUsers: vi.fn(),
+      getReferences: vi.fn(),
+      getProducts: vi.fn(async () => ({
+        total: 12,
+        createdLast24Hours: 2,
+        awaitingVerification: 3,
+        drafts: 4,
+        currentCreated: 5,
+        previousCreated: 2,
+        types: { GENERIC: 7, BRANDED: 5 },
+        foodStates: { UNSPECIFIED: 1, RAW: 4, COOKED: 2, PROCESSED: 3, READY_TO_EAT: 2 },
+        statuses: { DRAFT: 4, ACTIVE: 7, ARCHIVED: 1 },
+        verification: { UNVERIFIED: 3, VERIFIED: 8, REJECTED: 1 },
+        sources: { USDA: 6, MEALMIND_ADMIN: 3, MEALMIND_USER: 2, UNASSIGNED: 1 },
+        categories: [],
+        brands: [],
+        favorites: [],
+        series: [{ period: "2026-09-01", value: 5 }],
+      })),
+    };
+    const service = createAdminAnalyticsService(
+      repository,
+      () => new Date("2026-09-24T10:00:00.000Z"),
+    );
+
+    const result = await service.getProducts({ from: "2026-09-01", to: "2026-09-30" });
+
+    expect(result.totals).toEqual({
+      all: 12,
+      createdLast24Hours: 2,
+      awaitingVerification: 3,
+      drafts: 4,
+    });
+    expect(result.created).toEqual({
+      value: 5,
+      previousValue: 2,
+      delta: 3,
+      deltaPercent: 150,
+    });
   });
 });

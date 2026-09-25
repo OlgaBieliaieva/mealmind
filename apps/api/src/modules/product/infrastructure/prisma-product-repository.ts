@@ -237,6 +237,26 @@ function productListWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   return {
     ...(query.type === undefined ? {} : { type: query.type }),
     ...(query.status === undefined ? {} : { status: query.status }),
+    ...(query.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: query.verificationStatus }),
+    ...(query.foodState === undefined ? {} : { foodState: query.foodState }),
+    ...(query.createdFrom === undefined ? {} : { createdAt: { gte: query.createdFrom } }),
+    ...(query.includeArchived === false
+      ? {
+          archivedAt: null,
+          ...(query.status === undefined ? { status: { not: "ARCHIVED" as const } } : {}),
+        }
+      : {}),
+    ...(query.sourceProvider === undefined
+      ? {}
+      : query.sourceProvider === "UNASSIGNED"
+        ? { sourceReferences: { none: { isPrimary: true } } }
+        : {
+            sourceReferences: {
+              some: { isPrimary: true, provider: query.sourceProvider },
+            },
+          }),
     ...(query.categoryId === undefined ? {} : { categoryId: query.categoryId }),
     ...(query.brandId === undefined ? {} : { brandId: query.brandId }),
     ...(query.search === undefined

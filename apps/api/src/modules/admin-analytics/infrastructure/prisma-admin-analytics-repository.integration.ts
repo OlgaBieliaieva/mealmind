@@ -19,6 +19,7 @@ const repository = createPrismaAdminAnalyticsRepository(database);
 const userIds: string[] = [];
 const profileIds: string[] = [];
 let familyId: string | undefined;
+let productId: string | undefined;
 
 try {
   const currentUser = await database.user.create({
@@ -61,6 +62,38 @@ try {
   });
   familyId = family.id;
 
+  const category = await database.productCategory.findFirstOrThrow({
+    where: { isActive: true, isAssignable: true },
+  });
+  const unit = await database.measurementUnit.findFirstOrThrow({
+    where: { isActive: true, dimension: "MASS" },
+  });
+  const product = await database.product.create({
+    data: {
+      type: "GENERIC",
+      nameEn: `Analytics product ${randomUUID()}`,
+      categoryId: category.id,
+      defaultMeasurementUnitId: unit.id,
+      foodState: "RAW",
+      status: "DRAFT",
+      verificationStatus: "UNVERIFIED",
+      createdAt: new Date("2099-09-03T09:00:00Z"),
+      sourceReferences: {
+        create: {
+          provider: "MEALMIND_ADMIN",
+          dataset: "ADMIN_CATALOG",
+          externalId: randomUUID(),
+          sourceRelease: new Date("2099-09-03T00:00:00Z"),
+          isPrimary: true,
+        },
+      },
+    },
+  });
+  productId = product.id;
+  await database.productFavorite.create({
+    data: { familyId: family.id, productId: product.id, createdByUserId: currentUser.id },
+  });
+
   const result = await repository.getUsers({
     from: "2099-09-01",
     to: "2099-09-07",
@@ -78,6 +111,26 @@ try {
   assert.equal(result.activeMemberships >= 1, true);
   assert.equal(result.activeFamilyMembers >= 1, true);
 
+  const products = await repository.getProducts(
+    {
+      from: "2099-09-01",
+      to: "2099-09-07",
+      previousFrom: "2099-08-25",
+      granularity: "day",
+      timezone: "Europe/Kyiv",
+    },
+    new Date("2099-09-03T10:00:00Z"),
+  );
+  assert.equal(products.currentCreated >= 1, true);
+  assert.equal(products.createdLast24Hours >= 1, true);
+  assert.equal(products.drafts >= 1, true);
+  assert.equal(products.sources.MEALMIND_ADMIN >= 1, true);
+  assert.equal(
+    products.favorites.some((item) => item.id === product.id),
+    true,
+  );
+  assert.equal(products.series.find((point) => point.period === "2099-09-03")?.value, 1);
+
   const references = await repository.getReferences();
   assert.equal(references.resources.length, 10);
   assert.equal(references.resources.find((item) => item.resource === "allergens")?.total, 14);
@@ -86,6 +139,7 @@ try {
   console.info("Admin analytics repository PostgreSQL integration test passed.");
 } finally {
   if (familyId !== undefined) await database.family.deleteMany({ where: { id: familyId } });
+  if (productId !== undefined) await database.product.deleteMany({ where: { id: productId } });
   if (profileIds.length > 0) {
     await database.personProfile.deleteMany({ where: { id: { in: profileIds } } });
   }

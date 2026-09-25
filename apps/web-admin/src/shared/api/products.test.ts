@@ -10,10 +10,16 @@ describe("products API contract", () => {
         search: "apple",
         type: "GENERIC",
         status: "ACTIVE",
+        verificationStatus: "UNVERIFIED",
+        foodState: "RAW",
+        sourceProvider: "USDA",
+        createdFrom: "2026-09-23T10:00:00.000Z",
         page: 2,
         pageSize: 20,
       }),
-    ).toBe("/api/v1/admin/products?search=apple&type=GENERIC&status=ACTIVE&page=2&pageSize=20");
+    ).toBe(
+      "/api/v1/admin/products?search=apple&type=GENERIC&status=ACTIVE&verificationStatus=UNVERIFIED&foodState=RAW&sourceProvider=USDA&createdFrom=2026-09-23T10%3A00%3A00.000Z&page=2&pageSize=20",
+    );
   });
 
   it("delegates product listing to the authenticated API client", async () => {

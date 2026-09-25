@@ -56,6 +56,20 @@ export const productOpenApiPaths = Object.freeze({
         query("search", { type: "string", maxLength: 120 }),
         query("type", { type: "string", enum: ["GENERIC", "BRANDED"] }),
         query("status", { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] }),
+        query("verificationStatus", {
+          type: "string",
+          enum: ["UNVERIFIED", "VERIFIED", "REJECTED"],
+        }),
+        query("foodState", {
+          type: "string",
+          enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
+        }),
+        query("sourceProvider", {
+          type: "string",
+          enum: ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER", "UNASSIGNED"],
+        }),
+        query("createdFrom", { type: "string", format: "date-time" }),
+        query("includeArchived", { type: "boolean", default: true }),
         query("categoryId", { type: "string", format: "uuid" }),
         query("brandId", { type: "string", format: "uuid" }),
         query("page", { type: "integer", minimum: 1, default: 1 }),
