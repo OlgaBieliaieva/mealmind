@@ -21,6 +21,7 @@ describe("admin analytics service", () => {
 
   it("maps stable completion, averages and comparison values", async () => {
     const repository: AdminAnalyticsRepository = {
+      getOverview: vi.fn(),
       getProducts: vi.fn(),
       getRecipes: vi.fn(),
       getReferences: vi.fn(),
@@ -65,6 +66,7 @@ describe("admin analytics service", () => {
 
   it("maps products totals and creation comparison", async () => {
     const repository: AdminAnalyticsRepository = {
+      getOverview: vi.fn(),
       getUsers: vi.fn(),
       getRecipes: vi.fn(),
       getReferences: vi.fn(),
@@ -109,6 +111,7 @@ describe("admin analytics service", () => {
 
   it("keeps recipe author and creator semantics separate", async () => {
     const repository: AdminAnalyticsRepository = {
+      getOverview: vi.fn(),
       getUsers: vi.fn(),
       getProducts: vi.fn(),
       getReferences: vi.fn(),
@@ -141,5 +144,39 @@ describe("admin analytics service", () => {
     expect(result.breakdowns.authorTypes.USER).toBe(2);
     expect(result.breakdowns.creatorOrigins).toEqual({ USER: 5, SYSTEM: 3 });
     expect(result.created.deltaPercent).toBe(100);
+  });
+
+  it("maps overview totals and period activity without changing their semantics", async () => {
+    const repository: AdminAnalyticsRepository = {
+      getUsers: vi.fn(),
+      getProducts: vi.fn(),
+      getRecipes: vi.fn(),
+      getReferences: vi.fn(),
+      getOverview: vi.fn(async () => ({
+        users: { active: 10, created: 2 },
+        families: { active: 4, created: 1 },
+        products: { total: 120, awaitingVerification: 7 },
+        recipes: { total: 35, drafts: 3 },
+        activity: {
+          scheduledMealPlans: 5,
+          completedCookingSessions: 8,
+          confirmedConsumptionEntries: 42,
+        },
+      })),
+    };
+    const service = createAdminAnalyticsService(
+      repository,
+      () => new Date("2026-09-24T10:00:00.000Z"),
+    );
+
+    const result = await service.getOverview({ from: "2026-09-01", to: "2026-09-30" });
+
+    expect(result.users).toEqual({ active: 10, created: 2 });
+    expect(result.activity.confirmedConsumptionEntries).toBe(42);
+    expect(result.meta).toMatchObject({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      generatedAt: "2026-09-24T10:00:00.000Z",
+    });
   });
 });

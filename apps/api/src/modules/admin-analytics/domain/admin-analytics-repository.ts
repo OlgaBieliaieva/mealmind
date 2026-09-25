@@ -1,5 +1,6 @@
 import type {
   AnalyticsRankingItem,
+  OverviewAnalytics,
   ProductsAnalytics,
   ProductsAnalyticsPoint,
   RecipesAnalytics,
@@ -7,6 +8,8 @@ import type {
   ResolvedAnalyticsPeriod,
   UsersAnalyticsPoint,
 } from "./admin-analytics-types.js";
+
+export type OverviewAnalyticsSnapshot = Omit<OverviewAnalytics, "meta">;
 
 export interface ProductsAnalyticsSnapshot {
   readonly total: number;
@@ -66,6 +69,7 @@ export interface UsersAnalyticsSnapshot {
 }
 
 export interface AdminAnalyticsRepository {
+  getOverview(period: ResolvedAnalyticsPeriod): Promise<OverviewAnalyticsSnapshot>;
   getUsers(period: ResolvedAnalyticsPeriod): Promise<UsersAnalyticsSnapshot>;
   getProducts(
     period: ResolvedAnalyticsPeriod,

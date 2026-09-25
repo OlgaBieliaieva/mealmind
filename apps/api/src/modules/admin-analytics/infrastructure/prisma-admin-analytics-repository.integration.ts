@@ -138,6 +138,20 @@ try {
     data: { familyId: family.id, recipeId: recipe.id, createdByUserId: currentUser.id },
   });
 
+  const overview = await repository.getOverview({
+    from: "2099-09-01",
+    to: "2099-09-07",
+    previousFrom: "2099-08-25",
+    granularity: "day",
+    timezone: "Europe/Kyiv",
+  });
+  assert.equal(overview.users.active >= 1, true);
+  assert.equal(overview.users.created, 1);
+  assert.equal(overview.families.created, 1);
+  assert.equal(overview.products.awaitingVerification >= 1, true);
+  assert.equal(overview.recipes.drafts >= 1, true);
+  assert.equal(overview.activity.completedCookingSessions >= 0, true);
+
   const result = await repository.getUsers({
     from: "2099-09-01",
     to: "2099-09-07",

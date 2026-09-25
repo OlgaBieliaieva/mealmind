@@ -25,6 +25,33 @@ const periodParameters = [
 ] as const;
 
 export const adminAnalyticsOpenApiPaths = Object.freeze({
+  "/api/v1/admin/analytics/overview": {
+    get: {
+      summary: "Отримати загальний огляд платформи",
+      description:
+        "Поточні active totals і операційні черги поєднані з історичними створеннями та activity за вибраний період.",
+      security: [{ bearerAuth: [] }],
+      parameters: periodParameters,
+      responses: {
+        "200": {
+          description: "Overview analytics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["data"],
+                properties: { data: { $ref: "#/components/schemas/OverviewAnalytics" } },
+              },
+            },
+          },
+        },
+        "400": { description: "Некоректний period або timezone" },
+        "401": { $ref: "#/components/responses/AuthenticationRequired" },
+        "403": { description: "Потрібна роль ADMIN" },
+        "429": { description: "Перевищено rate limit" },
+      },
+    },
+  },
   "/api/v1/admin/analytics/users": {
     get: {
       summary: "Отримати агреговану аналітику користувачів",
@@ -132,6 +159,28 @@ export const adminAnalyticsOpenApiPaths = Object.freeze({
 });
 
 export const adminAnalyticsOpenApiSchemas = Object.freeze({
+  OverviewAnalytics: {
+    type: "object",
+    required: ["meta", "users", "families", "products", "recipes", "activity"],
+    properties: {
+      meta: {
+        type: "object",
+        required: ["from", "to", "granularity", "timezone", "generatedAt"],
+        properties: {
+          from: { type: "string", format: "date" },
+          to: { type: "string", format: "date" },
+          granularity: { type: "string", enum: ["day", "week", "month"] },
+          timezone: { type: "string" },
+          generatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      users: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+      families: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+      products: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+      recipes: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+      activity: { type: "object", additionalProperties: { type: "integer", minimum: 0 } },
+    },
+  },
   UsersAnalytics: {
     type: "object",
     required: ["meta", "totals", "completion", "averages", "created", "series"],

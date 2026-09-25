@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "@/shared/api/api-client";
 
 import {
+  getOverviewAnalytics,
   getProductsAnalytics,
   getRecipesAnalytics,
   getReferencesAnalytics,
@@ -10,6 +11,18 @@ import {
 } from "./admin-analytics";
 
 describe("admin analytics API", () => {
+  it("builds the overview analytics URL", async () => {
+    const get = vi.fn(async () => ({ data: {} }));
+    await getOverviewAnalytics({ get } as unknown as ApiClient, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+      timezone: "Europe/Kyiv",
+    });
+    expect(get).toHaveBeenCalledWith(
+      "/api/v1/admin/analytics/overview?from=2026-09-01&to=2026-09-30&timezone=Europe%2FKyiv",
+    );
+  });
+
   it("builds the users analytics URL", async () => {
     const get = vi.fn(async () => ({ data: {} }));
     const api = { get } as unknown as ApiClient;

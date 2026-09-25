@@ -25,6 +25,24 @@ function authenticationService(role: "USER" | "ADMIN"): AuthenticationService {
 
 function service(): AdminAnalyticsService {
   return {
+    getOverview: vi.fn<AdminAnalyticsService["getOverview"]>(async () => ({
+      meta: {
+        from: "2026-09-01",
+        to: "2026-09-30",
+        granularity: "day",
+        timezone: "Europe/Kyiv",
+        generatedAt: "2026-09-24T10:00:00.000Z",
+      },
+      users: { active: 1, created: 1 },
+      families: { active: 1, created: 1 },
+      products: { total: 1, awaitingVerification: 0 },
+      recipes: { total: 1, drafts: 0 },
+      activity: {
+        scheduledMealPlans: 0,
+        completedCookingSessions: 0,
+        confirmedConsumptionEntries: 0,
+      },
+    })),
     getProducts: vi.fn<AdminAnalyticsService["getProducts"]>(async () => ({
       meta: {
         from: "2026-09-01",
@@ -128,6 +146,22 @@ function app(role: "USER" | "ADMIN", analyticsService = service()) {
 }
 
 describe("admin analytics router", () => {
+  it("returns overview with a validated period", async () => {
+    const analyticsService = service();
+    const response = await request(app("ADMIN", analyticsService))
+      .get("/api/v1/admin/analytics/overview")
+      .query({ from: "2026-09-01", to: "2026-09-30", timezone: "Europe/Kyiv" })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(analyticsService.getOverview).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      timezone: "Europe/Kyiv",
+    });
+    expect(response.body.data.users.active).toBe(1);
+  });
+
   it("allows ADMIN and passes validated period", async () => {
     const analyticsService = service();
     const response = await request(app("ADMIN", analyticsService))

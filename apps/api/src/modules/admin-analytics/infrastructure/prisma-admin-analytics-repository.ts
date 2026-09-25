@@ -2,6 +2,7 @@ import { Prisma, type DatabaseClient } from "@mealmind/db";
 
 import type {
   AdminAnalyticsRepository,
+  OverviewAnalyticsSnapshot,
   ProductsAnalyticsSnapshot,
   RecipesAnalyticsSnapshot,
   UsersAnalyticsSnapshot,
@@ -40,6 +41,59 @@ export function createPrismaAdminAnalyticsRepository(
   database: DatabaseClient,
 ): AdminAnalyticsRepository {
   return Object.freeze({
+    async getOverview(period: ResolvedAnalyticsPeriod): Promise<OverviewAnalyticsSnapshot> {
+      const timestampRange = createdAtRange(period.from, addOneDay(period.to), period.timezone);
+      const dateRange = {
+        gte: new Date(`${period.from}T00:00:00.000Z`),
+        lt: new Date(`${addOneDay(period.to)}T00:00:00.000Z`),
+      };
+      const [
+        activeUsers,
+        createdUsers,
+        activeFamilies,
+        createdFamilies,
+        productsTotal,
+        productsAwaitingVerification,
+        recipesTotal,
+        recipeDrafts,
+        scheduledMealPlans,
+        completedCookingSessions,
+        confirmedConsumptionEntries,
+      ] = await Promise.all([
+        database.user.count({ where: { deletedAt: null } }),
+        database.user.count({ where: { createdAt: timestampRange } }),
+        database.family.count({ where: { archivedAt: null } }),
+        database.family.count({ where: { createdAt: timestampRange } }),
+        database.product.count(),
+        database.product.count({
+          where: { archivedAt: null, status: { not: "ARCHIVED" }, verificationStatus: "UNVERIFIED" },
+        }),
+        database.recipe.count(),
+        database.recipe.count({ where: { archivedAt: null, status: "DRAFT" } }),
+        database.mealPlan.count({ where: { weekStart: dateRange } }),
+        database.cookingSession.count({
+          where: { status: "COMPLETED", completedAt: timestampRange },
+        }),
+        database.consumptionEntry.count({
+          where: { status: "CONFIRMED", consumedAt: timestampRange },
+        }),
+      ]);
+
+      return Object.freeze({
+        users: Object.freeze({ active: activeUsers, created: createdUsers }),
+        families: Object.freeze({ active: activeFamilies, created: createdFamilies }),
+        products: Object.freeze({
+          total: productsTotal,
+          awaitingVerification: productsAwaitingVerification,
+        }),
+        recipes: Object.freeze({ total: recipesTotal, drafts: recipeDrafts }),
+        activity: Object.freeze({
+          scheduledMealPlans,
+          completedCookingSessions,
+          confirmedConsumptionEntries,
+        }),
+      });
+    },
     async getUsers(period: ResolvedAnalyticsPeriod): Promise<UsersAnalyticsSnapshot> {
       const currentRange = createdAtRange(period.from, addOneDay(period.to), period.timezone);
       const previousRange = createdAtRange(period.previousFrom, period.from, period.timezone);

@@ -24,6 +24,19 @@ export interface AnalyticsMeta {
   readonly generatedAt: string;
 }
 
+export interface OverviewAnalytics {
+  readonly meta: AnalyticsMeta;
+  readonly users: { readonly active: number; readonly created: number };
+  readonly families: { readonly active: number; readonly created: number };
+  readonly products: { readonly total: number; readonly awaitingVerification: number };
+  readonly recipes: { readonly total: number; readonly drafts: number };
+  readonly activity: {
+    readonly scheduledMealPlans: number;
+    readonly completedCookingSessions: number;
+    readonly confirmedConsumptionEntries: number;
+  };
+}
+
 export interface ComparisonMetric {
   readonly value: number;
   readonly previousValue: number;

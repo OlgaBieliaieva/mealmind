@@ -56,6 +56,7 @@ export const referencesAnalyticsSchema = z.object({
 
 export const productsAnalyticsSchema = usersAnalyticsSchema;
 export const recipesAnalyticsSchema = usersAnalyticsSchema;
+export const overviewAnalyticsSchema = usersAnalyticsSchema;
 
 function validDate(value: string): Date | null {
   const parsed = new Date(`${value}T00:00:00.000Z`);

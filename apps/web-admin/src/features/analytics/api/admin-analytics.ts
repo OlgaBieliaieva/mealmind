@@ -16,6 +16,19 @@ export interface ComparisonMetric {
   readonly deltaPercent: number | null;
 }
 
+export interface OverviewAnalytics {
+  readonly meta: UsersAnalytics["meta"];
+  readonly users: { readonly active: number; readonly created: number };
+  readonly families: { readonly active: number; readonly created: number };
+  readonly products: { readonly total: number; readonly awaitingVerification: number };
+  readonly recipes: { readonly total: number; readonly drafts: number };
+  readonly activity: {
+    readonly scheduledMealPlans: number;
+    readonly completedCookingSessions: number;
+    readonly confirmedConsumptionEntries: number;
+  };
+}
+
 export interface UsersAnalytics {
   readonly meta: {
     readonly from: string;
@@ -157,11 +170,15 @@ interface CompletionMetric {
   readonly percent: number | null;
 }
 
+export function getOverviewAnalytics(apiClient: ApiClient, parameters: AnalyticsPeriodParameters) {
+  const query = analyticsQuery(parameters);
+  return apiClient.get<{ readonly data: OverviewAnalytics }>(
+    `/api/v1/admin/analytics/overview${query.size === 0 ? "" : `?${query.toString()}`}`,
+  );
+}
+
 export function getUsersAnalytics(apiClient: ApiClient, parameters: AnalyticsPeriodParameters) {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(parameters)) {
-    if (value !== undefined) query.set(key, value);
-  }
+  const query = analyticsQuery(parameters);
   return apiClient.get<{ readonly data: UsersAnalytics }>(
     `/api/v1/admin/analytics/users${query.size === 0 ? "" : `?${query.toString()}`}`,
   );
@@ -174,21 +191,23 @@ export function getReferencesAnalytics(apiClient: ApiClient) {
 }
 
 export function getProductsAnalytics(apiClient: ApiClient, parameters: AnalyticsPeriodParameters) {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(parameters)) {
-    if (value !== undefined) query.set(key, value);
-  }
+  const query = analyticsQuery(parameters);
   return apiClient.get<{ readonly data: ProductsAnalytics }>(
     `/api/v1/admin/analytics/products${query.size === 0 ? "" : `?${query.toString()}`}`,
   );
 }
 
 export function getRecipesAnalytics(apiClient: ApiClient, parameters: AnalyticsPeriodParameters) {
+  const query = analyticsQuery(parameters);
+  return apiClient.get<{ readonly data: RecipesAnalytics }>(
+    `/api/v1/admin/analytics/recipes${query.size === 0 ? "" : `?${query.toString()}`}`,
+  );
+}
+
+function analyticsQuery(parameters: AnalyticsPeriodParameters) {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
     if (value !== undefined) query.set(key, value);
   }
-  return apiClient.get<{ readonly data: RecipesAnalytics }>(
-    `/api/v1/admin/analytics/recipes${query.size === 0 ? "" : `?${query.toString()}`}`,
-  );
+  return query;
 }
