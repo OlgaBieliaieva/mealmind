@@ -32,6 +32,7 @@ export function UsersAnalyticsPage() {
           <h1 id="users-analytics-title">Користувачі та сім’ї</h1>
           <p className="admin-page__description">
             Поточний стан облікових записів, сімей і профілів та історична динаміка їх створення.
+            ADMIN-акаунти й створені ними сім’ї не входять до user/family показників.
           </p>
         </div>
         <AnalyticsPeriodFilter />
@@ -59,7 +60,7 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
         <div className="analytics-section-heading">
           <div>
             <h2 id="users-state-title">Поточний стан</h2>
-            <p>Активні записи не включають логічно видалені або архівні.</p>
+            <p>Активні записи не включають логічно видалені, архівні або ADMIN-сутності.</p>
           </div>
         </div>
         <div className="analytics-metric-grid">
@@ -67,13 +68,13 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
             label="Активні користувачі"
             value={integer.format(analytics.totals.activeUsers)}
             secondary={`Видалені: ${integer.format(analytics.totals.deletedUsers)}`}
-            description="Облікові записи з deletedAt = null."
+            description="Облікові записи з роллю USER і deletedAt = null."
           />
           <MetricCard
             label="Активні сім’ї"
             value={integer.format(analytics.totals.activeFamilies)}
             secondary={`Архівні: ${integer.format(analytics.totals.archivedFamilies)}`}
-            description="Сім’ї з archivedAt = null."
+            description="Неархівні сім’ї, створені користувачами з роллю USER."
           />
           <MetricCard
             label="Активні профілі"
@@ -94,19 +95,21 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
         <div className="analytics-section-heading">
           <div>
             <h2 id="family-structure-title">Структура сімей</h2>
-            <p>Середні значення враховують усі активні сім’ї, включно з порожніми.</p>
+            <p>
+              Середні значення враховують активні сім’ї USER-акаунтів, включно з порожніми.
+            </p>
           </div>
         </div>
         <div className="analytics-metric-grid analytics-metric-grid--compact">
           <MetricCard
             label="Користувачів на сім’ю"
             value={nullableDecimal(analytics.averages.activeUsersPerFamily)}
-            description="Лише ACTIVE memberships активних користувачів."
+            description="ACTIVE memberships користувачів із роллю USER у врахованих сім’ях."
           />
           <MetricCard
             label="Профілів на сім’ю"
             value={nullableDecimal(analytics.averages.activeProfilesPerFamily)}
-            description="Лише неархівовані FamilyMember і PersonProfile."
+            description="Неархівовані FamilyMember і PersonProfile у врахованих сім’ях."
           />
           <MetricCard
             label="Заповнені профілі"
@@ -129,13 +132,13 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
             label="Користувачі"
             value={integer.format(analytics.created.users.value)}
             secondary={comparison(analytics.created.users)}
-            description="Історичні створення, включно із записами, видаленими пізніше."
+            description="Лише роль USER; включає записи, видалені пізніше."
           />
           <MetricCard
             label="Сім’ї"
             value={integer.format(analytics.created.families.value)}
             secondary={comparison(analytics.created.families)}
-            description="Історичні створення, включно із сім’ями, архівованими пізніше."
+            description="Сім’ї USER-акаунтів, включно з архівованими пізніше."
           />
           <MetricCard
             label="Профілі"
@@ -147,7 +150,8 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
         <Card>
           <h3>Динаміка створення</h3>
           <p className="analytics-card-description">
-            Графік показує історичні події. Архівування або видалення не переписує минулі періоди.
+            Графік показує історичні події без ADMIN-акаунтів та їхніх сімей. Архівування або
+            видалення не переписує минулі періоди.
           </p>
           <UsersTimeSeriesChart series={analytics.series} />
         </Card>

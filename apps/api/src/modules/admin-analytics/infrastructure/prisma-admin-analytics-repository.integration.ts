@@ -19,6 +19,7 @@ const repository = createPrismaAdminAnalyticsRepository(database);
 const userIds: string[] = [];
 const profileIds: string[] = [];
 let familyId: string | undefined;
+let regularFamilyId: string | undefined;
 let productId: string | undefined;
 let recipeId: string | undefined;
 let authorId: string | undefined;
@@ -43,6 +44,15 @@ try {
     },
   });
   userIds.push(previousUser.id);
+  const regularCurrentUser = await database.user.create({
+    data: {
+      externalSubject: randomUUID(),
+      email: `analytics-${randomUUID()}@example.test`,
+      onboardingCompletedAt: new Date("2099-09-05T10:00:00Z"),
+      createdAt: new Date("2099-09-05T10:00:00Z"),
+    },
+  });
+  userIds.push(regularCurrentUser.id);
 
   const currentProfile = await database.personProfile.create({
     data: {
@@ -64,6 +74,17 @@ try {
     },
   });
   familyId = family.id;
+  const regularFamily = await database.family.create({
+    data: {
+      name: "Regular analytics integration family",
+      createdByUserId: regularCurrentUser.id,
+      createdAt: new Date("2099-09-06T10:00:00Z"),
+      memberships: {
+        create: { userId: regularCurrentUser.id, status: "ACTIVE", role: "OWNER" },
+      },
+    },
+  });
+  regularFamilyId = regularFamily.id;
 
   const category = await database.productCategory.findFirstOrThrow({
     where: { isActive: true, isAssignable: true },
@@ -146,8 +167,17 @@ try {
     granularity: "day",
     timezone: "Europe/Kyiv",
   });
-  assert.equal(overview.users.active >= 1, true);
+  assert.equal(
+    overview.users.active,
+    await database.user.count({ where: { applicationRole: "USER", deletedAt: null } }),
+  );
   assert.equal(overview.users.created, 1);
+  assert.equal(
+    overview.families.active,
+    await database.family.count({
+      where: { creator: { is: { applicationRole: "USER" } }, archivedAt: null },
+    }),
+  );
   assert.equal(overview.families.created, 1);
   assert.equal(overview.products.awaitingVerification >= 1, true);
   assert.equal(overview.recipes.drafts >= 1, true);
@@ -166,9 +196,36 @@ try {
   assert.equal(result.currentCreatedFamilies, 1);
   assert.equal(result.currentCreatedProfiles, 1);
   assert.equal(result.series.length, 7);
-  assert.equal(result.series.find((point) => point.period === "2099-09-02")?.users, 1);
-  assert.equal(result.activeMemberships >= 1, true);
-  assert.equal(result.activeFamilyMembers >= 1, true);
+  assert.equal(result.series.find((point) => point.period === "2099-09-02")?.users, 0);
+  assert.equal(result.series.find((point) => point.period === "2099-09-05")?.users, 1);
+  assert.equal(result.series.find((point) => point.period === "2099-09-03")?.families, 0);
+  assert.equal(result.series.find((point) => point.period === "2099-09-06")?.families, 1);
+  assert.equal(
+    result.activeMemberships,
+    await database.familyMembership.count({
+      where: {
+        status: "ACTIVE",
+        user: { applicationRole: "USER", deletedAt: null },
+        family: {
+          archivedAt: null,
+          creator: { is: { applicationRole: "USER" } },
+        },
+      },
+    }),
+  );
+  assert.equal(
+    result.activeFamilyMembers,
+    await database.familyMember.count({
+      where: {
+        archivedAt: null,
+        personProfile: { archivedAt: null },
+        family: {
+          archivedAt: null,
+          creator: { is: { applicationRole: "USER" } },
+        },
+      },
+    }),
+  );
 
   const products = await repository.getProducts(
     {
@@ -215,6 +272,9 @@ try {
   console.info("Admin analytics repository PostgreSQL integration test passed.");
 } finally {
   if (familyId !== undefined) await database.family.deleteMany({ where: { id: familyId } });
+  if (regularFamilyId !== undefined) {
+    await database.family.deleteMany({ where: { id: regularFamilyId } });
+  }
   if (recipeId !== undefined) await database.recipe.deleteMany({ where: { id: recipeId } });
   if (productId !== undefined) await database.product.deleteMany({ where: { id: productId } });
   if (authorId !== undefined) await database.author.deleteMany({ where: { id: authorId } });

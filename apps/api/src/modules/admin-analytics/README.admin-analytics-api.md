@@ -58,8 +58,9 @@ GET /api/v1/admin/analytics/references
 
 All-time/current показники:
 
-- активні користувачі — `User.deletedAt IS NULL`;
-- активні сім’ї — `Family.archivedAt IS NULL`;
+- активні користувачі — `User.applicationRole = USER` і `User.deletedAt IS NULL`;
+- активні сім’ї — створені користувачем із `applicationRole = USER` та
+  `Family.archivedAt IS NULL`;
 - усі продукти й рецепти — включно з архівними;
 - продукти без перевірки — лише неархівні, не `ARCHIVED`, зі статусом
   `UNVERIFIED`;
@@ -71,10 +72,13 @@ All-time/current показники:
 
 ### Користувачі та сім’ї
 
-Поточні totals окремо показують active/deleted або active/archived записи для
-`User`, `Family` і `PersonProfile`. Completion та averages рахуються лише на
-активній базі. Creation comparisons і series є історичними: пізніше видалений
-або архівований запис не зникає з періоду створення.
+User totals, onboarding і creation series враховують лише облікові записи з
+`applicationRole = USER`. Family totals, averages і creation series враховують
+лише сім’ї, створені таким користувачем; ADMIN-акаунт і створена ним технічна
+сім’я не спотворюють продуктову статистику. `PersonProfile` залишається окремою
+метрикою людей і не фільтрується за роллю акаунта. Completion та averages
+рахуються лише на активній базі. Creation comparisons і series є історичними:
+пізніше видалений або архівований запис не зникає з періоду створення.
 
 ### Продукти
 
