@@ -95,9 +95,7 @@ function UsersAnalyticsContent({ analytics }: { readonly analytics: UsersAnalyti
         <div className="analytics-section-heading">
           <div>
             <h2 id="family-structure-title">Структура сімей</h2>
-            <p>
-              Середні значення враховують активні сім’ї USER-акаунтів, включно з порожніми.
-            </p>
+            <p>Середні значення враховують активні сім’ї USER-акаунтів, включно з порожніми.</p>
           </div>
         </div>
         <div className="analytics-metric-grid analytics-metric-grid--compact">
