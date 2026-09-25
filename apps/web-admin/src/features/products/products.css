@@ -90,6 +90,41 @@
   background: #f5e8e8;
 }
 
+.product-verification {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.product-verification::before {
+  width: 0.625rem;
+  height: 0.625rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.product-verification--unverified {
+  color: #7a5300;
+  background: #fff3cd;
+}
+
+.product-verification--verified {
+  color: #165b2c;
+  background: #e4f4e8;
+}
+
+.product-verification--rejected {
+  color: #8a2525;
+  background: #fbe5e5;
+}
+
 .product-pagination,
 .product-form__actions {
   display: flex;

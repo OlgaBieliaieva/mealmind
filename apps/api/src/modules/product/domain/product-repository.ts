@@ -167,6 +167,7 @@ export interface ProductSummary {
   readonly sourceProvider: ProductSourceProvider | null;
   readonly sourceDataset: ProductSourceDataset | null;
   readonly status: ProductStatus;
+  readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
   readonly updatedAt: string;
   readonly primaryMedia: ProductMediaRecord | null;
 }

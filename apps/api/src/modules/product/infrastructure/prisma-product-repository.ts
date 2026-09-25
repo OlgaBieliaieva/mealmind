@@ -474,6 +474,7 @@ function mapProductSummary(row: ProductRow): ProductSummary {
     sourceProvider: details.sourceProvider,
     sourceDataset: details.sourceDataset,
     status: details.status,
+    verificationStatus: details.verificationStatus,
     updatedAt: details.updatedAt,
     primaryMedia,
   });

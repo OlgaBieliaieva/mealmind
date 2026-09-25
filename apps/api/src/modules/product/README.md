@@ -2,6 +2,8 @@
 
 Модуль володіє адміністративним lifecycle generic/branded продуктів, nutrients, portions і фото.
 Назовні він повертає domain contracts без Prisma-моделей і службових storage credentials.
+Адміністративний list contract повертає для кожного продукту як lifecycle `status`,
+так і `verificationStatus`, щоб каталог міг явно показувати стан перевірки.
 
 ## Інваріанти продукту
 

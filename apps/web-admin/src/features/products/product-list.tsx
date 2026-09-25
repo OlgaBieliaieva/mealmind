@@ -20,6 +20,7 @@ import {
   PRODUCT_FOOD_STATE_LABELS,
   PRODUCT_STATUS_LABELS,
   PRODUCT_TYPE_LABELS,
+  PRODUCT_VERIFICATION_STATUS_LABELS,
 } from "./product-labels";
 
 const PAGE_SIZE = 20;
@@ -224,6 +225,7 @@ export function ProductList() {
                   <th scope="col">Категорія</th>
                   <th scope="col">Бренд / GTIN</th>
                   <th scope="col">Статус</th>
+                  <th scope="col">Верифікація</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,6 +261,13 @@ export function ProductList() {
                         className={`product-status product-status--${product.status.toLowerCase()}`}
                       >
                         {PRODUCT_STATUS_LABELS[product.status]}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`product-verification product-verification--${product.verificationStatus.toLowerCase()}`}
+                      >
+                        {PRODUCT_VERIFICATION_STATUS_LABELS[product.verificationStatus]}
                       </span>
                     </td>
                   </tr>

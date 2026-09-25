@@ -174,6 +174,12 @@ try {
   assert.equal(page.items.length, 1);
   assert.ok(page.total >= 2);
 
+  const verifiedPage = await repository.list({ search: generic.nameEn, page: 1, pageSize: 20 });
+  assert.equal(
+    verifiedPage.items.find((item) => item.id === generic.id)?.verificationStatus,
+    "VERIFIED",
+  );
+
   console.info("Product repository PostgreSQL integration test passed.");
 } finally {
   if (createdProductIds.length > 0) {

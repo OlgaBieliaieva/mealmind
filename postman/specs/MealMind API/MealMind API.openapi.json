@@ -695,6 +695,7 @@
     "/api/v1/admin/products": {
       "get": {
         "summary": "Переглянути й відфільтрувати продукти",
+        "description": "Повертає lifecycle status і verificationStatus для відображення стану перевірки кожного продукту в адміністративному каталозі.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "search", "in": "query", "schema": { "type": "string", "maxLength": 120 } },
@@ -753,7 +754,38 @@
           }
         ],
         "responses": {
-          "200": { "description": "Сторінка продуктів із серверною пагінацією" },
+          "200": {
+            "description": "Сторінка продуктів із серверною пагінацією",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": ["items"],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/ProductSummary" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "required": ["page", "pageSize", "total"],
+                      "properties": {
+                        "page": { "type": "integer", "minimum": 1 },
+                        "pageSize": { "type": "integer", "minimum": 1 },
+                        "total": { "type": "integer", "minimum": 0 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "400": { "description": "Запит не пройшов валідацію або domain invariant" },
           "401": { "$ref": "#/components/responses/AuthenticationRequired" },
           "403": { "$ref": "#/components/responses/AdminRequired" },
@@ -4054,6 +4086,52 @@
               }
             }
           }
+        }
+      },
+      "ProductSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "nameEn",
+          "nameUa",
+          "gtin",
+          "categoryId",
+          "categoryName",
+          "brandId",
+          "brandName",
+          "sourceProvider",
+          "sourceDataset",
+          "status",
+          "verificationStatus",
+          "updatedAt",
+          "primaryMedia"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["GENERIC", "BRANDED"] },
+          "nameEn": { "type": "string" },
+          "nameUa": { "type": ["string", "null"] },
+          "gtin": { "type": ["string", "null"] },
+          "categoryId": { "type": "string", "format": "uuid" },
+          "categoryName": { "type": "string" },
+          "brandId": { "type": ["string", "null"], "format": "uuid" },
+          "brandName": { "type": ["string", "null"] },
+          "sourceProvider": {
+            "type": ["string", "null"],
+            "enum": ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER", null]
+          },
+          "sourceDataset": {
+            "type": ["string", "null"],
+            "enum": ["FOUNDATION_FOOD", "SR_LEGACY", "ADMIN_CATALOG", "USER_CATALOG", null]
+          },
+          "status": { "type": "string", "enum": ["DRAFT", "ACTIVE", "ARCHIVED"] },
+          "verificationStatus": {
+            "type": "string",
+            "enum": ["UNVERIFIED", "VERIFIED", "REJECTED"]
+          },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "primaryMedia": { "type": ["object", "null"], "additionalProperties": true }
         }
       },
       "ProductSearchItem": {
