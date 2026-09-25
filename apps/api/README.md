@@ -131,6 +131,22 @@ pipeline, який вимагає активний локальний account. S
 snapshot policy, atomic replacement semantics і status model описані у
 `src/modules/recipe/README.md`.
 
+## Адміністративна аналітика
+
+Read-only маршрути `/api/v1/admin/analytics/*` доступні лише користувачам із
+`ApplicationRole.ADMIN`. Реалізовані загальний огляд, користувачі та сім’ї,
+продукти, рецепти й довідники. Періодичні endpoints підтримують preset/custom
+діапазони через `from`, `to`, `granularity` і IANA `timezone`.
+
+Dashboard повертає лише агреговані значення без email, персональних nutrition
+details або family diary content. Семантика active/archive, історичних series,
+creator origin, primary product source і drill-down фільтрів описана у
+`src/modules/admin-analytics/README.admin-analytics-api.md` та OpenAPI contract.
+
+Для перевірки Prisma-агрегацій використовується окрема команда
+`npm run api:test:admin-analytics:db` після підготовки локальної ізольованої бази
+`mealmind_test`.
+
 ## Завершення роботи
 
 API обробляє сигнали `SIGTERM` і `SIGINT`.

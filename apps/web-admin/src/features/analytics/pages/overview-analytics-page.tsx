@@ -60,10 +60,30 @@ function OverviewContent({ analytics }: { readonly analytics: OverviewAnalytics 
           </div>
         </div>
         <div className="analytics-metric-grid">
-          <MetricLink href="/analytics/users" label="Активні користувачі" value={analytics.users.active} description="Облікові записи з deletedAt = null." />
-          <MetricLink href="/analytics/users" label="Нові користувачі" value={analytics.users.created} description="Створені за період, навіть якщо їх видалили пізніше." />
-          <MetricLink href="/analytics/users" label="Активні сім’ї" value={analytics.families.active} description="Сім’ї з archivedAt = null." />
-          <MetricLink href="/analytics/users" label="Нові сім’ї" value={analytics.families.created} description="Створені за період, навіть якщо їх архівували пізніше." />
+          <MetricLink
+            href="/analytics/users"
+            label="Активні користувачі"
+            value={analytics.users.active}
+            description="Облікові записи з deletedAt = null."
+          />
+          <MetricLink
+            href="/analytics/users"
+            label="Нові користувачі"
+            value={analytics.users.created}
+            description="Створені за період, навіть якщо їх видалили пізніше."
+          />
+          <MetricLink
+            href="/analytics/users"
+            label="Активні сім’ї"
+            value={analytics.families.active}
+            description="Сім’ї з archivedAt = null."
+          />
+          <MetricLink
+            href="/analytics/users"
+            label="Нові сім’ї"
+            value={analytics.families.created}
+            description="Створені за період, навіть якщо їх архівували пізніше."
+          />
         </div>
       </section>
 
@@ -75,10 +95,30 @@ function OverviewContent({ analytics }: { readonly analytics: OverviewAnalytics 
           </div>
         </div>
         <div className="analytics-metric-grid">
-          <MetricLink href="/analytics/products" label="Продукти" value={analytics.products.total} description="Усі продукти за весь час, включно з архівними." />
-          <MetricLink href="/products?includeArchived=false&verificationStatus=UNVERIFIED" label="Очікують перевірки" value={analytics.products.awaitingVerification} description="Неархівні продукти зі статусом UNVERIFIED." />
-          <MetricLink href="/analytics/recipes" label="Рецепти" value={analytics.recipes.total} description="Усі рецепти за весь час, включно з архівними." />
-          <MetricLink href="/recipes?includeArchived=false&status=DRAFT" label="Чернетки рецептів" value={analytics.recipes.drafts} description="Неархівні рецепти зі статусом DRAFT." />
+          <MetricLink
+            href="/analytics/products"
+            label="Продукти"
+            value={analytics.products.total}
+            description="Усі продукти за весь час, включно з архівними."
+          />
+          <MetricLink
+            href="/products?includeArchived=false&verificationStatus=UNVERIFIED"
+            label="Очікують перевірки"
+            value={analytics.products.awaitingVerification}
+            description="Неархівні продукти зі статусом UNVERIFIED."
+          />
+          <MetricLink
+            href="/analytics/recipes"
+            label="Рецепти"
+            value={analytics.recipes.total}
+            description="Усі рецепти за весь час, включно з архівними."
+          />
+          <MetricLink
+            href="/recipes?includeArchived=false&status=DRAFT"
+            label="Чернетки рецептів"
+            value={analytics.recipes.drafts}
+            description="Неархівні рецепти зі статусом DRAFT."
+          />
         </div>
       </section>
 
@@ -86,20 +126,44 @@ function OverviewContent({ analytics }: { readonly analytics: OverviewAnalytics 
         <div className="analytics-section-heading">
           <div>
             <h2 id="overview-activity-title">Активність</h2>
-            <p>Події в межах {period}; календарні дати інтерпретуються у {analytics.meta.timezone}.</p>
+            <p>
+              Події в межах {period}; календарні дати інтерпретуються у {analytics.meta.timezone}.
+            </p>
           </div>
         </div>
         <div className="analytics-metric-grid analytics-metric-grid--compact">
-          <MetricCard label="Заплановані тижні" value={integer.format(analytics.activity.scheduledMealPlans)} description="MealPlan, дата початку тижня якого входить у період." />
-          <MetricCard label="Завершені приготування" value={integer.format(analytics.activity.completedCookingSessions)} description="CookingSession зі статусом COMPLETED і completedAt у періоді." />
-          <MetricCard label="Підтверджені споживання" value={integer.format(analytics.activity.confirmedConsumptionEntries)} description="ConsumptionEntry зі статусом CONFIRMED і consumedAt у періоді." />
+          <MetricCard
+            label="Заплановані тижні"
+            value={integer.format(analytics.activity.scheduledMealPlans)}
+            description="MealPlan, дата початку тижня якого входить у період."
+          />
+          <MetricCard
+            label="Завершені приготування"
+            value={integer.format(analytics.activity.completedCookingSessions)}
+            description="CookingSession зі статусом COMPLETED і completedAt у періоді."
+          />
+          <MetricCard
+            label="Підтверджені споживання"
+            value={integer.format(analytics.activity.confirmedConsumptionEntries)}
+            description="ConsumptionEntry зі статусом CONFIRMED і consumedAt у періоді."
+          />
         </div>
       </section>
     </div>
   );
 }
 
-function MetricLink({ href, label, value, description }: { readonly href: string; readonly label: string; readonly value: number; readonly description: string }) {
+function MetricLink({
+  href,
+  label,
+  value,
+  description,
+}: {
+  readonly href: string;
+  readonly label: string;
+  readonly value: number;
+  readonly description: string;
+}) {
   return (
     <Link className="analytics-action-metric" href={href}>
       <MetricCard label={label} value={integer.format(value)} description={description} />
@@ -109,5 +173,7 @@ function MetricLink({ href, label, value, description }: { readonly href: string
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00Z`));
+  return new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium" }).format(
+    new Date(`${value}T00:00:00Z`),
+  );
 }

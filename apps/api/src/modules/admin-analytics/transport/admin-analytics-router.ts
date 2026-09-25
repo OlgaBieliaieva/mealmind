@@ -15,7 +15,13 @@ export function createAdminAnalyticsRouter(
   const limiter = rateLimit(createApiRateLimitOptions());
   const authenticated = authenticate(authenticationService);
 
-  router.get("/admin/analytics/overview", limiter, authenticated, requireAdmin, controller.overview);
+  router.get(
+    "/admin/analytics/overview",
+    limiter,
+    authenticated,
+    requireAdmin,
+    controller.overview,
+  );
   router.get("/admin/analytics/users", limiter, authenticated, requireAdmin, controller.users);
   router.get(
     "/admin/analytics/products",
