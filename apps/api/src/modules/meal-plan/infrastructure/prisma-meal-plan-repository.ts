@@ -1896,8 +1896,6 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                   where: {
                     mealPlanId: plan.id,
 
-                    removedAt: null,
-
                     date: new Date(input.date + "T00:00:00.000Z"),
 
                     mealTypeId: input.mealTypeId,
