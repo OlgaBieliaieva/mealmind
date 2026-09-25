@@ -56,7 +56,10 @@ function OverviewContent({ analytics }: { readonly analytics: OverviewAnalytics 
         <div className="analytics-section-heading">
           <div>
             <h2 id="overview-audience-title">Користувачі та сім’ї</h2>
-            <p>Поточна активна база та історичні створення за період {period}.</p>
+            <p>
+              Поточна активна база та історичні створення за період {period}. ADMIN-акаунти й
+              створені ними сім’ї не враховуються.
+            </p>
           </div>
         </div>
         <div className="analytics-metric-grid">
@@ -64,25 +67,25 @@ function OverviewContent({ analytics }: { readonly analytics: OverviewAnalytics 
             href="/analytics/users"
             label="Активні користувачі"
             value={analytics.users.active}
-            description="Облікові записи з deletedAt = null."
+            description="Облікові записи з роллю USER і deletedAt = null."
           />
           <MetricLink
             href="/analytics/users"
             label="Нові користувачі"
             value={analytics.users.created}
-            description="Створені за період, навіть якщо їх видалили пізніше."
+            description="Роль USER; включає записи, видалені пізніше."
           />
           <MetricLink
             href="/analytics/users"
             label="Активні сім’ї"
             value={analytics.families.active}
-            description="Сім’ї з archivedAt = null."
+            description="Неархівні сім’ї, створені користувачами з роллю USER."
           />
           <MetricLink
             href="/analytics/users"
             label="Нові сім’ї"
             value={analytics.families.created}
-            description="Створені за період, навіть якщо їх архівували пізніше."
+            description="Створені USER-акаунтами; включає архівовані пізніше."
           />
         </div>
       </section>

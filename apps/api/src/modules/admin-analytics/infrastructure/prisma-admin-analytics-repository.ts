@@ -37,6 +37,11 @@ interface RecipeAuthorTypeRow {
   readonly value: bigint;
 }
 
+const regularUserWhere = { applicationRole: "USER" as const };
+const regularFamilyWhere = {
+  creator: { is: { applicationRole: "USER" as const } },
+};
+
 export function createPrismaAdminAnalyticsRepository(
   database: DatabaseClient,
 ): AdminAnalyticsRepository {
@@ -60,10 +65,10 @@ export function createPrismaAdminAnalyticsRepository(
         completedCookingSessions,
         confirmedConsumptionEntries,
       ] = await Promise.all([
-        database.user.count({ where: { deletedAt: null } }),
-        database.user.count({ where: { createdAt: timestampRange } }),
-        database.family.count({ where: { archivedAt: null } }),
-        database.family.count({ where: { createdAt: timestampRange } }),
+        database.user.count({ where: { ...regularUserWhere, deletedAt: null } }),
+        database.user.count({ where: { ...regularUserWhere, createdAt: timestampRange } }),
+        database.family.count({ where: { ...regularFamilyWhere, archivedAt: null } }),
+        database.family.count({ where: { ...regularFamilyWhere, createdAt: timestampRange } }),
         database.product.count(),
         database.product.count({
           where: {
@@ -121,32 +126,40 @@ export function createPrismaAdminAnalyticsRepository(
         previousCreatedProfiles,
         series,
       ] = await Promise.all([
-        database.user.count({ where: { deletedAt: null } }),
-        database.user.count({ where: { deletedAt: { not: null } } }),
-        database.family.count({ where: { archivedAt: null } }),
-        database.family.count({ where: { archivedAt: { not: null } } }),
+        database.user.count({ where: { ...regularUserWhere, deletedAt: null } }),
+        database.user.count({ where: { ...regularUserWhere, deletedAt: { not: null } } }),
+        database.family.count({ where: { ...regularFamilyWhere, archivedAt: null } }),
+        database.family.count({ where: { ...regularFamilyWhere, archivedAt: { not: null } } }),
         database.personProfile.count({ where: { archivedAt: null } }),
         database.personProfile.count({ where: { archivedAt: { not: null } } }),
         database.user.count({
-          where: { deletedAt: null, onboardingCompletedAt: { not: null } },
+          where: {
+            ...regularUserWhere,
+            deletedAt: null,
+            onboardingCompletedAt: { not: null },
+          },
         }),
         database.personProfile.count({
           where: { archivedAt: null, profileCompletedAt: { not: null } },
         }),
         database.familyMembership.count({
-          where: { status: "ACTIVE", family: { archivedAt: null }, user: { deletedAt: null } },
+          where: {
+            status: "ACTIVE",
+            family: { archivedAt: null, ...regularFamilyWhere },
+            user: { ...regularUserWhere, deletedAt: null },
+          },
         }),
         database.familyMember.count({
           where: {
             archivedAt: null,
-            family: { archivedAt: null },
+            family: { archivedAt: null, ...regularFamilyWhere },
             personProfile: { archivedAt: null },
           },
         }),
-        database.user.count({ where: { createdAt: currentRange } }),
-        database.user.count({ where: { createdAt: previousRange } }),
-        database.family.count({ where: { createdAt: currentRange } }),
-        database.family.count({ where: { createdAt: previousRange } }),
+        database.user.count({ where: { ...regularUserWhere, createdAt: currentRange } }),
+        database.user.count({ where: { ...regularUserWhere, createdAt: previousRange } }),
+        database.family.count({ where: { ...regularFamilyWhere, createdAt: currentRange } }),
+        database.family.count({ where: { ...regularFamilyWhere, createdAt: previousRange } }),
         database.personProfile.count({ where: { createdAt: currentRange } }),
         database.personProfile.count({ where: { createdAt: previousRange } }),
         usersSeries(database, period),
@@ -851,9 +864,14 @@ async function usersSeries(
       ) AS bucket
       FROM parameters
     ), events AS (
-      SELECT created_at, 'users'::text AS kind FROM users
+      SELECT created_at, 'users'::text AS kind
+      FROM users
+      WHERE application_role = 'user'
       UNION ALL
-      SELECT created_at, 'families'::text AS kind FROM families
+      SELECT families.created_at, 'families'::text AS kind
+      FROM families
+      INNER JOIN users AS family_creators ON family_creators.id = families.created_by_user_id
+      WHERE family_creators.application_role = 'user'
       UNION ALL
       SELECT created_at, 'profiles'::text AS kind FROM person_profiles
     )

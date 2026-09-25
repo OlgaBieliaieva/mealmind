@@ -50,7 +50,10 @@ Overview, Users, Products і Recipes мають спільний filter:
 
 Показує active/deleted/archived totals, onboarding/profile completion, середню
 кількість active users і profiles на сім’ю, comparison із попереднім періодом і
-time-series створення.
+time-series створення. User-показники враховують лише роль `USER`, а
+family-показники — лише сім’ї, створені користувачами з цією роллю. ADMIN-акаунти
+та створені ними технічні сім’ї до продуктової статистики не входять;
+`PersonProfile` залишається окремою метрикою людей.
 
 ### Продукти
 
