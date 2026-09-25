@@ -35,6 +35,7 @@ describe("ProductForm", () => {
     expect(screen.getByRole("combobox", { name: "Базовий generic-продукт" })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Сканувати штрихкод" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Створити новий бренд" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Статус перевірки" })).toHaveValue("UNVERIFIED");
     await validateRenderedUi(container);
   });
 

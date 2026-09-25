@@ -28,6 +28,7 @@ try {
     data: {
       externalSubject: randomUUID(),
       email: `analytics-${randomUUID()}@example.test`,
+      applicationRole: "ADMIN",
       onboardingCompletedAt: new Date("2099-09-02T10:00:00Z"),
       createdAt: new Date("2099-09-02T10:00:00Z"),
     },
@@ -199,7 +200,7 @@ try {
   assert.equal(recipes.currentCreated >= 1, true);
   assert.equal(recipes.drafts >= 1, true);
   assert.equal(recipes.familyOnly >= 1, true);
-  assert.equal(recipes.creatorOrigins.USER >= 1, true);
+  assert.equal(recipes.creatorOrigins.SYSTEM >= 1, true);
   assert.equal(
     recipes.favorites.some((item) => item.id === recipe.id),
     true,

@@ -66,7 +66,11 @@ export function createPrismaAdminAnalyticsRepository(
         database.family.count({ where: { createdAt: timestampRange } }),
         database.product.count(),
         database.product.count({
-          where: { archivedAt: null, status: { not: "ARCHIVED" }, verificationStatus: "UNVERIFIED" },
+          where: {
+            archivedAt: null,
+            status: { not: "ARCHIVED" },
+            verificationStatus: "UNVERIFIED",
+          },
         }),
         database.recipe.count(),
         database.recipe.count({ where: { archivedAt: null, status: "DRAFT" } }),
@@ -294,8 +298,17 @@ export function createPrismaAdminAnalyticsRepository(
         database.recipe.groupBy({ by: ["visibility"], _count: { _all: true } }),
         database.recipe.groupBy({ by: ["difficulty"], _count: { _all: true } }),
         recipeAuthorTypes(database),
-        database.recipe.count({ where: { createdByUserId: { not: null } } }),
-        database.recipe.count({ where: { createdByUserId: null } }),
+        database.recipe.count({
+          where: { createdByUser: { is: { applicationRole: "USER" } } },
+        }),
+        database.recipe.count({
+          where: {
+            OR: [
+              { createdByUserId: null },
+              { createdByUser: { is: { applicationRole: "ADMIN" } } },
+            ],
+          },
+        }),
         recipeTypeRanking(database),
         recipeCuisineRanking(database),
         recipeDietaryTagRanking(database),

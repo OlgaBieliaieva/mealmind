@@ -41,6 +41,10 @@ export const recipeOpenApiPaths = Object.freeze({
         name,
         in: "query",
         required: false,
+        description:
+          name === "creatorOrigin"
+            ? "USER — створено користувачем з роллю USER; SYSTEM — без створювача або створено користувачем з роллю ADMIN."
+            : undefined,
         schema: {
           type:
             name === "page" || name === "pageSize"

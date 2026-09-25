@@ -58,6 +58,7 @@ describe("RecipesAnalyticsPage", () => {
     );
 
     expect(await screen.findByText("Походження запису")).toBeInTheDocument();
+    expect(screen.getByText(/створені адміністратором належать до системних/)).toBeInTheDocument();
     expect(screen.getAllByText("Чернетки")[0]?.closest("a")).toHaveAttribute(
       "href",
       "/recipes?includeArchived=false&status=DRAFT",

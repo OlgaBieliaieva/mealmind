@@ -23,6 +23,7 @@ export const productFormSchema = z
     defaultMeasurementUnitId: z.string().uuid("Оберіть одиницю"),
     baseProductId: z.string(),
     foodState: z.enum(["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]),
+    verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]),
     ediblePortionPercent: decimalText(100),
     notes: z.string().max(20_000),
     nutrients: z.array(
@@ -69,6 +70,7 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   defaultMeasurementUnitId: "",
   baseProductId: "",
   foodState: "UNSPECIFIED",
+  verificationStatus: "UNVERIFIED",
   ediblePortionPercent: "",
   notes: "",
   nutrients: [],
@@ -107,6 +109,7 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
     defaultMeasurementUnitId: product.defaultMeasurementUnitId,
     baseProductId: product.baseProductId ?? "",
     foodState: product.foodState,
+    verificationStatus: product.verificationStatus,
     ediblePortionPercent: product.ediblePortionPercent ?? "",
     notes: product.notes ?? "",
     nutrients: product.nutrients.map((nutrient) => ({
@@ -134,6 +137,7 @@ function mapCommon(values: ProductFormValues): Omit<ProductWrite, "type"> {
     categoryId: values.categoryId,
     defaultMeasurementUnitId: values.defaultMeasurementUnitId,
     foodState: values.foodState,
+    verificationStatus: values.verificationStatus,
     ediblePortionPercent: values.ediblePortionPercent === "" ? null : values.ediblePortionPercent,
     notes: values.notes === "" ? null : values.notes,
     nutrients: values.nutrients,

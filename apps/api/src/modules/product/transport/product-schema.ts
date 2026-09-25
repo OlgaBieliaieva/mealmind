@@ -83,6 +83,7 @@ const createProductBody = z
     type: z.enum(PRODUCT_TYPES),
     ...productFields,
     status: z.enum(PRODUCT_STATUSES).default("DRAFT"),
+    verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).default("UNVERIFIED"),
   })
   .superRefine((value, context) => {
     if (value.type === "GENERIC") {
@@ -118,6 +119,7 @@ const updateProductBody = z.object({
   foodState: z.enum(PRODUCT_FOOD_STATES).optional(),
   ediblePortionPercent: productFields.ediblePortionPercent,
   notes: productFields.notes,
+  verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
   nutrients: productFields.nutrients,
   portions: productFields.portions,
 });

@@ -90,6 +90,7 @@ export interface ProductWrite {
   readonly foodState?: ProductFoodState;
   readonly ediblePortionPercent?: string | null;
   readonly notes?: string | null;
+  readonly verificationStatus?: ProductVerificationStatus;
   readonly nutrients?: readonly ProductNutrientWrite[];
   readonly portions?: readonly ProductPortionWrite[];
 }

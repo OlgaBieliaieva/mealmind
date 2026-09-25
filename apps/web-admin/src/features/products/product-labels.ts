@@ -3,6 +3,7 @@ import type {
   ProductMediaKind,
   ProductStatus,
   ProductType,
+  ProductVerificationStatus,
 } from "@/shared/api/products";
 
 export const PRODUCT_TYPE_LABELS: Readonly<Record<ProductType, string>> = {
@@ -14,6 +15,14 @@ export const PRODUCT_STATUS_LABELS: Readonly<Record<ProductStatus, string>> = {
   DRAFT: "Чернетка",
   ACTIVE: "Активний",
   ARCHIVED: "Архівований",
+};
+
+export const PRODUCT_VERIFICATION_STATUS_LABELS: Readonly<
+  Record<ProductVerificationStatus, string>
+> = {
+  UNVERIFIED: "Не перевірено",
+  VERIFIED: "Перевірено",
+  REJECTED: "Відхилено",
 };
 
 export const PRODUCT_FOOD_STATE_LABELS: Readonly<Record<ProductFoodState, string>> = {

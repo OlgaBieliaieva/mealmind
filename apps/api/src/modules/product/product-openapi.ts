@@ -189,6 +189,11 @@ export const productOpenApiSchemas = Object.freeze({
       },
       ediblePortionPercent: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
       status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"], default: "DRAFT" },
+      verificationStatus: {
+        type: "string",
+        enum: ["UNVERIFIED", "VERIFIED", "REJECTED"],
+        default: "UNVERIFIED",
+      },
       notes: { type: ["string", "null"] },
       nutrients: { type: "array", items: { $ref: "#/components/schemas/ProductNutrientWrite" } },
       portions: { type: "array", items: { type: "object", additionalProperties: true } },
@@ -196,7 +201,8 @@ export const productOpenApiSchemas = Object.freeze({
   },
   ProductUpdate: {
     allOf: [{ $ref: "#/components/schemas/ProductCreate" }],
-    description: "Partial update без полів type, baseProductId і status.",
+    description:
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору.",
   },
   ProductStatusChange: {
     type: "object",

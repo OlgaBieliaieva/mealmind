@@ -262,7 +262,14 @@ function listWhere(query: RecipeListQuery): Prisma.RecipeWhereInput {
         : { author: { type: query.authorType } }),
     ...(query.creatorOrigin === undefined
       ? {}
-      : { createdByUserId: query.creatorOrigin === "USER" ? { not: null } : null }),
+      : query.creatorOrigin === "USER"
+        ? { createdByUser: { is: { applicationRole: "USER" as const } } }
+        : {
+            OR: [
+              { createdByUserId: null },
+              { createdByUser: { is: { applicationRole: "ADMIN" as const } } },
+            ],
+          }),
     ...(query.recipeTypeId === undefined ? {} : { recipeTypeId: query.recipeTypeId }),
     ...(query.authorId === undefined ? {} : { authorId: query.authorId }),
     ...(query.cuisineId === undefined

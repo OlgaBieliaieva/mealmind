@@ -13,7 +13,11 @@ import { REFERENCE_CONFIGS } from "../reference/reference-config";
 import { ReferenceForm } from "../reference/reference-form";
 import { BarcodeScanner } from "./barcode-scanner";
 import { BaseProductSearch, type BaseProductOption } from "./base-product-search";
-import { PRODUCT_FOOD_STATE_LABELS, PRODUCT_TYPE_LABELS } from "./product-labels";
+import {
+  PRODUCT_FOOD_STATE_LABELS,
+  PRODUCT_TYPE_LABELS,
+  PRODUCT_VERIFICATION_STATUS_LABELS,
+} from "./product-labels";
 import {
   EMPTY_PRODUCT_FORM,
   productFormSchema,
@@ -208,6 +212,15 @@ export function ProductForm({
               }))}
               error={errors.foodState?.message}
               {...register("foodState")}
+            />
+            <SelectField
+              label="Статус перевірки"
+              options={Object.entries(PRODUCT_VERIFICATION_STATUS_LABELS).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+              error={errors.verificationStatus?.message}
+              {...register("verificationStatus")}
             />
             <TextInput
               label="Їстівна частина, %"

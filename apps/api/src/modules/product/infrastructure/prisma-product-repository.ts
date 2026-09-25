@@ -314,6 +314,9 @@ function productCreateData(id: string, data: ProductWrite): Prisma.ProductCreate
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
     status: data.status,
+    ...(data.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: data.verificationStatus }),
     ...(data.notes === undefined ? {} : { notes: data.notes }),
     archivedAt: data.status === "ARCHIVED" ? new Date() : null,
     nutrients: { create: data.nutrients.map(nutrientCreateData) },
@@ -345,6 +348,9 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
     ...(data.notes === undefined ? {} : { notes: data.notes }),
+    ...(data.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: data.verificationStatus }),
     ...(data.nutrients === undefined
       ? {}
       : {

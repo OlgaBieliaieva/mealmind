@@ -968,6 +968,7 @@
             "name": "creatorOrigin",
             "in": "query",
             "required": false,
+            "description": "USER — створено користувачем з роллю USER; SYSTEM — без створювача або створено користувачем з роллю ADMIN.",
             "schema": { "type": "string" }
           },
           {
@@ -4103,6 +4104,11 @@
             "enum": ["DRAFT", "ACTIVE", "ARCHIVED"],
             "default": "DRAFT"
           },
+          "verificationStatus": {
+            "type": "string",
+            "enum": ["UNVERIFIED", "VERIFIED", "REJECTED"],
+            "default": "UNVERIFIED"
+          },
           "notes": { "type": ["string", "null"] },
           "nutrients": {
             "type": "array",
@@ -4116,7 +4122,7 @@
       },
       "ProductUpdate": {
         "allOf": [{ "$ref": "#/components/schemas/ProductCreate" }],
-        "description": "Partial update без полів type, baseProductId і status."
+        "description": "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору."
       },
       "ProductStatusChange": {
         "type": "object",

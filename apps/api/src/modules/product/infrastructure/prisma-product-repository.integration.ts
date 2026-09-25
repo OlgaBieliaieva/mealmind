@@ -61,9 +61,13 @@ try {
   });
   createdProductIds.push(generic.id);
 
-  const updatedWithoutRelations = await repository.update(generic.id, { notes: "updated" });
+  const updatedWithoutRelations = await repository.update(generic.id, {
+    notes: "updated",
+    verificationStatus: "VERIFIED",
+  });
   assert.equal(updatedWithoutRelations?.nutrients.length, 1);
   assert.equal(updatedWithoutRelations?.portions.length, 1);
+  assert.equal(updatedWithoutRelations?.verificationStatus, "VERIFIED");
 
   const explicitlyCleared = await repository.update(generic.id, { nutrients: [] });
   assert.equal(explicitlyCleared?.nutrients.length, 0);

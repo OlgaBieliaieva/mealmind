@@ -30,6 +30,7 @@ describe("product form schema and mapper", () => {
         nameEn: "Apple",
         nameUa: "Яблуко",
         ediblePortionPercent: "95",
+        verificationStatus: "UNVERIFIED",
       }),
     );
     expect(mapProductFormToCreate(values)).not.toHaveProperty("brandId");
@@ -79,10 +80,11 @@ describe("product form schema and mapper", () => {
       brandId,
       baseProductId,
       gtin: "12345678",
+      verificationStatus: "VERIFIED",
     });
 
     expect(update).not.toHaveProperty("type");
     expect(update).not.toHaveProperty("baseProductId");
-    expect(update).toMatchObject({ brandId, gtin: "12345678" });
+    expect(update).toMatchObject({ brandId, gtin: "12345678", verificationStatus: "VERIFIED" });
   });
 });
