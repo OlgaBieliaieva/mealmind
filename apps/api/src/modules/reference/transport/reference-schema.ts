@@ -16,6 +16,8 @@ export const listReferenceSchema = z.object({
       .enum(["true", "false"])
       .transform((value) => value === "true")
       .default(false),
+    status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+    verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
   }),
   body: emptyBodySchema,
 });

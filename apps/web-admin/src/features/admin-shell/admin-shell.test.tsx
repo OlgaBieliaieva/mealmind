@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AdminShell } from "./admin-shell";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => "/analytics",
   useRouter: () => ({ replace: vi.fn() }),
 }));
 

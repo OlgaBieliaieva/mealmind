@@ -30,6 +30,12 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
+
+.recipe-filters__context {
+  margin: 0.75rem 0 0;
+  color: var(--admin-color-text-muted);
+  font-size: 0.875rem;
+}
 .recipe-form__textarea {
   min-height: 7rem;
   resize: vertical;

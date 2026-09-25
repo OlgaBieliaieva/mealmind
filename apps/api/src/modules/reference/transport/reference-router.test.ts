@@ -152,6 +152,27 @@ describe("reference router", () => {
     expect(response.headers["cache-control"]).toContain("max-age=300");
   });
 
+  it("passes brand status and verification filters to the admin list", async () => {
+    const service = referenceService();
+    const response = await request(createTestApp(service, "ADMIN"))
+      .get("/api/v1/admin/reference/brands")
+      .query({
+        includeInactive: "true",
+        status: "DRAFT",
+        verificationStatus: "UNVERIFIED",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(service.list).toHaveBeenCalledWith("brands", {
+      includeInactive: true,
+      page: 1,
+      pageSize: 50,
+      status: "DRAFT",
+      verificationStatus: "UNVERIFIED",
+    });
+  });
+
   it("rate limits reference routes before calling protected handlers", async () => {
     const service = referenceService();
     const app = createTestApp(service, "USER", { limit: 1, windowMs: 60_000 });

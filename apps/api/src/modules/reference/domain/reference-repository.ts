@@ -16,6 +16,8 @@ export type ReferenceResource = (typeof REFERENCE_RESOURCES)[number];
 export interface ReferenceListQuery {
   readonly search?: string | undefined;
   readonly includeInactive: boolean;
+  readonly status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | undefined;
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
 }
 
 export interface ReferenceRecord {

@@ -1,0 +1,242 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { loadEnvFile } from "node:process";
+import { resolve } from "node:path";
+
+import { createDatabaseClient } from "@mealmind/db";
+
+import { createPrismaAdminAnalyticsRepository } from "./prisma-admin-analytics-repository.js";
+
+try {
+  loadEnvFile(resolve(process.cwd(), "../../.env"));
+} catch (error) {
+  if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+}
+
+const connectionString = requireSafeTestDatabaseUrl(process.env.TEST_DATABASE_URL);
+const database = createDatabaseClient({ connectionString, log: ["error"] });
+const repository = createPrismaAdminAnalyticsRepository(database);
+const userIds: string[] = [];
+const profileIds: string[] = [];
+let familyId: string | undefined;
+let productId: string | undefined;
+let recipeId: string | undefined;
+let authorId: string | undefined;
+
+try {
+  const currentUser = await database.user.create({
+    data: {
+      externalSubject: randomUUID(),
+      email: `analytics-${randomUUID()}@example.test`,
+      applicationRole: "ADMIN",
+      onboardingCompletedAt: new Date("2099-09-02T10:00:00Z"),
+      createdAt: new Date("2099-09-02T10:00:00Z"),
+    },
+  });
+  userIds.push(currentUser.id);
+  const previousUser = await database.user.create({
+    data: {
+      externalSubject: randomUUID(),
+      email: `analytics-${randomUUID()}@example.test`,
+      deletedAt: new Date("2099-09-03T10:00:00Z"),
+      createdAt: new Date("2099-08-27T10:00:00Z"),
+    },
+  });
+  userIds.push(previousUser.id);
+
+  const currentProfile = await database.personProfile.create({
+    data: {
+      userId: currentUser.id,
+      firstName: "Analytics",
+      profileCompletedAt: new Date("2099-09-02T10:00:00Z"),
+      createdAt: new Date("2099-09-02T10:00:00Z"),
+    },
+  });
+  profileIds.push(currentProfile.id);
+
+  const family = await database.family.create({
+    data: {
+      name: "Analytics integration family",
+      createdByUserId: currentUser.id,
+      createdAt: new Date("2099-09-03T10:00:00Z"),
+      memberships: { create: { userId: currentUser.id, status: "ACTIVE", role: "OWNER" } },
+      members: { create: { personProfileId: currentProfile.id } },
+    },
+  });
+  familyId = family.id;
+
+  const category = await database.productCategory.findFirstOrThrow({
+    where: { isActive: true, isAssignable: true },
+  });
+  const unit = await database.measurementUnit.findFirstOrThrow({
+    where: { isActive: true, dimension: "MASS" },
+  });
+  const product = await database.product.create({
+    data: {
+      type: "GENERIC",
+      nameEn: `Analytics product ${randomUUID()}`,
+      categoryId: category.id,
+      defaultMeasurementUnitId: unit.id,
+      foodState: "RAW",
+      status: "DRAFT",
+      verificationStatus: "UNVERIFIED",
+      createdAt: new Date("2099-09-03T09:00:00Z"),
+      sourceReferences: {
+        create: {
+          provider: "MEALMIND_ADMIN",
+          dataset: "ADMIN_CATALOG",
+          externalId: randomUUID(),
+          sourceRelease: new Date("2099-09-03T00:00:00Z"),
+          isPrimary: true,
+        },
+      },
+    },
+  });
+  productId = product.id;
+  await database.productFavorite.create({
+    data: { familyId: family.id, productId: product.id, createdByUserId: currentUser.id },
+  });
+
+  const [recipeType, cuisine, dietaryTag] = await Promise.all([
+    database.recipeType.findFirstOrThrow({ where: { isActive: true } }),
+    database.cuisine.findFirstOrThrow({ where: { isActive: true } }),
+    database.dietaryTag.findFirstOrThrow({ where: { isActive: true } }),
+  ]);
+  const author = await database.author.create({
+    data: {
+      type: "USER",
+      slug: `analytics-${randomUUID()}`,
+      displayName: "Analytics author",
+      userId: currentUser.id,
+      createdByUserId: currentUser.id,
+    },
+  });
+  authorId = author.id;
+  const recipe = await database.recipe.create({
+    data: {
+      title: `Analytics recipe ${randomUUID()}`,
+      status: "DRAFT",
+      visibility: "FAMILY",
+      difficulty: "EASY",
+      recipeTypeId: recipeType.id,
+      authorId: author.id,
+      createdByUserId: currentUser.id,
+      createdAt: new Date("2099-09-04T09:00:00Z"),
+      cuisines: { create: { cuisineId: cuisine.id } },
+      dietaryTags: {
+        create: {
+          dietaryTagId: dietaryTag.id,
+          validationMethod: "MANUAL_REVIEW",
+          ingredientFingerprint: "a".repeat(64),
+          validatedByUserId: currentUser.id,
+          validatedAt: new Date("2099-09-04T09:00:00Z"),
+        },
+      },
+    },
+  });
+  recipeId = recipe.id;
+  await database.recipeFavorite.create({
+    data: { familyId: family.id, recipeId: recipe.id, createdByUserId: currentUser.id },
+  });
+
+  const overview = await repository.getOverview({
+    from: "2099-09-01",
+    to: "2099-09-07",
+    previousFrom: "2099-08-25",
+    granularity: "day",
+    timezone: "Europe/Kyiv",
+  });
+  assert.equal(overview.users.active >= 1, true);
+  assert.equal(overview.users.created, 1);
+  assert.equal(overview.families.created, 1);
+  assert.equal(overview.products.awaitingVerification >= 1, true);
+  assert.equal(overview.recipes.drafts >= 1, true);
+  assert.equal(overview.activity.completedCookingSessions >= 0, true);
+
+  const result = await repository.getUsers({
+    from: "2099-09-01",
+    to: "2099-09-07",
+    previousFrom: "2099-08-25",
+    granularity: "day",
+    timezone: "Europe/Kyiv",
+  });
+
+  assert.equal(result.currentCreatedUsers, 1);
+  assert.equal(result.previousCreatedUsers, 1);
+  assert.equal(result.currentCreatedFamilies, 1);
+  assert.equal(result.currentCreatedProfiles, 1);
+  assert.equal(result.series.length, 7);
+  assert.equal(result.series.find((point) => point.period === "2099-09-02")?.users, 1);
+  assert.equal(result.activeMemberships >= 1, true);
+  assert.equal(result.activeFamilyMembers >= 1, true);
+
+  const products = await repository.getProducts(
+    {
+      from: "2099-09-01",
+      to: "2099-09-07",
+      previousFrom: "2099-08-25",
+      granularity: "day",
+      timezone: "Europe/Kyiv",
+    },
+    new Date("2099-09-03T10:00:00Z"),
+  );
+  assert.equal(products.currentCreated >= 1, true);
+  assert.equal(products.createdLast24Hours >= 1, true);
+  assert.equal(products.drafts >= 1, true);
+  assert.equal(products.sources.MEALMIND_ADMIN >= 1, true);
+  assert.equal(
+    products.favorites.some((item) => item.id === product.id),
+    true,
+  );
+  assert.equal(products.series.find((point) => point.period === "2099-09-03")?.value, 1);
+
+  const recipes = await repository.getRecipes({
+    from: "2099-09-01",
+    to: "2099-09-07",
+    previousFrom: "2099-08-25",
+    granularity: "day",
+    timezone: "Europe/Kyiv",
+  });
+  assert.equal(recipes.currentCreated >= 1, true);
+  assert.equal(recipes.drafts >= 1, true);
+  assert.equal(recipes.familyOnly >= 1, true);
+  assert.equal(recipes.creatorOrigins.SYSTEM >= 1, true);
+  assert.equal(
+    recipes.favorites.some((item) => item.id === recipe.id),
+    true,
+  );
+  assert.equal(recipes.series.find((point) => point.period === "2099-09-04")?.value, 1);
+
+  const references = await repository.getReferences();
+  assert.equal(references.resources.length, 10);
+  assert.equal(references.resources.find((item) => item.resource === "allergens")?.total, 14);
+  assert.equal(references.resources.find((item) => item.resource === "nutrients")?.total, 36);
+
+  console.info("Admin analytics repository PostgreSQL integration test passed.");
+} finally {
+  if (familyId !== undefined) await database.family.deleteMany({ where: { id: familyId } });
+  if (recipeId !== undefined) await database.recipe.deleteMany({ where: { id: recipeId } });
+  if (productId !== undefined) await database.product.deleteMany({ where: { id: productId } });
+  if (authorId !== undefined) await database.author.deleteMany({ where: { id: authorId } });
+  if (profileIds.length > 0) {
+    await database.personProfile.deleteMany({ where: { id: { in: profileIds } } });
+  }
+  if (userIds.length > 0) await database.user.deleteMany({ where: { id: { in: userIds } } });
+  await database.$disconnect();
+}
+
+function requireSafeTestDatabaseUrl(rawValue: string | undefined): string {
+  if (rawValue === undefined) throw new Error("TEST_DATABASE_URL is required");
+  const url = new URL(rawValue);
+  const allowedHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+  const databaseName = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+  if (
+    !allowedHosts.has(url.hostname) ||
+    url.port !== "54322" ||
+    databaseName !== "mealmind_test" ||
+    url.searchParams.has("schema")
+  ) {
+    throw new Error("Admin analytics test may use only local mealmind_test on port 54322");
+  }
+  return url.toString();
+}

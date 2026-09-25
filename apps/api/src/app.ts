@@ -22,6 +22,7 @@ export interface AppDependencies {
   readonly healthService: HealthService;
   readonly readinessService: ReadinessService;
   readonly authenticationService: AuthenticationService;
+  readonly adminAnalyticsRouter?: Router;
   readonly accountRouter?: Router;
   readonly referenceRouter?: Router;
   readonly productRouter?: Router;
@@ -85,6 +86,10 @@ export function createApp(dependencies: AppDependencies): Express {
 
   if (dependencies.accountRouter !== undefined) {
     app.use("/api/v1", dependencies.accountRouter);
+  }
+
+  if (dependencies.adminAnalyticsRouter !== undefined) {
+    app.use("/api/v1", dependencies.adminAnalyticsRouter);
   }
 
   if (dependencies.referenceRouter !== undefined) {

@@ -15,8 +15,12 @@ describe("admin reference API adapter", () => {
         resource: "brands",
         search: "Meal Mind",
         includeInactive: true,
+        status: "DRAFT",
+        verificationStatus: "UNVERIFIED",
       }),
-    ).toBe("/api/v1/admin/reference/brands?search=Meal+Mind&includeInactive=true");
+    ).toBe(
+      "/api/v1/admin/reference/brands?search=Meal+Mind&includeInactive=true&status=DRAFT&verificationStatus=UNVERIFIED",
+    );
   });
 
   it("uses generic mutation paths for every reference resource", async () => {

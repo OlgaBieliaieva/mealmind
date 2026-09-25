@@ -75,6 +75,26 @@ try {
   assert.equal(created.nutrients[0]?.valuePerServing, "52");
   assert.equal(created.yieldWeightG, "200");
 
+  await database.product.update({
+    where: { id: productId },
+    data: { nameUa: "Оновлена назва інгредієнта" },
+  });
+  const recipeAfterProductRename = await repository.findAdminById(created.id);
+  assert.equal(recipeAfterProductRename?.ingredients[0]?.productName, "Оновлена назва інгредієнта");
+
+  const [userOrigin, systemOrigin] = await Promise.all([
+    repository.list({ creatorOrigin: "USER", page: 1, pageSize: 100 }),
+    repository.list({ creatorOrigin: "SYSTEM", page: 1, pageSize: 100 }),
+  ]);
+  assert.equal(
+    userOrigin.items.some((item) => item.id === created.id),
+    false,
+  );
+  assert.equal(
+    systemOrigin.items.some((item) => item.id === created.id),
+    true,
+  );
+
   await assert.rejects(
     repository.update(
       created.id,

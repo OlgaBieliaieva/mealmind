@@ -1,4 +1,8 @@
 import { productOpenApiPaths, productOpenApiSchemas } from "./modules/product/product-openapi.js";
+import {
+  adminAnalyticsOpenApiPaths,
+  adminAnalyticsOpenApiSchemas,
+} from "./modules/admin-analytics/admin-analytics-openapi.js";
 import { familyOpenApiPaths, familyOpenApiSchemas } from "./modules/family/family-openapi.js";
 import { referenceOpenApiDocument } from "./modules/reference/reference-openapi.js";
 import { recipeOpenApiPaths, recipeOpenApiSchemas } from "./modules/recipe/recipe-openapi.js";
@@ -21,6 +25,7 @@ export const apiOpenApiDocument = Object.freeze({
   ...referenceOpenApiDocument,
   paths: Object.freeze({
     ...referenceOpenApiDocument.paths,
+    ...adminAnalyticsOpenApiPaths,
     "/api/v1/account/bootstrap": {
       post: {
         summary: "Створити або повернути локальний обліковий запис",
@@ -75,6 +80,7 @@ export const apiOpenApiDocument = Object.freeze({
     ...referenceOpenApiDocument.components,
     schemas: Object.freeze({
       ...referenceOpenApiDocument.components.schemas,
+      ...adminAnalyticsOpenApiSchemas,
       ...productOpenApiSchemas,
       ...recipeOpenApiSchemas,
       ...familyOpenApiSchemas,

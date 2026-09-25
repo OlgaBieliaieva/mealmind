@@ -237,6 +237,26 @@ function productListWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   return {
     ...(query.type === undefined ? {} : { type: query.type }),
     ...(query.status === undefined ? {} : { status: query.status }),
+    ...(query.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: query.verificationStatus }),
+    ...(query.foodState === undefined ? {} : { foodState: query.foodState }),
+    ...(query.createdFrom === undefined ? {} : { createdAt: { gte: query.createdFrom } }),
+    ...(query.includeArchived === false
+      ? {
+          archivedAt: null,
+          ...(query.status === undefined ? { status: { not: "ARCHIVED" as const } } : {}),
+        }
+      : {}),
+    ...(query.sourceProvider === undefined
+      ? {}
+      : query.sourceProvider === "UNASSIGNED"
+        ? { sourceReferences: { none: { isPrimary: true } } }
+        : {
+            sourceReferences: {
+              some: { isPrimary: true, provider: query.sourceProvider },
+            },
+          }),
     ...(query.categoryId === undefined ? {} : { categoryId: query.categoryId }),
     ...(query.brandId === undefined ? {} : { brandId: query.brandId }),
     ...(query.search === undefined
@@ -294,6 +314,9 @@ function productCreateData(id: string, data: ProductWrite): Prisma.ProductCreate
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
     status: data.status,
+    ...(data.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: data.verificationStatus }),
     ...(data.notes === undefined ? {} : { notes: data.notes }),
     archivedAt: data.status === "ARCHIVED" ? new Date() : null,
     nutrients: { create: data.nutrients.map(nutrientCreateData) },
@@ -325,6 +348,9 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
     ...(data.notes === undefined ? {} : { notes: data.notes }),
+    ...(data.verificationStatus === undefined
+      ? {}
+      : { verificationStatus: data.verificationStatus }),
     ...(data.nutrients === undefined
       ? {}
       : {

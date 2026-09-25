@@ -71,6 +71,7 @@ export interface ProductWrite {
   readonly foodState: ProductFoodState;
   readonly ediblePortionPercent?: string | null | undefined;
   readonly status: ProductStatus;
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
   readonly notes?: string | null | undefined;
   readonly nutrients: readonly ProductNutrientWrite[];
   readonly portions: readonly ProductPortionWrite[];
@@ -87,6 +88,7 @@ export interface ProductUpdate {
   readonly foodState?: ProductFoodState | undefined;
   readonly ediblePortionPercent?: string | null | undefined;
   readonly notes?: string | null | undefined;
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
   readonly nutrients?: readonly ProductNutrientWrite[] | undefined;
   readonly portions?: readonly ProductPortionWrite[] | undefined;
 }
@@ -173,6 +175,11 @@ export interface ProductListQuery {
   readonly search?: string | undefined;
   readonly type?: ProductType | undefined;
   readonly status?: ProductStatus | undefined;
+  readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
+  readonly foodState?: ProductFoodState | undefined;
+  readonly sourceProvider?: ProductSourceProvider | "UNASSIGNED" | undefined;
+  readonly createdFrom?: string | undefined;
+  readonly includeArchived?: boolean | undefined;
   readonly categoryId?: string | undefined;
   readonly brandId?: string | undefined;
   readonly page: number;

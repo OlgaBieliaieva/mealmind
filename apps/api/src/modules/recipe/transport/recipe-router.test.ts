@@ -158,6 +158,36 @@ describe("recipe router", () => {
     expect(recipes.list).not.toHaveBeenCalled();
   });
 
+  it("passes analytics drill-down filters to the admin recipe list", async () => {
+    const recipes = service();
+    const filterId = "34b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const response = await request(app("ADMIN", recipes))
+      .get("/api/v1/admin/recipes")
+      .query({
+        status: "DRAFT",
+        difficulty: "UNASSIGNED",
+        authorType: "EXPERT",
+        creatorOrigin: "USER",
+        cuisineId: filterId,
+        dietaryTagId: filterId,
+        includeArchived: "false",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(recipes.list).toHaveBeenCalledWith({
+      status: "DRAFT",
+      difficulty: "UNASSIGNED",
+      authorType: "EXPERT",
+      creatorOrigin: "USER",
+      cuisineId: filterId,
+      dietaryTagId: filterId,
+      includeArchived: false,
+      page: 1,
+      pageSize: 20,
+    });
+  });
+
   it("protects recipe image mutations with the admin role", async () => {
     const recipes = service();
     const response = await request(app("USER", recipes))

@@ -213,6 +213,33 @@ describe("product router", () => {
     expect(service.list).not.toHaveBeenCalled();
   });
 
+  it("passes analytics drill-down filters to the admin product list", async () => {
+    const service = productService();
+    const response = await request(createTestApp(service, "ADMIN"))
+      .get("/api/v1/admin/products")
+      .query({
+        status: "DRAFT",
+        verificationStatus: "UNVERIFIED",
+        foodState: "RAW",
+        sourceProvider: "USDA",
+        createdFrom: "2026-09-23T10:00:00.000Z",
+        includeArchived: "false",
+      })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(service.list).toHaveBeenCalledWith({
+      status: "DRAFT",
+      verificationStatus: "UNVERIFIED",
+      foodState: "RAW",
+      sourceProvider: "USDA",
+      createdFrom: "2026-09-23T10:00:00.000Z",
+      includeArchived: false,
+      page: 1,
+      pageSize: 20,
+    });
+  });
+
   it("enforces administrator permission in the API", async () => {
     const service = productService();
     const response = await request(createTestApp(service, "USER"))
@@ -253,12 +280,13 @@ describe("product router", () => {
       defaultMeasurementUnitId: unitId,
       foodState: "RAW",
       ediblePortionPercent: "95",
+      verificationStatus: "VERIFIED",
     });
     const viewed = await request(app).get(`/api/v1/admin/products/${productId}`).set(authorization);
     const edited = await request(app)
       .patch(`/api/v1/admin/products/${productId}`)
       .set(authorization)
-      .send({ nameUa: "Червоне яблуко" });
+      .send({ nameUa: "Червоне яблуко", verificationStatus: "REJECTED" });
     const archived = await request(app)
       .patch(`/api/v1/admin/products/${productId}/status`)
       .set(authorization)
@@ -267,6 +295,10 @@ describe("product router", () => {
     expect(created.status).toBe(201);
     expect(viewed.status).toBe(200);
     expect(edited.body.data.nameUa).toBe("Червоне яблуко");
+    expect(service.update).toHaveBeenCalledWith(productId, {
+      nameUa: "Червоне яблуко",
+      verificationStatus: "REJECTED",
+    });
     expect(archived.body.data.status).toBe("ARCHIVED");
   });
 

@@ -8,6 +8,7 @@ import {
   NUTRIENT_VALUE_TYPES,
   PRODUCT_FOOD_STATES,
   PRODUCT_MEDIA_KINDS,
+  PRODUCT_SOURCE_PROVIDERS,
   PRODUCT_STATUSES,
   PRODUCT_TYPES,
 } from "../domain/product-repository.js";
@@ -82,6 +83,7 @@ const createProductBody = z
     type: z.enum(PRODUCT_TYPES),
     ...productFields,
     status: z.enum(PRODUCT_STATUSES).default("DRAFT"),
+    verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).default("UNVERIFIED"),
   })
   .superRefine((value, context) => {
     if (value.type === "GENERIC") {
@@ -117,6 +119,7 @@ const updateProductBody = z.object({
   foodState: z.enum(PRODUCT_FOOD_STATES).optional(),
   ediblePortionPercent: productFields.ediblePortionPercent,
   notes: productFields.notes,
+  verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
   nutrients: productFields.nutrients,
   portions: productFields.portions,
 });
@@ -127,6 +130,14 @@ export const listProductsSchema = z.object({
     search: z.string().trim().min(1).max(120).optional(),
     type: z.enum(PRODUCT_TYPES).optional(),
     status: z.enum(PRODUCT_STATUSES).optional(),
+    verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
+    foodState: z.enum(PRODUCT_FOOD_STATES).optional(),
+    sourceProvider: z.enum([...PRODUCT_SOURCE_PROVIDERS, "UNASSIGNED"]).optional(),
+    createdFrom: z.iso.datetime({ offset: true }).optional(),
+    includeArchived: z
+      .enum(["true", "false"])
+      .transform((value) => value === "true")
+      .optional(),
     categoryId: uuid.optional(),
     brandId: uuid.optional(),
     page: z.coerce.number().int().min(1).default(1),
