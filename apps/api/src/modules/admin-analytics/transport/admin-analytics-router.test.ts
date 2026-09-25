@@ -45,6 +45,26 @@ function service(): AdminAnalyticsService {
       rankings: { categories: [], brands: [], favorites: [] },
       series: [],
     })),
+    getRecipes: vi.fn<AdminAnalyticsService["getRecipes"]>(async () => ({
+      meta: {
+        from: "2026-09-01",
+        to: "2026-09-30",
+        granularity: "day",
+        timezone: "Europe/Kyiv",
+        generatedAt: "2026-09-24T10:00:00.000Z",
+      },
+      totals: { all: 0, drafts: 0, familyOnly: 0 },
+      created: { value: 0, previousValue: 0, delta: 0, deltaPercent: null },
+      breakdowns: {
+        statuses: { DRAFT: 0, READY: 0, PUBLISHED: 0, ARCHIVED: 0 },
+        visibility: { FAMILY: 0, PUBLIC: 0 },
+        difficulties: { EASY: 0, MEDIUM: 0, HARD: 0, UNASSIGNED: 0 },
+        authorTypes: { MEALMIND: 0, EXPERT: 0, BLOGGER: 0, USER: 0, UNASSIGNED: 0 },
+        creatorOrigins: { USER: 0, SYSTEM: 0 },
+      },
+      rankings: { recipeTypes: [], cuisines: [], dietaryTags: [], authors: [], favorites: [] },
+      series: [],
+    })),
     getReferences: vi.fn(async () => ({
       generatedAt: "2026-09-24T10:00:00.000Z",
       resources: [],
@@ -52,7 +72,7 @@ function service(): AdminAnalyticsService {
         statuses: { DRAFT: 0, ACTIVE: 0, ARCHIVED: 0 },
         verification: { UNVERIFIED: 0, VERIFIED: 0, REJECTED: 0 },
       },
-      authors: { types: { MEALMIND: 0, EXPERT: 0, BLOGGER: 0 } },
+      authors: { types: { MEALMIND: 0, EXPERT: 0, BLOGGER: 0, USER: 0 } },
       quality: {
         brandsAwaitingVerification: 0,
         draftBrands: 0,
@@ -149,6 +169,21 @@ describe("admin analytics router", () => {
 
     expect(response.status).toBe(200);
     expect(analyticsService.getProducts).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-09-30",
+      granularity: "week",
+    });
+  });
+
+  it("returns recipe analytics with a validated period", async () => {
+    const analyticsService = service();
+    const response = await request(app("ADMIN", analyticsService))
+      .get("/api/v1/admin/analytics/recipes")
+      .query({ from: "2026-09-01", to: "2026-09-30", granularity: "week" })
+      .set("authorization", "Bearer token");
+
+    expect(response.status).toBe(200);
+    expect(analyticsService.getRecipes).toHaveBeenCalledWith({
       from: "2026-09-01",
       to: "2026-09-30",
       granularity: "week",

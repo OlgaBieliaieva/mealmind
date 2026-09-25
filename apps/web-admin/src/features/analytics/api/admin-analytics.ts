@@ -78,7 +78,7 @@ export interface ReferencesAnalytics {
     readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
   };
   readonly authors: {
-    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER", number>>;
+    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER" | "USER", number>>;
   };
   readonly quality: {
     readonly brandsAwaitingVerification: number;
@@ -124,6 +124,33 @@ export interface ProductsAnalytics {
   readonly series: readonly { readonly period: string; readonly value: number }[];
 }
 
+export interface RecipesAnalytics {
+  readonly meta: UsersAnalytics["meta"];
+  readonly totals: {
+    readonly all: number;
+    readonly drafts: number;
+    readonly familyOnly: number;
+  };
+  readonly created: ComparisonMetric;
+  readonly breakdowns: {
+    readonly statuses: Readonly<Record<"DRAFT" | "READY" | "PUBLISHED" | "ARCHIVED", number>>;
+    readonly visibility: Readonly<Record<"FAMILY" | "PUBLIC", number>>;
+    readonly difficulties: Readonly<Record<"EASY" | "MEDIUM" | "HARD" | "UNASSIGNED", number>>;
+    readonly authorTypes: Readonly<
+      Record<"MEALMIND" | "EXPERT" | "BLOGGER" | "USER" | "UNASSIGNED", number>
+    >;
+    readonly creatorOrigins: Readonly<Record<"USER" | "SYSTEM", number>>;
+  };
+  readonly rankings: {
+    readonly recipeTypes: readonly AnalyticsRankingItem[];
+    readonly cuisines: readonly AnalyticsRankingItem[];
+    readonly dietaryTags: readonly AnalyticsRankingItem[];
+    readonly authors: readonly AnalyticsRankingItem[];
+    readonly favorites: readonly AnalyticsRankingItem[];
+  };
+  readonly series: readonly { readonly period: string; readonly value: number }[];
+}
+
 interface CompletionMetric {
   readonly completed: number;
   readonly total: number;
@@ -153,5 +180,15 @@ export function getProductsAnalytics(apiClient: ApiClient, parameters: Analytics
   }
   return apiClient.get<{ readonly data: ProductsAnalytics }>(
     `/api/v1/admin/analytics/products${query.size === 0 ? "" : `?${query.toString()}`}`,
+  );
+}
+
+export function getRecipesAnalytics(apiClient: ApiClient, parameters: AnalyticsPeriodParameters) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(parameters)) {
+    if (value !== undefined) query.set(key, value);
+  }
+  return apiClient.get<{ readonly data: RecipesAnalytics }>(
+    `/api/v1/admin/analytics/recipes${query.size === 0 ? "" : `?${query.toString()}`}`,
   );
 }

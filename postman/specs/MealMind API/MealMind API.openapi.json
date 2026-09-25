@@ -520,6 +520,45 @@
         }
       }
     },
+    "/api/v1/admin/analytics/recipes": {
+      "get": {
+        "summary": "Отримати агреговану аналітику рецептів",
+        "description": "Totals і breakdowns охоплюють всю історію. Операційні KPI та rankings виключають архівні рецепти. Доменний автор і користувач-створювач подані окремо.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          {
+            "name": "granularity",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["day", "week", "month"] }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": { "type": "string", "default": "Europe/Kyiv" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recipes analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": { "data": { "$ref": "#/components/schemas/RecipesAnalytics" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "Некоректний period або timezone" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Потрібна роль ADMIN" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
     "/api/v1/account/bootstrap": {
       "post": {
         "summary": "Створити або повернути локальний обліковий запис",
@@ -875,12 +914,43 @@
             "schema": { "type": "string" }
           },
           {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "authorType",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "creatorOrigin",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
             "name": "recipeTypeId",
             "in": "query",
             "required": false,
             "schema": { "type": "string" }
           },
           { "name": "authorId", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "cuisineId", "in": "query", "required": false, "schema": { "type": "string" } },
+          {
+            "name": "dietaryTagId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean" }
+          },
           { "name": "page", "in": "query", "required": false, "schema": { "type": "integer" } },
           { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer" } }
         ],
@@ -3822,6 +3892,50 @@
         }
       },
       "ProductsAnalytics": {
+        "type": "object",
+        "required": ["meta", "totals", "created", "breakdowns", "rankings", "series"],
+        "properties": {
+          "meta": {
+            "type": "object",
+            "required": ["from", "to", "granularity", "timezone", "generatedAt"],
+            "properties": {
+              "from": { "type": "string", "format": "date" },
+              "to": { "type": "string", "format": "date" },
+              "granularity": { "type": "string", "enum": ["day", "week", "month"] },
+              "timezone": { "type": "string" },
+              "generatedAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          },
+          "created": {
+            "type": "object",
+            "required": ["value", "previousValue", "delta", "deltaPercent"],
+            "properties": {
+              "value": { "type": "number" },
+              "previousValue": { "type": "number" },
+              "delta": { "type": "number" },
+              "deltaPercent": { "type": ["number", "null"] }
+            }
+          },
+          "breakdowns": { "type": "object" },
+          "rankings": { "type": "object" },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["period", "value"],
+              "properties": {
+                "period": { "type": "string", "format": "date" },
+                "value": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      },
+      "RecipesAnalytics": {
         "type": "object",
         "required": ["meta", "totals", "created", "breakdowns", "rankings", "series"],
         "properties": {

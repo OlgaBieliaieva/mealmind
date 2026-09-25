@@ -100,7 +100,7 @@ export interface ReferencesAnalytics {
     readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
   };
   readonly authors: {
-    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER", number>>;
+    readonly types: Readonly<Record<"MEALMIND" | "EXPERT" | "BLOGGER" | "USER", number>>;
   };
   readonly quality: {
     readonly brandsAwaitingVerification: number;
@@ -152,6 +152,33 @@ export interface ProductsAnalytics {
   readonly rankings: {
     readonly categories: readonly AnalyticsRankingItem[];
     readonly brands: readonly AnalyticsRankingItem[];
+    readonly favorites: readonly AnalyticsRankingItem[];
+  };
+  readonly series: readonly ProductsAnalyticsPoint[];
+}
+
+export interface RecipesAnalytics {
+  readonly meta: ProductsAnalytics["meta"];
+  readonly totals: {
+    readonly all: number;
+    readonly drafts: number;
+    readonly familyOnly: number;
+  };
+  readonly created: ComparisonMetric;
+  readonly breakdowns: {
+    readonly statuses: Readonly<Record<"DRAFT" | "READY" | "PUBLISHED" | "ARCHIVED", number>>;
+    readonly visibility: Readonly<Record<"FAMILY" | "PUBLIC", number>>;
+    readonly difficulties: Readonly<Record<"EASY" | "MEDIUM" | "HARD" | "UNASSIGNED", number>>;
+    readonly authorTypes: Readonly<
+      Record<"MEALMIND" | "EXPERT" | "BLOGGER" | "USER" | "UNASSIGNED", number>
+    >;
+    readonly creatorOrigins: Readonly<Record<"USER" | "SYSTEM", number>>;
+  };
+  readonly rankings: {
+    readonly recipeTypes: readonly AnalyticsRankingItem[];
+    readonly cuisines: readonly AnalyticsRankingItem[];
+    readonly dietaryTags: readonly AnalyticsRankingItem[];
+    readonly authors: readonly AnalyticsRankingItem[];
     readonly favorites: readonly AnalyticsRankingItem[];
   };
   readonly series: readonly ProductsAnalyticsPoint[];

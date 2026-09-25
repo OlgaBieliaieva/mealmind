@@ -2,15 +2,16 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import type { ProductsAnalytics } from "../api/admin-analytics";
-
 export function ProductsTimeSeriesChart({
   series,
+  label = "Продукти",
+  empty = "За обраний період продуктів не додано.",
 }: {
-  readonly series: ProductsAnalytics["series"];
+  readonly series: readonly { readonly period: string; readonly value: number }[];
+  readonly label?: string;
+  readonly empty?: string;
 }) {
-  if (series.length === 0)
-    return <p className="analytics-empty">За обраний період продуктів не додано.</p>;
+  if (series.length === 0) return <p className="analytics-empty">{empty}</p>;
 
   return (
     <>
@@ -21,7 +22,7 @@ export function ProductsTimeSeriesChart({
             <XAxis dataKey="period" tickFormatter={shortDate} />
             <YAxis allowDecimals={false} />
             <Tooltip labelFormatter={(value) => formatDate(String(value))} />
-            <Bar name="Продукти" dataKey="value" fill="#2563eb" />
+            <Bar name={label} dataKey="value" fill="#2563eb" />
           </BarChart>
         </ResponsiveContainer>
       </div>

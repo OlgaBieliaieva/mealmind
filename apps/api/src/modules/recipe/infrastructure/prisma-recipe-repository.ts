@@ -250,8 +250,33 @@ function listWhere(query: RecipeListQuery): Prisma.RecipeWhereInput {
   return {
     ...(query.status === undefined ? {} : { status: query.status }),
     ...(query.visibility === undefined ? {} : { visibility: query.visibility }),
+    ...(query.difficulty === undefined
+      ? {}
+      : query.difficulty === "UNASSIGNED"
+        ? { difficulty: null }
+        : { difficulty: query.difficulty }),
+    ...(query.authorType === undefined
+      ? {}
+      : query.authorType === "UNASSIGNED"
+        ? { authorId: null }
+        : { author: { type: query.authorType } }),
+    ...(query.creatorOrigin === undefined
+      ? {}
+      : { createdByUserId: query.creatorOrigin === "USER" ? { not: null } : null }),
     ...(query.recipeTypeId === undefined ? {} : { recipeTypeId: query.recipeTypeId }),
     ...(query.authorId === undefined ? {} : { authorId: query.authorId }),
+    ...(query.cuisineId === undefined
+      ? {}
+      : { cuisines: { some: { cuisineId: query.cuisineId } } }),
+    ...(query.dietaryTagId === undefined
+      ? {}
+      : { dietaryTags: { some: { dietaryTagId: query.dietaryTagId } } }),
+    ...(query.includeArchived === false
+      ? {
+          archivedAt: null,
+          ...(query.status === undefined ? { status: { not: "ARCHIVED" as const } } : {}),
+        }
+      : {}),
     ...(query.search === undefined
       ? {}
       : {

@@ -22,6 +22,7 @@ describe("admin analytics service", () => {
   it("maps stable completion, averages and comparison values", async () => {
     const repository: AdminAnalyticsRepository = {
       getProducts: vi.fn(),
+      getRecipes: vi.fn(),
       getReferences: vi.fn(),
       getUsers: vi.fn(async () => ({
         activeUsers: 4,
@@ -65,6 +66,7 @@ describe("admin analytics service", () => {
   it("maps products totals and creation comparison", async () => {
     const repository: AdminAnalyticsRepository = {
       getUsers: vi.fn(),
+      getRecipes: vi.fn(),
       getReferences: vi.fn(),
       getProducts: vi.fn(async () => ({
         total: 12,
@@ -103,5 +105,41 @@ describe("admin analytics service", () => {
       delta: 3,
       deltaPercent: 150,
     });
+  });
+
+  it("keeps recipe author and creator semantics separate", async () => {
+    const repository: AdminAnalyticsRepository = {
+      getUsers: vi.fn(),
+      getProducts: vi.fn(),
+      getReferences: vi.fn(),
+      getRecipes: vi.fn(async () => ({
+        total: 8,
+        drafts: 2,
+        familyOnly: 3,
+        currentCreated: 4,
+        previousCreated: 2,
+        statuses: { DRAFT: 2, READY: 1, PUBLISHED: 4, ARCHIVED: 1 },
+        visibility: { FAMILY: 3, PUBLIC: 5 },
+        difficulties: { EASY: 2, MEDIUM: 2, HARD: 1, UNASSIGNED: 3 },
+        authorTypes: { MEALMIND: 2, EXPERT: 1, BLOGGER: 1, USER: 2, UNASSIGNED: 2 },
+        creatorOrigins: { USER: 5, SYSTEM: 3 },
+        recipeTypes: [],
+        cuisines: [],
+        dietaryTags: [],
+        authors: [],
+        favorites: [],
+        series: [{ period: "2026-09-01", value: 4 }],
+      })),
+    };
+    const service = createAdminAnalyticsService(
+      repository,
+      () => new Date("2026-09-24T10:00:00.000Z"),
+    );
+
+    const result = await service.getRecipes({ from: "2026-09-01", to: "2026-09-30" });
+
+    expect(result.breakdowns.authorTypes.USER).toBe(2);
+    expect(result.breakdowns.creatorOrigins).toEqual({ USER: 5, SYSTEM: 3 });
+    expect(result.created.deltaPercent).toBe(100);
   });
 });

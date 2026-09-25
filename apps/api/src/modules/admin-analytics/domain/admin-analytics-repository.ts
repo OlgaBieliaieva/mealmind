@@ -2,6 +2,7 @@ import type {
   AnalyticsRankingItem,
   ProductsAnalytics,
   ProductsAnalyticsPoint,
+  RecipesAnalytics,
   ReferencesAnalytics,
   ResolvedAnalyticsPeriod,
   UsersAnalyticsPoint,
@@ -21,6 +22,25 @@ export interface ProductsAnalyticsSnapshot {
   readonly sources: ProductsAnalytics["breakdowns"]["sources"];
   readonly categories: readonly AnalyticsRankingItem[];
   readonly brands: readonly AnalyticsRankingItem[];
+  readonly favorites: readonly AnalyticsRankingItem[];
+  readonly series: readonly ProductsAnalyticsPoint[];
+}
+
+export interface RecipesAnalyticsSnapshot {
+  readonly total: number;
+  readonly drafts: number;
+  readonly familyOnly: number;
+  readonly currentCreated: number;
+  readonly previousCreated: number;
+  readonly statuses: RecipesAnalytics["breakdowns"]["statuses"];
+  readonly visibility: RecipesAnalytics["breakdowns"]["visibility"];
+  readonly difficulties: RecipesAnalytics["breakdowns"]["difficulties"];
+  readonly authorTypes: RecipesAnalytics["breakdowns"]["authorTypes"];
+  readonly creatorOrigins: RecipesAnalytics["breakdowns"]["creatorOrigins"];
+  readonly recipeTypes: readonly AnalyticsRankingItem[];
+  readonly cuisines: readonly AnalyticsRankingItem[];
+  readonly dietaryTags: readonly AnalyticsRankingItem[];
+  readonly authors: readonly AnalyticsRankingItem[];
   readonly favorites: readonly AnalyticsRankingItem[];
   readonly series: readonly ProductsAnalyticsPoint[];
 }
@@ -51,5 +71,6 @@ export interface AdminAnalyticsRepository {
     period: ResolvedAnalyticsPeriod,
     generatedAt: Date,
   ): Promise<ProductsAnalyticsSnapshot>;
+  getRecipes(period: ResolvedAnalyticsPeriod): Promise<RecipesAnalyticsSnapshot>;
   getReferences(): Promise<Omit<ReferencesAnalytics, "generatedAt">>;
 }

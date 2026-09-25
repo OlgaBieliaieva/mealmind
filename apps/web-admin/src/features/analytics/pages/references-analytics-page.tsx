@@ -161,6 +161,7 @@ function ReferencesContent({ analytics }: { readonly analytics: ReferencesAnalyt
             MealMind: analytics.authors.types.MEALMIND,
             Експерти: analytics.authors.types.EXPERT,
             Блогери: analytics.authors.types.BLOGGER,
+            Користувачі: analytics.authors.types.USER,
           }}
         />
       </section>

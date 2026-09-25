@@ -27,15 +27,28 @@ export const recipeOpenApiPaths = Object.freeze({
         "search",
         "status",
         "visibility",
+        "difficulty",
+        "authorType",
+        "creatorOrigin",
         "recipeTypeId",
         "authorId",
+        "cuisineId",
+        "dietaryTagId",
+        "includeArchived",
         "page",
         "pageSize",
       ].map((name) => ({
         name,
         in: "query",
         required: false,
-        schema: { type: name === "page" || name === "pageSize" ? "integer" : "string" },
+        schema: {
+          type:
+            name === "page" || name === "pageSize"
+              ? "integer"
+              : name === "includeArchived"
+                ? "boolean"
+                : "string",
+        },
       })),
       responses: { "200": { description: "Сторінка рецептів" }, ...errors },
     },

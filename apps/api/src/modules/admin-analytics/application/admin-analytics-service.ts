@@ -4,6 +4,7 @@ import type {
   AnalyticsPeriodQuery,
   ComparisonMetric,
   ProductsAnalytics,
+  RecipesAnalytics,
   ResolvedAnalyticsPeriod,
   ReferencesAnalytics,
   UsersAnalytics,
@@ -15,6 +16,7 @@ const MAX_PERIOD_DAYS = 732;
 export interface AdminAnalyticsService {
   getUsers(query: AnalyticsPeriodQuery): Promise<UsersAnalytics>;
   getProducts(query: AnalyticsPeriodQuery): Promise<ProductsAnalytics>;
+  getRecipes(query: AnalyticsPeriodQuery): Promise<RecipesAnalytics>;
   getReferences(): Promise<ReferencesAnalytics>;
 }
 
@@ -88,6 +90,41 @@ export function createAdminAnalyticsService(
         rankings: Object.freeze({
           categories: snapshot.categories,
           brands: snapshot.brands,
+          favorites: snapshot.favorites,
+        }),
+        series: Object.freeze(snapshot.series),
+      });
+    },
+    async getRecipes(query: AnalyticsPeriodQuery) {
+      const generatedAt = now();
+      const period = resolveAnalyticsPeriod(query, generatedAt);
+      const snapshot = await repository.getRecipes(period);
+      return Object.freeze({
+        meta: Object.freeze({
+          from: period.from,
+          to: period.to,
+          granularity: period.granularity,
+          timezone: period.timezone,
+          generatedAt: generatedAt.toISOString(),
+        }),
+        totals: Object.freeze({
+          all: snapshot.total,
+          drafts: snapshot.drafts,
+          familyOnly: snapshot.familyOnly,
+        }),
+        created: comparison(snapshot.currentCreated, snapshot.previousCreated),
+        breakdowns: Object.freeze({
+          statuses: snapshot.statuses,
+          visibility: snapshot.visibility,
+          difficulties: snapshot.difficulties,
+          authorTypes: snapshot.authorTypes,
+          creatorOrigins: snapshot.creatorOrigins,
+        }),
+        rankings: Object.freeze({
+          recipeTypes: snapshot.recipeTypes,
+          cuisines: snapshot.cuisines,
+          dietaryTags: snapshot.dietaryTags,
+          authors: snapshot.authors,
           favorites: snapshot.favorites,
         }),
         series: Object.freeze(snapshot.series),

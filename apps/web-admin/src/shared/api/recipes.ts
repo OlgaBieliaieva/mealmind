@@ -3,6 +3,7 @@ import type { ApiClient } from "./api-client";
 export type RecipeStatus = "DRAFT" | "READY" | "PUBLISHED" | "ARCHIVED";
 export type RecipeVisibility = "FAMILY" | "PUBLIC";
 export type RecipeDifficulty = "EASY" | "MEDIUM" | "HARD";
+export type RecipeAuthorType = "MEALMIND" | "EXPERT" | "BLOGGER" | "USER";
 
 export interface RecipeIngredientWrite {
   readonly productId: string;
@@ -142,6 +143,14 @@ export function listRecipes(
     readonly search?: string;
     readonly status?: RecipeStatus;
     readonly visibility?: RecipeVisibility;
+    readonly difficulty?: RecipeDifficulty | "UNASSIGNED";
+    readonly authorType?: RecipeAuthorType | "UNASSIGNED";
+    readonly creatorOrigin?: "USER" | "SYSTEM";
+    readonly recipeTypeId?: string;
+    readonly authorId?: string;
+    readonly cuisineId?: string;
+    readonly dietaryTagId?: string;
+    readonly includeArchived?: boolean;
     readonly page?: number;
     readonly pageSize?: number;
   },

@@ -20,6 +20,8 @@ const userIds: string[] = [];
 const profileIds: string[] = [];
 let familyId: string | undefined;
 let productId: string | undefined;
+let recipeId: string | undefined;
+let authorId: string | undefined;
 
 try {
   const currentUser = await database.user.create({
@@ -94,6 +96,48 @@ try {
     data: { familyId: family.id, productId: product.id, createdByUserId: currentUser.id },
   });
 
+  const [recipeType, cuisine, dietaryTag] = await Promise.all([
+    database.recipeType.findFirstOrThrow({ where: { isActive: true } }),
+    database.cuisine.findFirstOrThrow({ where: { isActive: true } }),
+    database.dietaryTag.findFirstOrThrow({ where: { isActive: true } }),
+  ]);
+  const author = await database.author.create({
+    data: {
+      type: "USER",
+      slug: `analytics-${randomUUID()}`,
+      displayName: "Analytics author",
+      userId: currentUser.id,
+      createdByUserId: currentUser.id,
+    },
+  });
+  authorId = author.id;
+  const recipe = await database.recipe.create({
+    data: {
+      title: `Analytics recipe ${randomUUID()}`,
+      status: "DRAFT",
+      visibility: "FAMILY",
+      difficulty: "EASY",
+      recipeTypeId: recipeType.id,
+      authorId: author.id,
+      createdByUserId: currentUser.id,
+      createdAt: new Date("2099-09-04T09:00:00Z"),
+      cuisines: { create: { cuisineId: cuisine.id } },
+      dietaryTags: {
+        create: {
+          dietaryTagId: dietaryTag.id,
+          validationMethod: "MANUAL_REVIEW",
+          ingredientFingerprint: "a".repeat(64),
+          validatedByUserId: currentUser.id,
+          validatedAt: new Date("2099-09-04T09:00:00Z"),
+        },
+      },
+    },
+  });
+  recipeId = recipe.id;
+  await database.recipeFavorite.create({
+    data: { familyId: family.id, recipeId: recipe.id, createdByUserId: currentUser.id },
+  });
+
   const result = await repository.getUsers({
     from: "2099-09-01",
     to: "2099-09-07",
@@ -131,6 +175,23 @@ try {
   );
   assert.equal(products.series.find((point) => point.period === "2099-09-03")?.value, 1);
 
+  const recipes = await repository.getRecipes({
+    from: "2099-09-01",
+    to: "2099-09-07",
+    previousFrom: "2099-08-25",
+    granularity: "day",
+    timezone: "Europe/Kyiv",
+  });
+  assert.equal(recipes.currentCreated >= 1, true);
+  assert.equal(recipes.drafts >= 1, true);
+  assert.equal(recipes.familyOnly >= 1, true);
+  assert.equal(recipes.creatorOrigins.USER >= 1, true);
+  assert.equal(
+    recipes.favorites.some((item) => item.id === recipe.id),
+    true,
+  );
+  assert.equal(recipes.series.find((point) => point.period === "2099-09-04")?.value, 1);
+
   const references = await repository.getReferences();
   assert.equal(references.resources.length, 10);
   assert.equal(references.resources.find((item) => item.resource === "allergens")?.total, 14);
@@ -139,7 +200,9 @@ try {
   console.info("Admin analytics repository PostgreSQL integration test passed.");
 } finally {
   if (familyId !== undefined) await database.family.deleteMany({ where: { id: familyId } });
+  if (recipeId !== undefined) await database.recipe.deleteMany({ where: { id: recipeId } });
   if (productId !== undefined) await database.product.deleteMany({ where: { id: productId } });
+  if (authorId !== undefined) await database.author.deleteMany({ where: { id: authorId } });
   if (profileIds.length > 0) {
     await database.personProfile.deleteMany({ where: { id: { in: profileIds } } });
   }

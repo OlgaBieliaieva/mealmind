@@ -192,8 +192,14 @@ export interface RecipeListQuery {
   readonly search?: string | undefined;
   readonly status?: RecipeStatus | undefined;
   readonly visibility?: RecipeVisibility | undefined;
+  readonly difficulty?: RecipeDifficulty | "UNASSIGNED" | undefined;
+  readonly authorType?: "MEALMIND" | "EXPERT" | "BLOGGER" | "USER" | "UNASSIGNED" | undefined;
+  readonly creatorOrigin?: "USER" | "SYSTEM" | undefined;
   readonly recipeTypeId?: string | undefined;
   readonly authorId?: string | undefined;
+  readonly cuisineId?: string | undefined;
+  readonly dietaryTagId?: string | undefined;
+  readonly includeArchived?: boolean | undefined;
   readonly page: number;
   readonly pageSize: number;
 }

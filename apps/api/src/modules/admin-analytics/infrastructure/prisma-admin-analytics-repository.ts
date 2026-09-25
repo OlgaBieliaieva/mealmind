@@ -3,6 +3,7 @@ import { Prisma, type DatabaseClient } from "@mealmind/db";
 import type {
   AdminAnalyticsRepository,
   ProductsAnalyticsSnapshot,
+  RecipesAnalyticsSnapshot,
   UsersAnalyticsSnapshot,
 } from "../domain/admin-analytics-repository.js";
 import type {
@@ -27,6 +28,11 @@ interface ProductSeriesRow {
 
 interface ProductSourceRow {
   readonly source: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED";
+  readonly value: bigint;
+}
+
+interface RecipeAuthorTypeRow {
+  readonly authorType: "MEALMIND" | "EXPERT" | "BLOGGER" | "USER" | "UNASSIGNED";
   readonly value: bigint;
 }
 
@@ -202,6 +208,98 @@ export function createPrismaAdminAnalyticsRepository(
         series,
       });
     },
+    async getRecipes(period: ResolvedAnalyticsPeriod): Promise<RecipesAnalyticsSnapshot> {
+      const currentRange = createdAtRange(period.from, addOneDay(period.to), period.timezone);
+      const previousRange = createdAtRange(period.previousFrom, period.from, period.timezone);
+      const activeWhere = { archivedAt: null, status: { not: "ARCHIVED" as const } };
+      const [
+        total,
+        drafts,
+        familyOnly,
+        currentCreated,
+        previousCreated,
+        statuses,
+        visibility,
+        difficulties,
+        authorTypes,
+        createdByUsers,
+        createdBySystem,
+        recipeTypes,
+        cuisines,
+        dietaryTags,
+        authors,
+        favorites,
+        series,
+      ] = await Promise.all([
+        database.recipe.count(),
+        database.recipe.count({ where: { archivedAt: null, status: "DRAFT" } }),
+        database.recipe.count({ where: { ...activeWhere, visibility: "FAMILY" } }),
+        database.recipe.count({ where: { createdAt: currentRange } }),
+        database.recipe.count({ where: { createdAt: previousRange } }),
+        database.recipe.groupBy({ by: ["status"], _count: { _all: true } }),
+        database.recipe.groupBy({ by: ["visibility"], _count: { _all: true } }),
+        database.recipe.groupBy({ by: ["difficulty"], _count: { _all: true } }),
+        recipeAuthorTypes(database),
+        database.recipe.count({ where: { createdByUserId: { not: null } } }),
+        database.recipe.count({ where: { createdByUserId: null } }),
+        recipeTypeRanking(database),
+        recipeCuisineRanking(database),
+        recipeDietaryTagRanking(database),
+        recipeAuthorRanking(database),
+        recipeFavoriteRanking(database),
+        recipesSeries(database, period),
+      ]);
+
+      const statusCounts = countsByKey(statuses, "status");
+      const visibilityCounts = countsByKey(visibility, "visibility");
+      const difficultyCounts = new Map(
+        difficulties.map((row) => [row.difficulty ?? "UNASSIGNED", row._count._all]),
+      );
+      const authorTypeCounts = new Map(
+        authorTypes.map((row) => [row.authorType, Number(row.value)]),
+      );
+
+      return Object.freeze({
+        total,
+        drafts,
+        familyOnly,
+        currentCreated,
+        previousCreated,
+        statuses: Object.freeze({
+          DRAFT: statusCounts.get("DRAFT") ?? 0,
+          READY: statusCounts.get("READY") ?? 0,
+          PUBLISHED: statusCounts.get("PUBLISHED") ?? 0,
+          ARCHIVED: statusCounts.get("ARCHIVED") ?? 0,
+        }),
+        visibility: Object.freeze({
+          FAMILY: visibilityCounts.get("FAMILY") ?? 0,
+          PUBLIC: visibilityCounts.get("PUBLIC") ?? 0,
+        }),
+        difficulties: Object.freeze({
+          EASY: difficultyCounts.get("EASY") ?? 0,
+          MEDIUM: difficultyCounts.get("MEDIUM") ?? 0,
+          HARD: difficultyCounts.get("HARD") ?? 0,
+          UNASSIGNED: difficultyCounts.get("UNASSIGNED") ?? 0,
+        }),
+        authorTypes: Object.freeze({
+          MEALMIND: authorTypeCounts.get("MEALMIND") ?? 0,
+          EXPERT: authorTypeCounts.get("EXPERT") ?? 0,
+          BLOGGER: authorTypeCounts.get("BLOGGER") ?? 0,
+          USER: authorTypeCounts.get("USER") ?? 0,
+          UNASSIGNED: authorTypeCounts.get("UNASSIGNED") ?? 0,
+        }),
+        creatorOrigins: Object.freeze({
+          USER: createdByUsers,
+          SYSTEM: createdBySystem,
+        }),
+        recipeTypes,
+        cuisines,
+        dietaryTags,
+        authors,
+        favorites,
+        series,
+      });
+    },
     async getReferences() {
       const [
         allergens,
@@ -284,6 +382,7 @@ export function createPrismaAdminAnalyticsRepository(
             MEALMIND: authorTypeCounts.get("MEALMIND") ?? 0,
             EXPERT: authorTypeCounts.get("EXPERT") ?? 0,
             BLOGGER: authorTypeCounts.get("BLOGGER") ?? 0,
+            USER: authorTypeCounts.get("USER") ?? 0,
           }),
         }),
         quality: Object.freeze({
@@ -435,8 +534,138 @@ async function productFavoriteRanking(
   return rankingWithLabels(rows, labels, "productId");
 }
 
+async function recipeAuthorTypes(
+  database: DatabaseClient,
+): Promise<readonly RecipeAuthorTypeRow[]> {
+  return database.$queryRaw<RecipeAuthorTypeRow[]>(Prisma.sql`
+    SELECT
+      CASE authors.type::text
+        WHEN 'mealmind' THEN 'MEALMIND'
+        WHEN 'expert' THEN 'EXPERT'
+        WHEN 'blogger' THEN 'BLOGGER'
+        WHEN 'user' THEN 'USER'
+        ELSE 'UNASSIGNED'
+      END AS "authorType",
+      COUNT(recipes.id)::bigint AS value
+    FROM recipes
+    LEFT JOIN authors ON authors.id = recipes.author_id
+    GROUP BY "authorType"
+  `);
+}
+
+async function recipeTypeRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.recipe.groupBy({
+    by: ["recipeTypeId"],
+    where: { archivedAt: null, status: { not: "ARCHIVED" }, recipeTypeId: { not: null } },
+    _count: { _all: true },
+    orderBy: { _count: { recipeTypeId: "desc" } },
+    take: 10,
+  });
+  const normalized = rows.filter(
+    (row): row is typeof row & { readonly recipeTypeId: string } => row.recipeTypeId !== null,
+  );
+  const entities = await database.recipeType.findMany({
+    where: { id: { in: normalized.map((row) => row.recipeTypeId) } },
+    select: { id: true, nameUa: true, nameEn: true },
+  });
+  return rankingWithLabels(
+    normalized,
+    entities.map((item) => ({ id: item.id, name: item.nameUa || item.nameEn })),
+    "recipeTypeId",
+  );
+}
+
+async function recipeCuisineRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.recipeCuisine.groupBy({
+    by: ["cuisineId"],
+    where: { recipe: { archivedAt: null, status: { not: "ARCHIVED" } } },
+    _count: { _all: true },
+    orderBy: { _count: { cuisineId: "desc" } },
+    take: 10,
+  });
+  const entities = await database.cuisine.findMany({
+    where: { id: { in: rows.map((row) => row.cuisineId) } },
+    select: { id: true, nameUa: true, nameEn: true },
+  });
+  return rankingWithLabels(
+    rows,
+    entities.map((item) => ({ id: item.id, name: item.nameUa || item.nameEn })),
+    "cuisineId",
+  );
+}
+
+async function recipeDietaryTagRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.recipeDietaryTag.groupBy({
+    by: ["dietaryTagId"],
+    where: { recipe: { archivedAt: null, status: { not: "ARCHIVED" } } },
+    _count: { _all: true },
+    orderBy: { _count: { dietaryTagId: "desc" } },
+    take: 10,
+  });
+  const entities = await database.dietaryTag.findMany({
+    where: { id: { in: rows.map((row) => row.dietaryTagId) } },
+    select: { id: true, nameUa: true, nameEn: true },
+  });
+  return rankingWithLabels(
+    rows,
+    entities.map((item) => ({ id: item.id, name: item.nameUa || item.nameEn })),
+    "dietaryTagId",
+  );
+}
+
+async function recipeAuthorRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.recipe.groupBy({
+    by: ["authorId"],
+    where: { archivedAt: null, status: { not: "ARCHIVED" }, authorId: { not: null } },
+    _count: { _all: true },
+    orderBy: { _count: { authorId: "desc" } },
+    take: 10,
+  });
+  const normalized = rows.filter(
+    (row): row is typeof row & { readonly authorId: string } => row.authorId !== null,
+  );
+  const entities = await database.author.findMany({
+    where: { id: { in: normalized.map((row) => row.authorId) } },
+    select: { id: true, displayName: true },
+  });
+  return rankingWithLabels(
+    normalized,
+    entities.map((item) => ({ id: item.id, name: item.displayName })),
+    "authorId",
+  );
+}
+
+async function recipeFavoriteRanking(
+  database: DatabaseClient,
+): Promise<readonly AnalyticsRankingItem[]> {
+  const rows = await database.recipeFavorite.groupBy({
+    by: ["recipeId"],
+    where: { recipe: { archivedAt: null, status: { not: "ARCHIVED" } } },
+    _count: { _all: true },
+    orderBy: { _count: { recipeId: "desc" } },
+    take: 10,
+  });
+  const entities = await database.recipe.findMany({
+    where: { id: { in: rows.map((row) => row.recipeId) } },
+    select: { id: true, title: true },
+  });
+  return rankingWithLabels(
+    rows,
+    entities.map((item) => ({ id: item.id, name: item.title })),
+    "recipeId",
+  );
+}
+
 function rankingWithLabels<
-  TKey extends "categoryId" | "brandId" | "productId",
+  TKey extends string,
   TRow extends Record<TKey, string> & { readonly _count: { readonly _all: number } },
 >(
   rows: readonly TRow[],
@@ -451,6 +680,46 @@ function rankingWithLabels<
         label: labelsById.get(row[key]) ?? "Невідомо",
         value: row._count._all,
       }),
+    ),
+  );
+}
+
+async function recipesSeries(
+  database: DatabaseClient,
+  period: ResolvedAnalyticsPeriod,
+): Promise<readonly ProductsAnalyticsPoint[]> {
+  const unit = period.granularity;
+  const step = seriesStep(period.granularity);
+  const rows = await database.$queryRaw<ProductSeriesRow[]>(Prisma.sql`
+    WITH parameters AS (
+      SELECT
+        ${period.from}::date AS from_date,
+        ${period.to}::date AS to_date,
+        ${period.timezone}::text AS timezone
+    ), buckets AS (
+      SELECT generate_series(
+        date_trunc(${unit}, from_date::timestamp),
+        date_trunc(${unit}, to_date::timestamp),
+        ${step}
+      ) AS bucket
+      FROM parameters
+    )
+    SELECT
+      buckets.bucket::date AS period,
+      COUNT(recipes.id)::bigint AS value
+    FROM buckets
+    CROSS JOIN parameters
+    LEFT JOIN recipes
+      ON (recipes.created_at AT TIME ZONE parameters.timezone) >= buckets.bucket
+      AND (recipes.created_at AT TIME ZONE parameters.timezone) < buckets.bucket + ${step}
+      AND (recipes.created_at AT TIME ZONE parameters.timezone) >= parameters.from_date
+      AND (recipes.created_at AT TIME ZONE parameters.timezone) < parameters.to_date + INTERVAL '1 day'
+    GROUP BY buckets.bucket
+    ORDER BY buckets.bucket
+  `);
+  return Object.freeze(
+    rows.map((row) =>
+      Object.freeze({ period: row.period.toISOString().slice(0, 10), value: Number(row.value) }),
     ),
   );
 }

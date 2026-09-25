@@ -132,8 +132,17 @@ export const listRecipesSchema = z.object({
     search: z.string().trim().min(1).max(120).optional(),
     status: z.enum(RECIPE_STATUSES).optional(),
     visibility: z.enum(RECIPE_VISIBILITIES).optional(),
+    difficulty: z.enum([...RECIPE_DIFFICULTIES, "UNASSIGNED"]).optional(),
+    authorType: z.enum(["MEALMIND", "EXPERT", "BLOGGER", "USER", "UNASSIGNED"]).optional(),
+    creatorOrigin: z.enum(["USER", "SYSTEM"]).optional(),
     recipeTypeId: uuid.optional(),
     authorId: uuid.optional(),
+    cuisineId: uuid.optional(),
+    dietaryTagId: uuid.optional(),
+    includeArchived: z
+      .enum(["true", "false"])
+      .transform((value) => value === "true")
+      .optional(),
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
   }),

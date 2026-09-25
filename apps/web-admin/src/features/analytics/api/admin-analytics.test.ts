@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClient } from "@/shared/api/api-client";
 
-import { getProductsAnalytics, getReferencesAnalytics, getUsersAnalytics } from "./admin-analytics";
+import {
+  getProductsAnalytics,
+  getRecipesAnalytics,
+  getReferencesAnalytics,
+  getUsersAnalytics,
+} from "./admin-analytics";
 
 describe("admin analytics API", () => {
   it("builds the users analytics URL", async () => {
@@ -35,6 +40,19 @@ describe("admin analytics API", () => {
     });
     expect(get).toHaveBeenCalledWith(
       "/api/v1/admin/analytics/products?from=2026-09-01&to=2026-09-30&granularity=week",
+    );
+  });
+
+  it("builds the recipes analytics URL", async () => {
+    const get = vi.fn(async () => ({ data: {} }));
+    const api = { get } as unknown as ApiClient;
+    await getRecipesAnalytics(api, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+      granularity: "month",
+    });
+    expect(get).toHaveBeenCalledWith(
+      "/api/v1/admin/analytics/recipes?from=2026-09-01&to=2026-09-30&granularity=month",
     );
   });
 });

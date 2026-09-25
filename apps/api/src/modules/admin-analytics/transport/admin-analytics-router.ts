@@ -23,6 +23,7 @@ export function createAdminAnalyticsRouter(
     requireAdmin,
     controller.products,
   );
+  router.get("/admin/analytics/recipes", limiter, authenticated, requireAdmin, controller.recipes);
   router.get(
     "/admin/analytics/references",
     limiter,
