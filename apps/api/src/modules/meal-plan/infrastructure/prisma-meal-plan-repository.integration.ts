@@ -63,6 +63,16 @@ const product = await database.product.create({
     verificationStatus: "UNVERIFIED",
   },
 });
+const recipe = await database.recipe.create({
+  data: {
+    title: `Integration recipe ${marker}`,
+    status: "PUBLISHED",
+    visibility: "PUBLIC",
+    createdByUserId: owner.id,
+    baseServings: 2,
+    yieldWeightG: 400,
+  },
+});
 
 try {
   const command = {
@@ -174,10 +184,95 @@ try {
   const removed = await database.mealEntry.findUniqueOrThrow({ where: { id: entryId } });
   assert.ok(removed.removedAt instanceof Date);
   assert.equal(removed.removedByUserId, owner.id);
+
+  const recreated = await repository.createEntries({
+    ...command,
+    requestId: crypto.randomUUID(),
+    fingerprint: "c".repeat(64),
+  });
+  assert.equal(recreated.entries.length, 1);
+  assert.notEqual(recreated.entries[0]!.id, entryId);
+
+  const productSlotEntries = await database.mealEntry.findMany({
+    where: {
+      mealPlan: { familyId: family.id },
+      date: new Date("2026-08-25T00:00:00.000Z"),
+      mealTypeId: mealType.id,
+      productId: product.id,
+    },
+    orderBy: { position: "asc" },
+    select: { id: true, position: true, removedAt: true },
+  });
+  assert.deepEqual(
+    productSlotEntries.map(({ position }) => position),
+    [1, 2],
+  );
+  assert.equal(productSlotEntries.filter(({ removedAt }) => removedAt === null).length, 1);
+  assert.equal(productSlotEntries.filter(({ removedAt }) => removedAt !== null).length, 1);
+
+  await assert.rejects(
+    () =>
+      repository.createEntries({
+        ...command,
+        requestId: crypto.randomUUID(),
+        fingerprint: "d".repeat(64),
+      }),
+    MealPlanConflictError,
+  );
+
+  const recipeCommand = {
+    ...command,
+    requestId: crypto.randomUUID(),
+    fingerprint: "e".repeat(64),
+    entries: ["2026-08-26", "2026-08-27", "2026-08-28"].map((date) => ({
+      date,
+      mealTypeId: mealType.id,
+      kind: "recipe" as const,
+      foodId: recipe.id,
+      participants: [{ memberId: ownerMember.id, quantityGrams: 200 }],
+    })),
+  };
+  const recipeEntries = await repository.createEntries(recipeCommand);
+  assert.equal(recipeEntries.entries.length, 3);
+
+  for (const entry of recipeEntries.entries) {
+    await repository.deleteEntry({
+      familyId: family.id,
+      userId: owner.id,
+      role: "OWNER",
+      entryId: entry.id,
+      expectedRevision: entry.revision,
+    });
+  }
+
+  const recreatedRecipeEntries = await repository.createEntries({
+    ...recipeCommand,
+    requestId: crypto.randomUUID(),
+    fingerprint: "f".repeat(64),
+  });
+  assert.equal(recreatedRecipeEntries.entries.length, 3);
+
+  const storedRecipeEntries = await database.mealEntry.findMany({
+    where: { mealPlan: { familyId: family.id }, recipeId: recipe.id },
+    orderBy: [{ date: "asc" }, { position: "asc" }],
+    select: { date: true, position: true, removedAt: true },
+  });
+  assert.equal(storedRecipeEntries.length, 6);
+  assert.equal(storedRecipeEntries.filter(({ removedAt }) => removedAt === null).length, 3);
+  assert.equal(storedRecipeEntries.filter(({ removedAt }) => removedAt !== null).length, 3);
+  for (const date of ["2026-08-26", "2026-08-27", "2026-08-28"]) {
+    assert.deepEqual(
+      storedRecipeEntries
+        .filter((entry) => entry.date.toISOString().startsWith(date))
+        .map(({ position }) => position),
+      [1, 2],
+    );
+  }
   console.info("Meal plan PostgreSQL integration test passed.");
 } finally {
   await database.mealPlan.deleteMany({ where: { familyId: family.id } });
   await database.family.delete({ where: { id: family.id } });
+  await database.recipe.delete({ where: { id: recipe.id } });
   await database.product.delete({ where: { id: product.id } });
   await database.personProfile.deleteMany({
     where: { id: { in: [ownerProfile.id, dependentProfile.id] } },
