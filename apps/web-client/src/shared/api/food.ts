@@ -30,6 +30,8 @@ export type FoodSearchItem =
       readonly summary: string | null;
       readonly difficulty: "EASY" | "MEDIUM" | "HARD" | null;
       readonly totalTimeMin: number | null;
+      readonly baseServings: number | null;
+      readonly yieldWeightG: number | null;
       readonly recipeType: {
         readonly id: string;
         readonly code: string;

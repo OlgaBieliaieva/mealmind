@@ -85,6 +85,7 @@ describe("AdvancedPlanningFlow", () => {
     expect(await screen.findByRole("heading", { name: "Додати в план" })).toBeInTheDocument();
 
     const quantity = screen.getByRole("spinbutton", { name: "Порція у грамах" });
+    expect(quantity).toHaveValue(100);
     fireEvent.change(quantity, { target: { value: "" } });
     expect(quantity).toHaveValue(null);
     fireEvent.change(quantity, { target: { value: "175" } });

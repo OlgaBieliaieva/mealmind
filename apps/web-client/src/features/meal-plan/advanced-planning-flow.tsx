@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import { sanitizeReturnTo } from "@/features/auth/safe-return-to";
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
+import { defaultFoodQuantityGrams } from "@/shared/lib/default-food-quantity";
 import { getFoodDetails, type FoodDetails, type FoodKind } from "@/shared/api/food";
 import {
   createMealEntries,
@@ -430,10 +431,7 @@ function readInitialDraft(
 ): { readonly draft: Draft; readonly restored: boolean } {
   const allowedDays = initialDays.filter((day) => context.availableDays.includes(day));
   const fallbackDays = allowedDays.length ? allowedDays : [context.availableDays[0]!];
-  const defaultQuantity =
-    food.kind === "recipe"
-      ? Math.round((Number(food.yieldWeightG) || 100) / (food.baseServings || 1))
-      : Math.round(Number(food.portions[0]?.gramWeight) || 100);
+  const defaultQuantity = defaultFoodQuantityGrams(food);
   const initial = Object.fromEntries(
     context.members
       .filter((member) => member.canPlan)

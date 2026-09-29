@@ -35,7 +35,6 @@ import {
   setMealEntriesPrepared,
   setMealEntryPrepared,
   type AggregatedMealPlanEntry,
-  type NutritionAggregate,
   type NutrientAmount,
   type NutrientTargetAmount,
   type MemberFood,
@@ -376,12 +375,6 @@ function MealView({
     active === "all"
       ? aggregatedMeals.all
       : (mealTypeGroups.find((group) => group.mealType.id === active)?.entries ?? []);
-  const nutrition =
-    active === "all"
-      ? aggregatedMeals.nutrition
-      : (mealTypeGroups.find((group) => group.mealType.id === active)?.nutrition ??
-        aggregatedMeals.nutrition);
-
   if (aggregatedMeals.all.length === 0) {
     return (
       <PlanEmpty
@@ -419,8 +412,6 @@ function MealView({
           </button>
         ))}
       </div>
-
-      <MealNutritionSummary nutrition={nutrition} />
 
       <ul className="planned-food-list">
         {entries.map((entry) => (
@@ -1202,80 +1193,52 @@ function NutrientDetails({
   readonly targets: readonly NutrientTargetAmount[];
 }) {
   const plannedByCode = new Map(planned.map((item) => [item.code, item]));
-  const targetByCode = new Map(targets.map((item) => [item.code, item]));
-  const rows = [...planned, ...targets.filter((target) => !plannedByCode.has(target.code))];
 
   return (
     <div className="nutrient-details">
       <h4>Деталізація нутрієнтів</h4>
 
-      <div className="nutrient-details__chips">
-        {rows.map((item) => {
-          const plannedAmount = plannedByCode.get(item.code);
-          const target = targetByCode.get(item.code);
+      {targets.length > 0 ? (
+        <div className="nutrient-details__targets">
+          {targets.map((target) => {
+            const plannedAmount = plannedByCode.get(target.code);
+            const reference = targetReference(target);
+            const percent =
+              plannedAmount && reference !== null && reference > 0
+                ? Math.round((plannedAmount.value / reference) * 100)
+                : 0;
 
-          return (
-            <span key={item.code}>
-              {item.name}:{" "}
-              {plannedAmount
-                ? `${roundedNutrientValue(plannedAmount.value)} ${unitLabel(plannedAmount.unit)}`
-                : "—"}
-              {target ? ` / ${targetDescription(target)}` : ""}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function MealNutritionSummary({ nutrition }: { readonly nutrition: NutritionAggregate }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
-  if (nutrition.planned.length === 0) {
-    return (
-      <section className="meal-nutrition-summary">
-        <strong>Поживність плану</strong>
-        <p>Для вибраних позицій поки немає нутрієнтних даних.</p>
-      </section>
-    );
-  }
-
-  const values = new Map(nutrition.planned.map((item) => [item.code, item.value]));
-  const nutrients = [
-    ["Енергія", values.get("energy_kcal"), "ккал"],
-    ["Білки", values.get("protein"), "г"],
-    ["Жири", values.get("total_fat"), "г"],
-    ["Вуглеводи", values.get("carbohydrate"), "г"],
-  ] as const;
-
-  return (
-    <section className="meal-nutrition-summary">
-      <header>
-        <div>
-          <strong>Поживність плану</strong>
-          <small>Сумарно для вибраних порцій без порівняння персональних цілей.</small>
+            return (
+              <article key={target.code}>
+                <header>
+                  <strong>{target.name}</strong>
+                  <span>
+                    {plannedAmount
+                      ? `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(plannedAmount.value)} ${unitLabel(plannedAmount.unit)}`
+                      : "—"}
+                    {" / "}
+                    {targetDescription(target)}
+                  </span>
+                </header>
+                <progress
+                  max="100"
+                  value={Math.min(100, percent)}
+                  aria-label={
+                    plannedAmount
+                      ? `${target.name}: ${percent}% цілі`
+                      : `${target.name}: даних плану немає`
+                  }
+                >
+                  {percent}%
+                </progress>
+              </article>
+            );
+          })}
         </div>
-        <button
-          type="button"
-          aria-expanded={detailsOpen}
-          onClick={() => setDetailsOpen((value) => !value)}
-        >
-          {detailsOpen ? "Згорнути" : "Деталі"}
-          {detailsOpen ? <ChevronUp /> : <ChevronDown />}
-        </button>
-      </header>
-      <div className="meal-nutrition-summary__values">
-        {nutrients.map(([label, value, unit]) => (
-          <span key={label}>
-            <small>{label}</small>
-            <strong>{value === undefined ? "—" : Math.round(value)}</strong>
-            <small>{value === undefined ? "" : unit}</small>
-          </span>
-        ))}
-      </div>
-      {detailsOpen ? <NutrientDetails planned={nutrition.planned} targets={[]} /> : null}
-    </section>
+      ) : (
+        <p>Цільові нутрієнти не визначені у профілі.</p>
+      )}
+    </div>
   );
 }
 

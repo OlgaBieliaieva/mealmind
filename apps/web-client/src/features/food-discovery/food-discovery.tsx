@@ -28,6 +28,7 @@ import {
   type RecipeSearchFilters,
 } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { defaultFoodQuantityGrams } from "@/shared/lib/default-food-quantity";
 import { getRecipeTypeEmoji } from "@/shared/lib/recipe-type-emoji";
 import { createMealEntries, getPlanningContext } from "@/shared/api/meal-plans";
 import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
@@ -111,7 +112,12 @@ export function FoodDiscovery() {
           mealTypeId: effectiveMealTypeId,
           kind: item.kind,
           foodId: item.id,
-          participants: [{ memberId: effectiveMemberId, quantityGrams: 100 }],
+          participants: [
+            {
+              memberId: effectiveMemberId,
+              quantityGrams: defaultFoodQuantityGrams(item),
+            },
+          ],
         })),
       );
     },

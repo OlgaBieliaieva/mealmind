@@ -592,8 +592,7 @@ describe("MealPlanScreen", () => {
     expect(screen.getByText("Сніданки · 20 хв · Легко")).toBeInTheDocument();
 
     expect(screen.getByText("1 порц. · 100 г")).toBeInTheDocument();
-    expect(screen.getByText("Поживність плану")).toBeInTheDocument();
-    expect(screen.getByText("177")).toBeInTheDocument();
+    expect(screen.queryByText("Поживність плану")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Дії для Вівсянка" }));
     fireEvent.click(screen.getByRole("button", { name: "Готувати" }));
@@ -1171,9 +1170,13 @@ describe("MealPlanScreen", () => {
     expect(screen.getByText("11% добової норми")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Деталі" }));
-    expect(screen.getByText("Білки: 16 г / 80 г")).toBeInTheDocument();
-    expect(screen.getByText("Жири: 20 г / 18–25 г")).toBeInTheDocument();
-    expect(screen.getByText("Вуглеводи: 45 г / 40–60 г")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Енергія: 25% цілі" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Білки: 20% цілі" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Жири: 93% цілі" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Вуглеводи: 90% цілі" })).toBeVisible();
+    expect(screen.getByText("16 г / 80 г")).toBeVisible();
+    expect(screen.getByText("20 г / 18–25 г")).toBeVisible();
+    expect(screen.getByText("45 г / 40–60 г")).toBeVisible();
 
     expect(
       screen.getByRole("button", {

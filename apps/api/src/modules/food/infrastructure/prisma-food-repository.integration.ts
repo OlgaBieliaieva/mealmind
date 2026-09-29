@@ -37,6 +37,11 @@ try {
     pageSize: 10,
   });
   assert.ok(Array.isArray(latest.items));
+  for (const item of latest.items) {
+    if (item.kind !== "recipe") continue;
+    assert.ok("baseServings" in item);
+    assert.ok("yieldWeightG" in item);
+  }
 
   const filtered: FoodSearchQuery = {
     query: "",

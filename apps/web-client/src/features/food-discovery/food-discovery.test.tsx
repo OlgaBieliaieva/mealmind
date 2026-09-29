@@ -4,11 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { validateRenderedUi } from "@/test/ui-quality";
 import { readRecipeFilterOptions, searchFood, setFoodFavorite } from "@/shared/api/food";
+import { createMealEntries, getPlanningContext } from "@/shared/api/meal-plans";
 import { FoodDiscovery } from "./food-discovery";
 
+const navigation = vi.hoisted(() => ({
+  push: vi.fn(),
+  parameters: "returnTo=%2Fplan",
+}));
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams("returnTo=%2Fplan"),
+  useRouter: () => ({ push: navigation.push }),
+  useSearchParams: () => new URLSearchParams(navigation.parameters),
 }));
 
 vi.mock("@/shared/api/browser-api-client", () => ({
@@ -19,6 +25,10 @@ vi.mock("@/shared/api/food", () => ({
   readRecipeFilterOptions: vi.fn(),
   searchFood: vi.fn(),
   setFoodFavorite: vi.fn(),
+}));
+vi.mock("@/shared/api/meal-plans", () => ({
+  createMealEntries: vi.fn(),
+  getPlanningContext: vi.fn(),
 }));
 
 function renderDiscovery() {
@@ -34,6 +44,8 @@ function renderDiscovery() {
 
 describe("FoodDiscovery", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    navigation.parameters = "returnTo=%2Fplan";
     vi.mocked(searchFood).mockResolvedValue({
       data: {
         items: [
@@ -63,6 +75,29 @@ describe("FoodDiscovery", () => {
       authors: [],
       cuisines: [],
       dietaryTags: [],
+    });
+    vi.mocked(getPlanningContext).mockResolvedValue({
+      data: {
+        familyId: "family-id",
+        familyName: "Родина",
+        role: "OWNER",
+        weekStart: "2026-08-24",
+        weekEnd: "2026-08-30",
+        availableDays: ["2026-08-25"],
+        members: [
+          {
+            id: "member-id",
+            name: "Олена",
+            avatarUrl: null,
+            isSelf: true,
+            canPlan: true,
+            mealTypes: [{ id: "breakfast", code: "breakfast", name: "Сніданок", sortOrder: 1 }],
+          },
+        ],
+      },
+    });
+    vi.mocked(createMealEntries).mockResolvedValue({
+      data: { entries: [], replayed: false },
     });
   });
 
@@ -114,6 +149,56 @@ describe("FoodDiscovery", () => {
     expect(screen.getByRole("button", { name: "Фільтри" })).toHaveAttribute(
       "aria-expanded",
       "false",
+    );
+  });
+
+  it("uses one base recipe serving for quick plan addition", async () => {
+    navigation.parameters = "mode=select&date=2026-08-25&returnTo=%2Fplan";
+    vi.mocked(searchFood).mockResolvedValue({
+      data: {
+        items: [
+          {
+            kind: "recipe",
+            id: "recipe-id",
+            name: "Овочеве рагу",
+            summary: null,
+            difficulty: "EASY",
+            totalTimeMin: 40,
+            baseServings: 5,
+            yieldWeightG: 1120,
+            recipeType: null,
+            cuisines: [],
+            dietaryTags: [],
+            author: null,
+            imageUrl: null,
+            nutrition: {
+              basis: "PER_SERVING",
+              energyKcal: 220,
+              proteinG: 8,
+              fatG: 7,
+              carbohydrateG: 30,
+            },
+            isFavorite: true,
+          },
+        ],
+      },
+      meta: { page: 1, pageSize: 20, total: 1 },
+    });
+
+    renderDiscovery();
+    fireEvent.click(await screen.findByRole("button", { name: "Вибрати Овочеве рагу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Додати (1)" }));
+
+    await waitFor(() =>
+      expect(createMealEntries).toHaveBeenCalledWith({}, "2026-08-25", [
+        {
+          date: "2026-08-25",
+          mealTypeId: "breakfast",
+          kind: "recipe",
+          foodId: "recipe-id",
+          participants: [{ memberId: "member-id", quantityGrams: 224 }],
+        },
+      ]),
     );
   });
 });
