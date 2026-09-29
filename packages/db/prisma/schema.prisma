@@ -1578,11 +1578,12 @@ model MealEntryParticipant {
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  mealEntry             MealEntry                  @relation(fields: [mealEntryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  familyMember          FamilyMember               @relation(fields: [familyMemberId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  measurementUnit       MeasurementUnit            @relation(fields: [measurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  mealEntry             MealEntry                            @relation(fields: [mealEntryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  familyMember          FamilyMember                         @relation(fields: [familyMemberId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  measurementUnit       MeasurementUnit                      @relation(fields: [measurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   consumptionEntry      ConsumptionEntry?
   consumptionResolution MealConsumptionResolution?
+  cookingSnapshots      CookingSessionMealEntryParticipant[]
 
   @@unique([id, familyMemberId])
   @@unique([mealEntryId, familyMemberId])
@@ -1732,6 +1733,8 @@ model CookingSession {
   yieldMeasurementMethod    CookingYieldMeasurementMethod? @map("yield_measurement_method")
   containerTareWeightG      Decimal?                       @map("container_tare_weight_g") @db.Decimal(12, 3)
   containerGrossWeightG     Decimal?                       @map("container_gross_weight_g") @db.Decimal(12, 3)
+  portionAdjustmentApplied  Boolean?                       @map("portion_adjustment_applied")
+  portionScaleFactor        Decimal?                       @map("portion_scale_factor") @db.Decimal(16, 8)
   startedAt                 DateTime                       @map("started_at") @db.Timestamptz(3)
   completedAt               DateTime?                      @map("completed_at") @db.Timestamptz(3)
   cancelledAt               DateTime?                      @map("cancelled_at") @db.Timestamptz(3)
@@ -1767,13 +1770,34 @@ model CookingSessionMealEntry {
   releasedAt           DateTime? @map("released_at") @db.Timestamptz(3)
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  cookingSession CookingSession @relation(fields: [cookingSessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  mealEntry      MealEntry      @relation(fields: [mealEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cookingSession CookingSession                       @relation(fields: [cookingSessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  mealEntry      MealEntry                            @relation(fields: [mealEntryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  participants   CookingSessionMealEntryParticipant[]
 
   @@id([cookingSessionId, mealEntryId])
   @@index([mealEntryId])
   @@index([mealEntryId, releasedAt])
   @@map("cooking_session_meal_entries")
+}
+
+model CookingSessionMealEntryParticipant {
+  cookingSessionId        String   @map("cooking_session_id") @db.Uuid
+  mealEntryId             String   @map("meal_entry_id") @db.Uuid
+  mealEntryParticipantId  String   @map("meal_entry_participant_id") @db.Uuid
+  familyMemberId          String   @map("family_member_id") @db.Uuid
+  plannedQuantity         Decimal  @map("planned_quantity") @db.Decimal(12, 3)
+  plannedUnitSnapshot     String   @map("planned_unit_snapshot") @db.VarChar(32)
+  plannedQuantityInGrams  Decimal  @map("planned_quantity_in_grams") @db.Decimal(12, 3)
+  preparedQuantityInGrams Decimal? @map("prepared_quantity_in_grams") @db.Decimal(12, 3)
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  mealEntryAllocation  CookingSessionMealEntry @relation(fields: [cookingSessionId, mealEntryId], references: [cookingSessionId, mealEntryId], onDelete: Cascade, onUpdate: Cascade)
+  mealEntryParticipant MealEntryParticipant    @relation(fields: [mealEntryParticipantId, familyMemberId], references: [id, familyMemberId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([cookingSessionId, mealEntryId, familyMemberId])
+  @@unique([cookingSessionId, mealEntryParticipantId])
+  @@index([mealEntryParticipantId, familyMemberId])
+  @@map("cooking_session_meal_entry_participants")
 }
 
 model CookingSessionIngredient {

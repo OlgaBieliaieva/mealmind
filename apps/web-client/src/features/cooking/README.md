@@ -14,6 +14,7 @@ Meal Plan відкриває цей маршрут через:
 - «Готувати» — для вибраних вільних днів рецепта;
 - «Продовжити приготування» — для active session;
 - «Готувати решту» — коли інші дні того самого агрегованого рецепта ще вільні.
+- «Переглянути приготування» — для completed session у read-only режимі.
 
 Одна session може охоплювати кілька днів. Наприклад, Пн–Ср і Пт–Нд одного
 рецепта можуть бути двома незалежними sessions; completed allocations першої
@@ -81,6 +82,8 @@ Bottom sheet підтримує:
 - очищення раніше введеного measurement.
 
 Actual yield необов’язковий і не блокує completion.
+Якщо actual yield відрізняється від planned, confirmation показує різницю в
+грамах і відсотках та пропонує автоматично масштабувати порції всіх учасників.
 
 ## Нутрієнти
 
@@ -90,7 +93,8 @@ Tab «Нутрієнти» показує actual CookingSession nutrition на 1
 - після completion — persisted final snapshot;
 - `ACTUAL` basis за фактичною вагою;
 - `PLANNED_ESTIMATE` за planned yield;
-- повідомлення для `PARTIAL`, `UNVERIFIED` або unavailable значень.
+- відсутні значення відображаються як `—`; окремі текстові попередження для
+  `PARTIAL` і `UNVERIFIED` на поточному етапі не показуються.
 
 Планові macros Overview і фактичні nutrients цього tab мають різне
 призначення та не змішуються.
@@ -106,6 +110,11 @@ Tab «Нутрієнти» показує actual CookingSession nutrition на 1
 - «Скасувати приготування» потребує підтвердження та повертає дні до можливого
   нового start.
 
+Meal Plan окремо показує «Переглянути рецепт» і «Переглянути приготування».
+Скасування позначки «Приготовано» також потребує confirmation, повертає базові
+порції/нутрієнти й недоступне до скасування підтвердженого споживання. Клік по
+приготованому рецепту в щоденнику відкриває completed CookingSession.
+
 Completed/cancelled UI переходить у read-only стан.
 
 ## Стани Meal Plan
@@ -117,8 +126,9 @@ Completed/cancelled UI переходить у read-only стан.
 ✓ Придбано             — product
 ```
 
-Cooking controls доступні лише recipe entries. Session-controlled prepared
-checkbox заблокований від ручного скидання.
+Cooking controls доступні лише recipe entries. Recipe не можна вручну
+позначити приготованим без Cooking Mode; completed state можна скасувати лише
+через підтверджену дію з описаними lifecycle-обмеженнями.
 
 ## Concurrency, persistence і Wake Lock
 

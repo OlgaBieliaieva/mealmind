@@ -418,6 +418,67 @@ export const mealPlanOpenApiPaths = Object.freeze({
     },
   },
 
+  "/api/v1/meal-plans/entries/prepared/batch": {
+    patch: {
+      summary: "Атомарно скасувати готовність кількох позицій плану",
+
+      description:
+        "Перевіряє всі позиції до запису й в одній транзакції повертає їх до базових порцій та нутрієнтів. Використовується агрегованою карткою кількох днів.",
+
+      security: [
+        {
+          bearerAuth: [],
+        },
+      ],
+
+      requestBody: {
+        required: true,
+
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["prepared", "entries"],
+              properties: {
+                prepared: {
+                  type: "boolean",
+                  enum: [false],
+                },
+                entries: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 31,
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["entryId", "expectedRevision"],
+                    properties: {
+                      entryId: { type: "string", format: "uuid" },
+                      expectedRevision: { type: "integer", minimum: 0 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      responses: {
+        "200": {
+          description: "Оновлені revision; preparedAt дорівнює null",
+        },
+
+        "404": {
+          description: "Одна з позицій не знайдена",
+        },
+
+        ...commonErrors,
+      },
+    },
+  },
+
   "/api/v1/meal-plans/entries/{entryId}/prepared": {
     patch: {
       summary: "Позначити позицію плану як приготовану або неготову",

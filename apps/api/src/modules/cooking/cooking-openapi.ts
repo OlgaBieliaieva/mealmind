@@ -118,7 +118,7 @@ export const cookingOpenApiPaths = Object.freeze({
     post: {
       summary: "Явно завершити приготування",
       description:
-        "Не виконується автоматично після останнього checkbox. resolvePending=true підтверджує нерозв’язані позиції за recipe snapshot.",
+        "Не виконується автоматично після останнього checkbox. resolvePending=true підтверджує нерозв’язані позиції за recipe snapshot. applyPortionAdjustment=true пропорційно масштабує порції за фактичним виходом.",
       security,
       parameters: [sessionParameter],
       requestBody: requestBody("CompleteCookingSession"),
@@ -227,8 +227,12 @@ export const cookingOpenApiSchemas = Object.freeze({
   CompleteCookingSession: {
     type: "object",
     additionalProperties: false,
-    required: ["expectedRevision", "resolvePending"],
-    properties: { expectedRevision: revision, resolvePending: { type: "boolean" } },
+    required: ["expectedRevision", "resolvePending", "applyPortionAdjustment"],
+    properties: {
+      expectedRevision: revision,
+      resolvePending: { type: "boolean" },
+      applyPortionAdjustment: { type: "boolean" },
+    },
   },
   CookingSession: {
     type: "object",
@@ -359,13 +363,23 @@ export const cookingOpenApiSchemas = Object.freeze({
       },
       yield: {
         type: "object",
-        required: ["plannedWeightG", "actualWeightG", "method", "tareWeightG", "grossWeightG"],
+        required: [
+          "plannedWeightG",
+          "actualWeightG",
+          "method",
+          "tareWeightG",
+          "grossWeightG",
+          "portionAdjustmentApplied",
+          "portionScaleFactor",
+        ],
         properties: {
           plannedWeightG: { type: "number", minimum: 0 },
           actualWeightG: nullableGrams,
           method: { type: ["string", "null"], enum: ["DIRECT", "CONTAINER_DIFFERENCE", null] },
           tareWeightG: nullableGrams,
           grossWeightG: nullableGrams,
+          portionAdjustmentApplied: { type: ["boolean", "null"] },
+          portionScaleFactor: { type: ["number", "null"], exclusiveMinimum: 0 },
         },
       },
       hasCookingProgress: { type: "boolean" },

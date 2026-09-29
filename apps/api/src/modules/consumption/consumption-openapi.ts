@@ -16,7 +16,10 @@ const errors = {
   "401": { $ref: "#/components/responses/AuthenticationRequired" },
   "403": { description: "Немає права керувати вибраним сімейним профілем" },
   "404": { description: "Позицію не знайдено в активній сім’ї" },
-  "409": { description: "Конфлікт revision або lifecycle факту" },
+  "409": {
+    description:
+      "Конфлікт revision/lifecycle або MEAL_NOT_PREPARED для запланованого рецепта без завершеної Cooking Session",
+  },
   "422": { description: "Некоректна дата, порція або catalog food" },
   "429": { description: "Перевищено rate limit" },
 } as const;
@@ -88,7 +91,7 @@ export const consumptionOpenApiPaths = Object.freeze({
     post: {
       summary: "Підтвердити фактичне споживання планової позиції",
       description:
-        "Створює ConsumptionEntry лише після явної дії. Повторне підтвердження відновлює раніше скасований факт.",
+        "Створює ConsumptionEntry лише після явної дії. Для рецепта потрібна активна завершена Cooking Session; порція та нутрієнти snapshot-яться з неї. Повторне підтвердження відновлює раніше скасований факт.",
       security,
       parameters: [participantParameter],
       requestBody: {

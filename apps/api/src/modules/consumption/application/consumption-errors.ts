@@ -31,3 +31,13 @@ export class ConsumptionValidationError extends AppError {
     super({ code: "CONSUMPTION_VALIDATION_FAILED", statusCode: 422, message });
   }
 }
+
+export class ConsumptionMealNotPreparedError extends AppError {
+  constructor() {
+    super({
+      code: "MEAL_NOT_PREPARED",
+      statusCode: 409,
+      message: "The planned recipe must be cooked before it can be added to the diary",
+    });
+  }
+}

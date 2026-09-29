@@ -11,6 +11,7 @@ import type {
 import {
   ConsumptionConflictError,
   ConsumptionForbiddenError,
+  ConsumptionMealNotPreparedError,
   ConsumptionNotFoundError,
   ConsumptionValidationError,
 } from "../application/consumption-errors.js";
@@ -98,9 +99,10 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
   }): Promise<Snapshot> {
     if (input.cookingSessionId) {
       const session = await database.cookingSession.findFirst({
-        where: { id: input.cookingSessionId, status: "COMPLETED", actualYieldWeightG: { gt: 0 } },
+        where: { id: input.cookingSessionId, status: "COMPLETED" },
         select: {
           actualYieldWeightG: true,
+          plannedYieldWeightG: true,
           nutrients: {
             where: {
               nutrient: {
@@ -116,8 +118,10 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
           },
         },
       });
-      if (session?.actualYieldWeightG) {
-        const factor = input.quantityGrams / session.actualYieldWeightG.toNumber();
+      const effectiveYield =
+        session?.actualYieldWeightG?.toNumber() ?? session?.plannedYieldWeightG?.toNumber() ?? 0;
+      if (session && effectiveYield > 0) {
+        const factor = input.quantityGrams / effectiveYield;
         return session.nutrients.map((item) => ({
           nutrientId: item.nutrient.id,
           code: item.nutrient.code,
@@ -268,7 +272,18 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
       const candidates = await database.mealEntryParticipant.findMany({
         where: {
           familyMemberId: { in: memberIds },
-          mealEntry: { date: localDate, preparedAt: { not: null } },
+          mealEntry: {
+            date: localDate,
+            preparedAt: { not: null },
+            OR: [
+              { productId: { not: null } },
+              {
+                cookingAllocations: {
+                  some: { releasedAt: null, cookingSession: { status: "COMPLETED" } },
+                },
+              },
+            ],
+          },
         },
         orderBy: [
           { mealEntry: { mealType: { sortOrder: "asc" } } },
@@ -326,6 +341,32 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                 },
               },
               mealType: { select: { id: true, nameUa: true, sortOrder: true } },
+              cookingAllocations: {
+                where: { releasedAt: null, cookingSession: { status: "COMPLETED" } },
+                take: 1,
+                select: {
+                  participants: {
+                    select: {
+                      mealEntryParticipantId: true,
+                      preparedQuantityInGrams: true,
+                    },
+                  },
+                  cookingSession: {
+                    select: {
+                      id: true,
+                      actualYieldWeightG: true,
+                      plannedYieldWeightG: true,
+                      nutrients: {
+                        where: { nutrient: { code: { in: [...CARD_NUTRIENTS] } } },
+                        select: {
+                          valueTotal: true,
+                          nutrient: { select: { code: true } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
           consumptionEntry: {
@@ -415,29 +456,49 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
         const planned: DiaryItem[] = candidates
           .filter((item) => item.familyMemberId === member.id)
           .map((item) => {
-            const grams = item.quantityInGrams.toNumber();
+            const cookingAllocation = item.mealEntry.cookingAllocations[0] ?? null;
+            const cookingSession = cookingAllocation?.cookingSession ?? null;
+            const preparedQuantity = cookingAllocation?.participants.find(
+              (participant) => participant.mealEntryParticipantId === item.id,
+            )?.preparedQuantityInGrams;
+            const grams = preparedQuantity?.toNumber() ?? item.quantityInGrams.toNumber();
             const activeEntry =
               item.consumptionEntry?.status === "CONFIRMED" ? item.consumptionEntry : null;
             const outcome = item.consumptionResolution?.outcome;
-            const per100 = item.mealEntry.product
-              ? cardNutrition(
-                  item.mealEntry.product.nutrients.map((value) => ({
-                    nutrient: value.nutrient,
-                    value: value.valuePer100g,
-                  })),
-                )
-              : item.mealEntry.recipe?.yieldWeightG &&
-                  item.mealEntry.recipe.yieldWeightG.greaterThan(0)
+            const effectiveCookingYield =
+              cookingSession?.actualYieldWeightG?.toNumber() ??
+              cookingSession?.plannedYieldWeightG?.toNumber() ??
+              0;
+            const per100 =
+              cookingSession && effectiveCookingYield > 0
                 ? scaleNutrition(
                     cardNutrition(
-                      item.mealEntry.recipe.nutrients.map((value) => ({
+                      cookingSession.nutrients.map((value) => ({
                         nutrient: value.nutrient,
                         value: value.valueTotal,
                       })),
                     ),
-                    100 / item.mealEntry.recipe.yieldWeightG.toNumber(),
+                    100 / effectiveCookingYield,
                   )
-                : { energy: null, protein: null, fat: null, carbohydrate: null };
+                : item.mealEntry.product
+                  ? cardNutrition(
+                      item.mealEntry.product.nutrients.map((value) => ({
+                        nutrient: value.nutrient,
+                        value: value.valuePer100g,
+                      })),
+                    )
+                  : item.mealEntry.recipe?.yieldWeightG &&
+                      item.mealEntry.recipe.yieldWeightG.greaterThan(0)
+                    ? scaleNutrition(
+                        cardNutrition(
+                          item.mealEntry.recipe.nutrients.map((value) => ({
+                            nutrient: value.nutrient,
+                            value: value.valueTotal,
+                          })),
+                        ),
+                        100 / item.mealEntry.recipe.yieldWeightG.toNumber(),
+                      )
+                    : { energy: null, protein: null, fat: null, carbohydrate: null };
             const plannedNutrition = scaleNutrition(per100, grams / 100);
             const actualNutrition = activeEntry
               ? cardNutrition(activeEntry.nutrients)
@@ -506,6 +567,7 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
               },
               status,
               preparedAt: item.mealEntry.preparedAt?.toISOString() ?? null,
+              cookingSessionId: cookingSession?.id ?? null,
             } satisfies DiaryItem;
           });
         const manual: DiaryItem[] = manualEntries
@@ -555,6 +617,7 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
               },
               status: "CONFIRMED",
               preparedAt: null,
+              cookingSessionId: null,
             };
           });
         const nutrientMap = new Map<string, DiaryNutrient & { sortOrder: number }>();
@@ -855,6 +918,12 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                 where: { releasedAt: null, cookingSession: { status: "COMPLETED" } },
                 take: 1,
                 select: {
+                  participants: {
+                    select: {
+                      mealEntryParticipantId: true,
+                      preparedQuantityInGrams: true,
+                    },
+                  },
                   cookingSession: {
                     select: { id: true, actualYieldWeightG: true, plannedYieldWeightG: true },
                   },
@@ -873,16 +942,20 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
           },
         },
       });
-      if (!participant || !participant.mealEntry.preparedAt) throw new ConsumptionNotFoundError();
+      if (!participant) throw new ConsumptionNotFoundError();
+      if (!participant.mealEntry.preparedAt) throw new ConsumptionMealNotPreparedError();
       await authorizeMember(input.familyId, input.role, input.userId, participant.familyMemberId);
-      const cookingSession = participant.mealEntry.cookingAllocations[0]?.cookingSession ?? null;
-      const plannedQuantityGrams = participant.quantityInGrams.toNumber();
-      const suggestedQuantityGrams =
-        cookingSession?.actualYieldWeightG && cookingSession.plannedYieldWeightG
-          ? (plannedQuantityGrams * cookingSession.actualYieldWeightG.toNumber()) /
-            cookingSession.plannedYieldWeightG.toNumber()
-          : plannedQuantityGrams;
-      const quantityGrams = input.quantityGrams ?? suggestedQuantityGrams;
+      const cookingAllocation = participant.mealEntry.cookingAllocations[0] ?? null;
+      const cookingSession = cookingAllocation?.cookingSession ?? null;
+      if (participant.mealEntry.recipeId && !cookingSession) {
+        throw new ConsumptionMealNotPreparedError();
+      }
+      const preparedQuantity = cookingAllocation?.participants.find(
+        (snapshot) => snapshot.mealEntryParticipantId === participant.id,
+      )?.preparedQuantityInGrams;
+      const plannedQuantityGrams =
+        preparedQuantity?.toNumber() ?? participant.quantityInGrams.toNumber();
+      const quantityGrams = input.quantityGrams ?? plannedQuantityGrams;
       const values = await snapshot({
         productId: participant.mealEntry.productId,
         recipeId: participant.mealEntry.recipeId,
@@ -901,9 +974,9 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
           quantity: quantityGrams,
           measurementUnitId: participant.measurementUnitId,
           quantityInGrams: quantityGrams,
-          plannedQuantity: participant.quantity,
+          plannedQuantity: plannedQuantityGrams,
           plannedMeasurementUnitId: participant.measurementUnitId,
-          plannedQuantityInGrams: participant.quantityInGrams,
+          plannedQuantityInGrams: plannedQuantityGrams,
           cookingSessionId: cookingSession?.id ?? null,
           consumedAt: new Date(`${isoDate(participant.mealEntry.date)}T12:00:00.000Z`),
           localDate: participant.mealEntry.date,
@@ -926,7 +999,7 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
             ? participant.consumptionEntry.mealTypeId
             : participant.mealEntry.mealTypeId;
         const changed =
-          Math.abs(actualQuantity - participant.quantityInGrams.toNumber()) > 0.0005 ||
+          Math.abs(actualQuantity - plannedQuantityGrams) > 0.0005 ||
           actualMealTypeId !== participant.mealEntry.mealTypeId;
         const entry =
           participant.consumptionEntry?.status === "VOIDED"

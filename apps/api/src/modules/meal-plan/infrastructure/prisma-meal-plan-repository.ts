@@ -185,6 +185,21 @@ interface PortionNutrientValue {
   readonly complete: boolean;
 }
 
+interface CookingNutritionSource {
+  readonly status: string;
+  readonly actualYieldWeightG: { toString(): string } | null;
+  readonly plannedYieldWeightG: { toString(): string } | null;
+  readonly nutrients: readonly {
+    readonly valueTotal: { toString(): string };
+    readonly completeness: string;
+    readonly nutrient: {
+      readonly code: string;
+      readonly nameUa: string;
+      readonly unit: string;
+    };
+  }[];
+}
+
 interface MemberFoodSource {
   readonly memberId: string;
 
@@ -232,7 +247,24 @@ function portionNutrients(
     } | null;
   },
   grams: number,
+  cookingSession?: CookingNutritionSource | null,
 ): PortionNutrientValue[] {
+  const cookingYield = cookingSession
+    ? numeric(
+        cookingSession.actualYieldWeightG ??
+          cookingSession.plannedYieldWeightG ?? { toString: () => "0" },
+      )
+    : 0;
+  if (cookingSession?.status === "COMPLETED" && cookingYield > 0) {
+    return cookingSession.nutrients.map(({ nutrient, valueTotal, completeness }) => ({
+      code: nutrient.code,
+      name: nutrient.nameUa,
+      unit: nutrient.unit,
+      value: (numeric(valueTotal) * grams) / cookingYield,
+      complete: completeness === "COMPLETE",
+    }));
+  }
+
   if (entry.product) {
     return entry.product.nutrients.map(({ nutrient, valuePer100g }) => ({
       code: nutrient.code,
@@ -266,35 +298,49 @@ function portionNutrients(
   return [];
 }
 
-function energyPer100g(entry: {
-  readonly product: {
-    readonly nutrients: readonly {
-      readonly valuePer100g: {
-        toString(): string;
-      };
+function energyPer100g(
+  entry: {
+    readonly product: {
+      readonly nutrients: readonly {
+        readonly valuePer100g: {
+          toString(): string;
+        };
 
-      readonly nutrient: {
-        readonly code: string;
-      };
-    }[];
-  } | null;
-
-  readonly recipe: {
-    readonly yieldWeightG: {
-      toString(): string;
+        readonly nutrient: {
+          readonly code: string;
+        };
+      }[];
     } | null;
 
-    readonly nutrients: readonly {
-      readonly valueTotal: {
+    readonly recipe: {
+      readonly yieldWeightG: {
         toString(): string;
-      };
+      } | null;
 
-      readonly nutrient: {
-        readonly code: string;
-      };
-    }[];
-  } | null;
-}): number | null {
+      readonly nutrients: readonly {
+        readonly valueTotal: {
+          toString(): string;
+        };
+
+        readonly nutrient: {
+          readonly code: string;
+        };
+      }[];
+    } | null;
+  },
+  cookingSession?: CookingNutritionSource | null,
+): number | null {
+  const cookingYield = cookingSession
+    ? numeric(
+        cookingSession.actualYieldWeightG ??
+          cookingSession.plannedYieldWeightG ?? { toString: () => "0" },
+      )
+    : 0;
+  if (cookingSession?.status === "COMPLETED" && cookingYield > 0) {
+    const energy = cookingSession.nutrients.find(({ nutrient }) => nutrient.code === "energy_kcal");
+    return energy ? Math.round((numeric(energy.valueTotal) / cookingYield) * 1000) / 10 : null;
+  }
+
   if (entry.product) {
     const energy = entry.product.nutrients.find(({ nutrient }) => nutrient.code === "energy_kcal");
 
@@ -947,11 +993,29 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                   where: { releasedAt: null },
                   take: 1,
                   select: {
+                    participants: {
+                      select: {
+                        familyMemberId: true,
+                        preparedQuantityInGrams: true,
+                      },
+                    },
                     cookingSession: {
                       select: {
                         id: true,
                         status: true,
+                        actualYieldWeightG: true,
+                        plannedYieldWeightG: true,
                         steps: { select: { status: true } },
+                        nutrients: {
+                          where: { nutrient: { code: { in: [...summaryNutrients] } } },
+                          select: {
+                            valueTotal: true,
+                            completeness: true,
+                            nutrient: {
+                              select: { code: true, nameUa: true, unit: true },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -1189,6 +1253,17 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
       const entries = (plan?.entries ?? []).map((entry): MealPlanEntryView => {
         const entryDate = dateOnly(entry.date);
+        const cookingAllocation = entry.cookingAllocations[0] ?? null;
+        const completedCookingSession =
+          cookingAllocation?.cookingSession.status === "COMPLETED"
+            ? cookingAllocation.cookingSession
+            : null;
+        const preparedQuantityByMember = new Map(
+          cookingAllocation?.participants.map((participant) => [
+            participant.familyMemberId,
+            participant.preparedQuantityInGrams?.toNumber() ?? null,
+          ]) ?? [],
+        );
 
         placementByEntryId.set(entry.id, {
           date: entryDate,
@@ -1237,33 +1312,34 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
           preparedAt: entry.preparedAt?.toISOString() ?? null,
 
-          cookingSession: entry.cookingAllocations[0]
+          cookingSession: cookingAllocation
             ? {
-                id: entry.cookingAllocations[0].cookingSession.id,
-                status: entry.cookingAllocations[0].cookingSession.status as
-                  "IN_PROGRESS" | "COMPLETED",
-                resolvedSteps: entry.cookingAllocations[0].cookingSession.steps.filter(
+                id: cookingAllocation.cookingSession.id,
+                status: cookingAllocation.cookingSession.status as "IN_PROGRESS" | "COMPLETED",
+                resolvedSteps: cookingAllocation.cookingSession.steps.filter(
                   (step) => step.status !== "PENDING",
                 ).length,
-                totalSteps: entry.cookingAllocations[0].cookingSession.steps.length,
+                totalSteps: cookingAllocation.cookingSession.steps.length,
               }
             : null,
 
           position: entry.position,
 
-          participants: entry.participants.map((participant) => ({
-            memberId: participant.familyMemberId,
-
-            name: fullName(participant.familyMember.personProfile),
-
-            quantity: numeric(participant.quantity),
-
-            quantityInGrams: numeric(participant.quantityInGrams),
-
-            unit: participant.measurementUnit.symbol,
-
-            avatarUrl: null,
-          })),
+          participants: entry.participants.map((participant) => {
+            const preparedQuantity = preparedQuantityByMember.get(participant.familyMemberId);
+            const effectiveQuantity =
+              completedCookingSession && preparedQuantity !== null && preparedQuantity !== undefined
+                ? preparedQuantity
+                : numeric(participant.quantityInGrams);
+            return {
+              memberId: participant.familyMemberId,
+              name: fullName(participant.familyMember.personProfile),
+              quantity: effectiveQuantity,
+              quantityInGrams: effectiveQuantity,
+              unit: participant.measurementUnit.symbol,
+              avatarUrl: null,
+            };
+          }),
         };
 
         /*
@@ -1275,9 +1351,15 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
           if (mealType) {
             for (const participant of entry.participants) {
-              const grams = numeric(participant.quantityInGrams);
+              const preparedQuantity = preparedQuantityByMember.get(participant.familyMemberId);
+              const grams =
+                completedCookingSession &&
+                preparedQuantity !== null &&
+                preparedQuantity !== undefined
+                  ? preparedQuantity
+                  : numeric(participant.quantityInGrams);
 
-              const nutrients = portionNutrients(entry, grams);
+              const nutrients = portionNutrients(entry, grams, completedCookingSession);
 
               const nutrientByCode = new Map(
                 nutrients.map((nutrient) => [nutrient.code, nutrient.value] as const),
@@ -1323,7 +1405,7 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
                   portionGrams: grams,
 
-                  energyPer100g: energyPer100g(entry),
+                  energyPer100g: energyPer100g(entry, completedCookingSession),
 
                   portionEnergyKcal: nutrientByCode.get("energy_kcal") ?? null,
 
@@ -2175,23 +2257,37 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           },
         });
 
-        await transaction.mealEntryParticipant.update({
-          where: {
-            mealEntryId_familyMemberId: {
-              mealEntryId: entry.id,
+        const completedAllocation = entry.cookingAllocations.find(
+          (allocation) => allocation.cookingSession.status === "COMPLETED",
+        );
 
+        if (completedAllocation) {
+          const updatedSnapshot = await transaction.cookingSessionMealEntryParticipant.updateMany({
+            where: {
+              cookingSessionId: completedAllocation.cookingSession.id,
+              mealEntryId: entry.id,
               familyMemberId: command.memberId,
             },
-          },
-
-          data: {
-            quantity: command.quantityGrams,
-
-            quantityInGrams: command.quantityGrams,
-
-            measurementUnitId: unit.id,
-          },
-        });
+            data: { preparedQuantityInGrams: command.quantityGrams },
+          });
+          if (updatedSnapshot.count !== 1) {
+            throw new MealPlanConflictError("Prepared portion snapshot is unavailable");
+          }
+        } else {
+          await transaction.mealEntryParticipant.update({
+            where: {
+              mealEntryId_familyMemberId: {
+                mealEntryId: entry.id,
+                familyMemberId: command.memberId,
+              },
+            },
+            data: {
+              quantity: command.quantityGrams,
+              quantityInGrams: command.quantityGrams,
+              measurementUnitId: unit.id,
+            },
+          });
+        }
 
         const updated = await transaction.mealEntry.updateMany({
           where: {
@@ -2211,7 +2307,9 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           throw new MealPlanConflictError();
         }
 
-        await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId);
+        if (!completedAllocation) {
+          await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId);
+        }
 
         return {
           id: entry.id,
@@ -2227,10 +2325,6 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
         assertRevision(entry.revision, command.expectedRevision);
 
-        if (entry.cookingAllocations.length > 0) {
-          throw new MealPlanConflictError("Prepared state is controlled by Cooking Mode");
-        }
-
         if (
           command.role !== "OWNER" &&
           !entry.participants.some(
@@ -2240,7 +2334,37 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
           throw new MealPlanAccessDeniedError();
         }
 
+        const allocation = entry.cookingAllocations[0] ?? null;
+        if (command.prepared && entry.recipeId) {
+          throw new MealPlanValidationError("Recipe must be prepared through Cooking Mode");
+        }
+        if (allocation?.cookingSession.status === "IN_PROGRESS") {
+          throw new MealPlanConflictError("Prepared state is controlled by active Cooking Mode");
+        }
+        if (
+          !command.prepared &&
+          allocation?.cookingSession.status === "COMPLETED" &&
+          entry.participants.some(
+            (participant) => participant.consumptionEntry?.status === "CONFIRMED",
+          )
+        ) {
+          throw new MealPlanConflictError(
+            "Confirmed consumption must be voided before marking the meal as not prepared",
+          );
+        }
+
         const preparedAt = command.prepared ? new Date() : null;
+        if (!command.prepared && allocation?.cookingSession.status === "COMPLETED") {
+          await transaction.cookingSessionMealEntry.update({
+            where: {
+              cookingSessionId_mealEntryId: {
+                cookingSessionId: allocation.cookingSession.id,
+                mealEntryId: entry.id,
+              },
+            },
+            data: { releasedAt: new Date() },
+          });
+        }
 
         const updated = await transaction.mealEntry.updateMany({
           where: {
@@ -2271,6 +2395,73 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
           preparedAt: preparedAt?.toISOString() ?? null,
         };
+      });
+    },
+
+    async setEntriesPrepared(command) {
+      return database.$transaction(async (transaction) => {
+        const entries = [];
+        for (const { entryId, expectedRevision } of command.entries) {
+          const entry = await readMutableEntry(transaction, command.familyId, entryId);
+          assertRevision(entry.revision, expectedRevision);
+
+          if (
+            command.role !== "OWNER" &&
+            !entry.participants.some(
+              (participant) => participant.familyMember.personProfile.userId === command.userId,
+            )
+          ) {
+            throw new MealPlanAccessDeniedError();
+          }
+
+          const allocation = entry.cookingAllocations[0] ?? null;
+          if (allocation?.cookingSession.status === "IN_PROGRESS") {
+            throw new MealPlanConflictError("Prepared state is controlled by active Cooking Mode");
+          }
+          if (
+            allocation?.cookingSession.status === "COMPLETED" &&
+            entry.participants.some(
+              (participant) => participant.consumptionEntry?.status === "CONFIRMED",
+            )
+          ) {
+            throw new MealPlanConflictError(
+              "Confirmed consumption must be voided before marking the meal as not prepared",
+            );
+          }
+
+          entries.push({ entry, allocation, expectedRevision });
+        }
+
+        const results = [];
+        for (const { entry, allocation, expectedRevision } of entries) {
+          if (allocation?.cookingSession.status === "COMPLETED") {
+            await transaction.cookingSessionMealEntry.update({
+              where: {
+                cookingSessionId_mealEntryId: {
+                  cookingSessionId: allocation.cookingSession.id,
+                  mealEntryId: entry.id,
+                },
+              },
+              data: { releasedAt: new Date() },
+            });
+          }
+
+          const updated = await transaction.mealEntry.updateMany({
+            where: { id: entry.id, revision: expectedRevision },
+            data: {
+              preparedAt: null,
+              preparedByUserId: null,
+              revision: { increment: 1 },
+            },
+          });
+          if (updated.count !== 1) {
+            throw new MealPlanConflictError();
+          }
+
+          results.push({ id: entry.id, revision: expectedRevision + 1, preparedAt: null as null });
+        }
+
+        return results;
       });
     },
 
@@ -2321,6 +2512,16 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
         }
 
         if (
+          participant.cookingSnapshots.some(
+            (snapshot) => snapshot.mealEntryAllocation.cookingSession.status !== "IN_PROGRESS",
+          )
+        ) {
+          throw new MealPlanConflictError(
+            "Participant cannot be removed after cooking history was created",
+          );
+        }
+
+        if (
           command.role !== "OWNER" &&
           participant.familyMember.personProfile.userId !== command.userId
         ) {
@@ -2348,6 +2549,12 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
           await synchronizeUnstartedCookingSession(transaction, entry.id, command.userId, true);
         } else {
+          await transaction.cookingSessionMealEntryParticipant.deleteMany({
+            where: {
+              mealEntryParticipantId: participant.id,
+              mealEntryAllocation: { cookingSession: { status: "IN_PROGRESS" } },
+            },
+          });
           await transaction.mealEntryParticipant.delete({
             where: {
               mealEntryId_familyMemberId: {
@@ -2502,7 +2709,15 @@ async function synchronizeUnstartedCookingSession(
               mealEntryId: true,
               mealEntry: {
                 select: {
-                  participants: { select: { quantityInGrams: true } },
+                  participants: {
+                    select: {
+                      id: true,
+                      familyMemberId: true,
+                      quantity: true,
+                      quantityInGrams: true,
+                      measurementUnit: { select: { symbol: true } },
+                    },
+                  },
                 },
               },
             },
@@ -2583,6 +2798,39 @@ async function synchronizeUnstartedCookingSession(
       },
       data: { plannedDemandWeightG: demand.weightG },
     });
+    const source = remainingAllocations.find((item) => item.mealEntryId === demand.mealEntryId)!;
+    const participantIds = source.mealEntry.participants.map((participant) => participant.id);
+    await transaction.cookingSessionMealEntryParticipant.deleteMany({
+      where: {
+        cookingSessionId: demand.cookingSessionId,
+        mealEntryId: demand.mealEntryId,
+        mealEntryParticipantId: { notIn: participantIds },
+      },
+    });
+    for (const participant of source.mealEntry.participants) {
+      await transaction.cookingSessionMealEntryParticipant.upsert({
+        where: {
+          cookingSessionId_mealEntryParticipantId: {
+            cookingSessionId: demand.cookingSessionId,
+            mealEntryParticipantId: participant.id,
+          },
+        },
+        create: {
+          cookingSessionId: demand.cookingSessionId,
+          mealEntryId: demand.mealEntryId,
+          mealEntryParticipantId: participant.id,
+          familyMemberId: participant.familyMemberId,
+          plannedQuantity: participant.quantity,
+          plannedUnitSnapshot: participant.measurementUnit.symbol,
+          plannedQuantityInGrams: participant.quantityInGrams,
+        },
+        update: {
+          plannedQuantity: participant.quantity,
+          plannedUnitSnapshot: participant.measurementUnit.symbol,
+          plannedQuantityInGrams: participant.quantityInGrams,
+        },
+      });
+    }
   }
 
   for (const ingredient of session.ingredients) {
@@ -2641,7 +2889,7 @@ async function readMutableEntry(
 
       cookingAllocations: {
         where: { releasedAt: null },
-        select: { cookingSession: { select: { id: true, status: true } } },
+        select: { cookingSessionId: true, cookingSession: { select: { id: true, status: true } } },
       },
 
       mealPlan: {
@@ -2653,7 +2901,17 @@ async function readMutableEntry(
 
       participants: {
         select: {
+          id: true,
           familyMemberId: true,
+          consumptionEntry: { select: { status: true } },
+          cookingSnapshots: {
+            select: {
+              cookingSessionId: true,
+              mealEntryAllocation: {
+                select: { cookingSession: { select: { status: true } } },
+              },
+            },
+          },
 
           familyMember: {
             select: {

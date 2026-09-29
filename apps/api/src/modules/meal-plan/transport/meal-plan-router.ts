@@ -13,6 +13,7 @@ import {
   deleteParticipantSchema,
   mealPlanWeekSchema,
   planningContextSchema,
+  setEntriesPreparedSchema,
   setEntryPreparedSchema,
   updateEntryPlacementSchema,
   updateParticipantSchema,
@@ -70,6 +71,18 @@ export function createMealPlanRouter(
       );
       response.setHeader("Cache-Control", "private, no-store");
       response.status(200).json({ data: result });
+    }),
+  );
+
+  router.patch(
+    "/meal-plans/entries/prepared/batch",
+    writeLimiter,
+    auth,
+    validateRequest(setEntriesPreparedSchema, async (input, request, response) => {
+      response.setHeader("Cache-Control", "private, no-store");
+      response.status(200).json({
+        data: await service.setEntriesPrepared(getAuthenticatedUser(request).userId, input.body),
+      });
     }),
   );
 

@@ -6,6 +6,7 @@ import { createDatabaseClient } from "@mealmind/db";
 
 import { CookingConflictError } from "../application/cooking-errors.js";
 import { createPrismaMealPlanRepository } from "../../meal-plan/infrastructure/prisma-meal-plan-repository.js";
+import { createPrismaConsumptionRepository } from "../../consumption/infrastructure/prisma-consumption-repository.js";
 import { createPrismaCookingRepository } from "./prisma-cooking-repository.js";
 
 try {
@@ -20,6 +21,7 @@ const database = createDatabaseClient({
 });
 const cooking = createPrismaCookingRepository(database);
 const mealPlanRepository = createPrismaMealPlanRepository(database);
+const consumptionRepository = createPrismaConsumptionRepository(database);
 const marker = crypto.randomUUID();
 const actor = {
   userId: crypto.randomUUID(),
@@ -129,19 +131,38 @@ try {
   assert.equal(first.yield.plannedWeightG, 300);
   assert.equal(first.ingredients[0]?.planned?.gramWeight, 300);
   assert.equal((await cooking.start(actor, firstStart)).id, first.id);
+  const firstWithActualYield = await cooking.updateYield(actor, first.id, {
+    expectedRevision: first.revision,
+    method: "DIRECT",
+    actualWeightG: 330,
+  });
   await assert.rejects(
     () =>
       cooking.complete(actor, first.id, {
-        expectedRevision: first.revision,
+        expectedRevision: firstWithActualYield.revision,
         resolvePending: false,
+        applyPortionAdjustment: true,
       }),
     CookingConflictError,
   );
   const firstCompleted = await cooking.complete(actor, first.id, {
-    expectedRevision: first.revision,
+    expectedRevision: firstWithActualYield.revision,
     resolvePending: true,
+    applyPortionAdjustment: true,
   });
   assert.equal(firstCompleted.status, "COMPLETED");
+  assert.equal(firstCompleted.yield.portionAdjustmentApplied, true);
+  assert.equal(firstCompleted.yield.portionScaleFactor, 1.1);
+  const firstPortions = await database.cookingSessionMealEntryParticipant.findMany({
+    where: { cookingSessionId: first.id },
+    orderBy: { mealEntryId: "asc" },
+  });
+  assert.equal(firstPortions.length, 3);
+  assert.ok(
+    firstPortions.every(
+      (portion) => Math.abs((portion.preparedQuantityInGrams?.toNumber() ?? 0) - 110) < 0.0005,
+    ),
+  );
 
   const afterFirst = await database.mealEntry.findMany({
     where: { mealPlanId: plan.id },
@@ -150,6 +171,95 @@ try {
   });
   assert.ok(afterFirst.slice(0, 3).every((entry) => entry.preparedAt instanceof Date));
   assert.ok(afterFirst.slice(3).every((entry) => entry.preparedAt === null));
+
+  const preparedWeek = await mealPlanRepository.readWeek(family.id, {
+    weekStart: new Date("2026-09-21T00:00:00.000Z"),
+    weekEnd: new Date("2026-09-27T00:00:00.000Z"),
+    selectedDates: ["2026-09-21"],
+    userId: user.id,
+    role: "OWNER",
+  });
+  const preparedFood = preparedWeek.members[0]?.details.days[0]?.meals[0]?.entries[0];
+  assert.equal(preparedFood?.portionGrams, 110);
+  assert.equal(preparedFood?.energyPer100g, 45.5);
+  assert.equal(preparedFood?.portionEnergyKcal, 50);
+
+  const firstParticipant = await database.mealEntryParticipant.findUniqueOrThrow({
+    where: {
+      mealEntryId_familyMemberId: {
+        mealEntryId: afterFirst[0]!.id,
+        familyMemberId: member.id,
+      },
+    },
+    select: { id: true },
+  });
+  const diaryBeforeConfirmation = await consumptionRepository.readDay({
+    familyId: family.id,
+    familyName: family.name,
+    timeZone: family.timeZone,
+    role: "OWNER",
+    userId: user.id,
+    date: "2026-09-21",
+  });
+  const diaryItem = diaryBeforeConfirmation.members[0]?.items[0];
+  assert.equal(diaryItem?.plannedQuantityGrams, 110);
+  assert.equal(diaryItem?.plannedEnergyKcal, 50);
+  assert.equal(diaryItem?.energyPer100g, 45.45454545454545);
+  assert.equal(diaryItem?.cookingSessionId, first.id);
+
+  await consumptionRepository.confirmPlanned({
+    familyId: family.id,
+    role: "OWNER",
+    userId: user.id,
+    participantId: firstParticipant.id,
+  });
+  const consumptionFact = await database.consumptionEntry.findUniqueOrThrow({
+    where: { sourceMealEntryParticipantId: firstParticipant.id },
+    include: { nutrients: true },
+  });
+  assert.equal(consumptionFact.plannedQuantityInGrams?.toNumber(), 110);
+  assert.equal(consumptionFact.quantityInGrams.toNumber(), 110);
+  assert.equal(consumptionFact.nutrients[0]?.calculationMethod, "COOKING_SESSION_TOTAL");
+  assert.equal(consumptionFact.nutrients[0]?.value.toNumber(), 50);
+  await assert.rejects(
+    () =>
+      mealPlanRepository.setEntryPrepared({
+        familyId: family.id,
+        userId: user.id,
+        role: "OWNER",
+        entryId: afterFirst[0]!.id,
+        expectedRevision: afterFirst[0]!.revision,
+        prepared: false,
+      }),
+    /Confirmed consumption must be voided/,
+  );
+
+  await mealPlanRepository.updateParticipant({
+    familyId: family.id,
+    userId: user.id,
+    role: "OWNER",
+    entryId: afterFirst[2]!.id,
+    memberId: member.id,
+    expectedRevision: afterFirst[2]!.revision,
+    quantityGrams: 120,
+  });
+  const editedPreparedPortion = await database.mealEntryParticipant.findUniqueOrThrow({
+    where: {
+      mealEntryId_familyMemberId: {
+        mealEntryId: afterFirst[2]!.id,
+        familyMemberId: member.id,
+      },
+    },
+    select: {
+      quantityInGrams: true,
+      cookingSnapshots: {
+        where: { cookingSessionId: first.id },
+        select: { preparedQuantityInGrams: true },
+      },
+    },
+  });
+  assert.equal(editedPreparedPortion.quantityInGrams.toNumber(), 100);
+  assert.equal(editedPreparedPortion.cookingSnapshots[0]?.preparedQuantityInGrams?.toNumber(), 120);
 
   let second = await cooking.start(actor, {
     requestId: crypto.randomUUID(),
@@ -178,6 +288,7 @@ try {
   const secondCompleted = await cooking.complete(actor, second.id, {
     expectedRevision: second.revision,
     resolvePending: true,
+    applyPortionAdjustment: false,
   });
   assert.equal(secondCompleted.status, "COMPLETED");
   assert.equal(
@@ -191,11 +302,56 @@ try {
     6,
   );
 
+  const entryToUnprepare = await database.mealEntry.findUniqueOrThrow({
+    where: { id: afterFirst[1]!.id },
+    select: { revision: true },
+  });
+  const unprepared = await mealPlanRepository.setEntryPrepared({
+    familyId: family.id,
+    userId: user.id,
+    role: "OWNER",
+    entryId: afterFirst[1]!.id,
+    expectedRevision: entryToUnprepare.revision,
+    prepared: false,
+  });
+  assert.equal(unprepared.preparedAt, null);
+  assert.ok(
+    (
+      await database.cookingSessionMealEntry.findUniqueOrThrow({
+        where: {
+          cookingSessionId_mealEntryId: {
+            cookingSessionId: first.id,
+            mealEntryId: afterFirst[1]!.id,
+          },
+        },
+      })
+    ).releasedAt instanceof Date,
+  );
+
   console.info("Cooking repository PostgreSQL integration test passed.");
 } finally {
   // Production policy intentionally makes terminal cooking history immutable.
   // Trigger suspension is limited to cleanup in the isolated mealmind_test database.
   await database.$transaction(async (transaction) => {
+    for (const table of [
+      "meal_consumption_resolutions",
+      "consumption_entry_nutrients",
+      "consumption_entries",
+    ]) {
+      await transaction.$executeRawUnsafe(`ALTER TABLE "${table}" DISABLE TRIGGER USER`);
+    }
+    await transaction.mealConsumptionResolution.deleteMany({ where: { familyId: actor.familyId } });
+    await transaction.consumptionEntryNutrient.deleteMany({
+      where: { consumptionEntry: { familyId: actor.familyId } },
+    });
+    await transaction.consumptionEntry.deleteMany({ where: { familyId: actor.familyId } });
+    for (const table of [
+      "meal_consumption_resolutions",
+      "consumption_entry_nutrients",
+      "consumption_entries",
+    ]) {
+      await transaction.$executeRawUnsafe(`ALTER TABLE "${table}" ENABLE TRIGGER USER`);
+    }
     for (const table of [
       "cooking_session_ingredients",
       "cooking_session_steps",

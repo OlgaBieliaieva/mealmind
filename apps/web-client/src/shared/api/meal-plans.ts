@@ -315,3 +315,19 @@ export function setMealEntryPrepared(
     prepared,
   });
 }
+
+export function setMealEntriesPrepared(
+  client: ApiClient,
+  entries: readonly { readonly entryId: string; readonly expectedRevision: number }[],
+) {
+  return client.patch<{
+    readonly data: readonly {
+      readonly id: string;
+      readonly revision: number;
+      readonly preparedAt: null;
+    }[];
+  }>("/api/v1/meal-plans/entries/prepared/batch", {
+    prepared: false,
+    entries,
+  });
+}

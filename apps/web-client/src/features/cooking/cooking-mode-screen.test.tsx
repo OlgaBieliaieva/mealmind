@@ -117,6 +117,8 @@ function session(overrides: Partial<CookingSession> = {}): CookingSession {
       method: null,
       tareWeightG: null,
       grossWeightG: null,
+      portionAdjustmentApplied: null,
+      portionScaleFactor: null,
     },
     hasCookingProgress: true,
     canComplete: true,
@@ -264,6 +266,42 @@ describe("CookingModeScreen", () => {
         "11111111-1111-4111-8111-111111111111",
         3,
         false,
+        false,
+      ),
+    );
+  });
+
+  it("offers and submits automatic portion scaling when actual yield differs", async () => {
+    vi.mocked(getCookingSession).mockResolvedValue({
+      data: session({
+        yield: {
+          ...session().yield,
+          plannedWeightG: 300,
+          actualWeightG: 330,
+          method: "DIRECT",
+        },
+      }),
+    });
+    vi.mocked(completeCookingSession).mockResolvedValue({
+      data: session({ status: "COMPLETED", revision: 4, completedAt: "2026-09-22T13:00:00.000Z" }),
+    });
+    renderScreen();
+    await screen.findByRole("heading", { name: "Овочеве рагу" });
+    fireEvent.click(screen.getByRole("button", { name: /^Завершити$/ }));
+    expect(screen.getByText(/Відхилення від плану: \+30 г \(\+10%\)/)).toBeVisible();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Автоматично перерахувати порції всіх учасників",
+      }),
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Завершити приготування" }));
+    await waitFor(() =>
+      expect(completeCookingSession).toHaveBeenCalledWith(
+        {},
+        "11111111-1111-4111-8111-111111111111",
+        3,
+        false,
+        true,
       ),
     );
   });

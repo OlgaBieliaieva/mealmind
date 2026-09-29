@@ -86,7 +86,11 @@ export const updateYieldSchema = z.object({
 export const completeCookingSchema = z.object({
   params: z.object({ sessionId: uuid }),
   query: empty,
-  body: z.object({ expectedRevision: revision, resolvePending: z.boolean().default(false) }),
+  body: z.object({
+    expectedRevision: revision,
+    resolvePending: z.boolean().default(false),
+    applyPortionAdjustment: z.boolean().default(false),
+  }),
 });
 export const cancelCookingSchema = z.object({
   params: z.object({ sessionId: uuid }),

@@ -72,6 +72,8 @@ export interface CookingSession {
     readonly method: "DIRECT" | "CONTAINER_DIFFERENCE" | null;
     readonly tareWeightG: number | null;
     readonly grossWeightG: number | null;
+    readonly portionAdjustmentApplied: boolean | null;
+    readonly portionScaleFactor: number | null;
   };
   readonly hasCookingProgress: boolean;
   readonly canComplete: boolean;
@@ -180,10 +182,11 @@ export function completeCookingSession(
   sessionId: string,
   expectedRevision: number,
   resolvePending: boolean,
+  applyPortionAdjustment: boolean,
 ) {
   return client.post<SessionResponse>(
     `/api/v1/cooking-sessions/${encodeURIComponent(sessionId)}/complete`,
-    { expectedRevision, resolvePending },
+    { expectedRevision, resolvePending, applyPortionAdjustment },
   );
 }
 

@@ -100,6 +100,7 @@ const pending: DiaryDay = {
           macros: { protein: null, fat: null, carbohydrate: null },
           status: "PENDING",
           preparedAt: "2026-09-01T07:00:00.000Z",
+          cookingSessionId: null,
         },
       ],
     },
@@ -258,6 +259,35 @@ describe("consumption diary", () => {
     );
     await waitFor(() => expect(checkbox).not.toBeChecked());
     await validateRenderedUi(container);
+  });
+
+  it("opens the completed cooking session for a prepared recipe", async () => {
+    vi.mocked(readDiary).mockResolvedValue({
+      data: {
+        ...pending,
+        members: [
+          {
+            ...pending.members[0]!,
+            items: [
+              {
+                ...pending.members[0]!.items[0]!,
+                kind: "recipe",
+                foodId: "recipe-id",
+                name: "Овочеве рагу",
+                categoryCode: null,
+                categoryName: null,
+                cookingSessionId: "cooking-session-id",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    renderQuery(<ConsumptionDiaryScreen />);
+    expect(await screen.findByRole("link", { name: "Переглянути Овочеве рагу" })).toHaveAttribute(
+      "href",
+      "/plan/cooking/cooking-session-id",
+    );
   });
 
   it("skips and restores a planned item from the card menu", async () => {
