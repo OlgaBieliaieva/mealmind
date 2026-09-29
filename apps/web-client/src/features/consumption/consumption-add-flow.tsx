@@ -11,6 +11,7 @@ import { getBrowserApiClient } from "@/shared/api/browser-api-client";
 import { addManualConsumption, readDiary } from "@/shared/api/consumption";
 import { getFoodDetails, type FoodKind } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { defaultFoodQuantityGrams } from "@/shared/lib/default-food-quantity";
 import { getRecipeTypeEmoji } from "@/shared/lib/recipe-type-emoji";
 import { Button, PageState } from "@/shared/ui";
 
@@ -23,7 +24,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
   const [date, setDate] = useState(initialDate);
   const [memberId, setMemberId] = useState(parameters.get("memberId") ?? "");
   const [mealTypeId, setMealTypeId] = useState("");
-  const [quantity, setQuantity] = useState(100);
+  const [quantity, setQuantity] = useState<number | null>(null);
   const food = useQuery({
     queryKey: ["food-details", kind, id],
     queryFn: () => getFoodDetails(getBrowserApiClient(), kind, id),
@@ -41,15 +42,18 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
     ? mealTypeId
     : (availableMealTypes[0]?.id ?? "");
   const add = useMutation({
-    mutationFn: () =>
-      addManualConsumption(getBrowserApiClient(), {
+    mutationFn: () => {
+      const currentFood = food.data?.data;
+      if (!currentFood) throw new Error("Food details unavailable");
+      return addManualConsumption(getBrowserApiClient(), {
         memberId: effectiveMember,
         date,
         kind,
         foodId: id,
         mealTypeId: effectiveMealType,
-        quantityGrams: quantity,
-      }),
+        quantityGrams: quantity ?? defaultFoodQuantityGrams(currentFood),
+      });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["consumption"] });
       router.push(`/diary?date=${date}&member=${effectiveMember}`);
@@ -76,6 +80,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
     );
 
   const data = food.data.data;
+  const effectiveQuantity = quantity ?? defaultFoodQuantityGrams(data);
   const name = data.kind === "product" ? data.name : data.title;
   const members = diary.data.data.members.filter((member) => member.canEdit);
   return (
@@ -165,7 +170,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
             <button
               type="button"
               aria-label="Зменшити порцію"
-              onClick={() => setQuantity((value) => Math.max(1, value - 25))}
+              onClick={() => setQuantity(Math.max(1, effectiveQuantity - 25))}
             >
               <Minus />
             </button>
@@ -173,9 +178,10 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
               <span className="sr-only">Порція у грамах</span>
               <input
                 type="number"
+                aria-label="Порція у грамах"
                 min="1"
                 step="1"
-                value={quantity}
+                value={effectiveQuantity}
                 onChange={(event) => setQuantity(Number(event.target.value))}
               />{" "}
               г
@@ -183,7 +189,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
             <button
               type="button"
               aria-label="Збільшити порцію"
-              onClick={() => setQuantity((value) => value + 25)}
+              onClick={() => setQuantity(effectiveQuantity + 25)}
             >
               <Plus />
             </button>
@@ -193,7 +199,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
               <button
                 key={value}
                 type="button"
-                aria-pressed={quantity === value}
+                aria-pressed={effectiveQuantity === value}
                 onClick={() => setQuantity(value)}
               >
                 {value} г
@@ -205,7 +211,7 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
       <aside className="advanced-plan__summary" aria-live="polite">
         <strong>Буде додано: 1 запис</strong>
         <span>
-          {name} · {quantity} г
+          {name} · {effectiveQuantity} г
         </span>
         <span>
           {availableMealTypes.find((mealType) => mealType.id === effectiveMealType)?.name ??
@@ -234,7 +240,11 @@ export function ConsumptionAddFlow({ kind, id }: { readonly kind: FoodKind; read
         <button
           type="button"
           disabled={
-            !effectiveMember || !effectiveMealType || !date || quantity <= 0 || add.isPending
+            !effectiveMember ||
+            !effectiveMealType ||
+            !date ||
+            effectiveQuantity <= 0 ||
+            add.isPending
           }
           onClick={() => add.mutate()}
         >

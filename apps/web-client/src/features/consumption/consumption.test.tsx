@@ -346,6 +346,35 @@ describe("consumption diary", () => {
     );
   });
 
+  it("uses one base recipe serving as the default diary quantity", async () => {
+    vi.mocked(getFoodDetails).mockResolvedValue({
+      data: {
+        kind: "recipe",
+        id: "recipe-id",
+        title: "Овочеве рагу",
+        imageUrl: null,
+        recipeType: null,
+        yieldWeightG: "1120",
+        baseServings: 5,
+      },
+    } as never);
+
+    renderQuery(<ConsumptionAddFlow kind="recipe" id="recipe-id" />);
+
+    expect(await screen.findByLabelText("Порція у грамах")).toHaveValue(224);
+    fireEvent.click(screen.getByRole("button", { name: "Додати (1)" }));
+    await waitFor(() =>
+      expect(addManualConsumption).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({
+          kind: "recipe",
+          foodId: "recipe-id",
+          quantityGrams: 224,
+        }),
+      ),
+    );
+  });
+
   it("renders a weekly member dashboard with adherence, macros, targets and weight", async () => {
     const { container } = renderQuery(<AnalyticalDashboard />);
     expect(await screen.findByRole("heading", { name: "Прогрес" })).toBeVisible();

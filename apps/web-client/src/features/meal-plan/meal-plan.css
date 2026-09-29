@@ -903,81 +903,6 @@
   line-height: 1.45;
 }
 
-.meal-nutrition-summary {
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.9rem;
-  border: 1px solid var(--client-color-border);
-  border-radius: 1rem;
-  background: #fff;
-  box-shadow: var(--client-shadow-card);
-}
-
-.meal-nutrition-summary > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.meal-nutrition-summary > header > div {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.meal-nutrition-summary > header strong,
-.meal-nutrition-summary > strong {
-  color: #172033;
-  font-size: 0.85rem;
-}
-
-.meal-nutrition-summary small,
-.meal-nutrition-summary p {
-  margin: 0;
-  color: #737d8e;
-  font-size: 0.68rem;
-  line-height: 1.4;
-}
-
-.meal-nutrition-summary > header button {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--client-color-border);
-  border-radius: 999px;
-  background: #fff;
-  color: #596273;
-  font: inherit;
-  font-size: 0.68rem;
-}
-
-.meal-nutrition-summary > header svg {
-  width: 0.8rem;
-  height: 0.8rem;
-}
-
-.meal-nutrition-summary__values {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.meal-nutrition-summary__values > span {
-  display: grid;
-  min-width: 0;
-  gap: 0.1rem;
-  padding: 0.55rem 0.35rem;
-  border-radius: 0.7rem;
-  background: #f8fafc;
-  text-align: center;
-}
-
-.meal-nutrition-summary__values strong {
-  color: #273043;
-  font-size: 0.82rem;
-}
-
 .nutrition-assessment__signals > p {
   margin: 0;
   color: #4b5563;
@@ -1028,19 +953,47 @@
   font-size: 0.85rem;
 }
 
-.nutrient-details__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+.nutrient-details > p {
+  margin: 0;
+  color: #737d8e;
+  font-size: 0.72rem;
 }
 
-.nutrient-details__chips span {
-  padding: 0.45rem 0.7rem;
+.nutrient-details__targets {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.nutrient-details__targets article {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
+  border-radius: 0.75rem;
   color: #475569;
   background: #f8fafc;
+}
+
+.nutrient-details__targets header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.nutrient-details__targets strong {
+  color: #273043;
+  font-size: 0.75rem;
+}
+
+.nutrient-details__targets span {
   font-size: 0.7rem;
+  text-align: right;
+}
+
+.nutrient-details__targets progress {
+  width: 100%;
+  accent-color: #48aa5b;
 }
 
 /* days */

@@ -20,6 +20,8 @@ interface SearchRow {
   readonly brandName: string | null;
   readonly difficulty: string | null;
   readonly totalTimeMin: number | null;
+  readonly baseServings: number | null;
+  readonly yieldWeightG: number | null;
   readonly recipeTypeId: string | null;
   readonly recipeTypeCode: string | null;
   readonly recipeTypeName: string | null;
@@ -544,6 +546,8 @@ async function searchFood(
         COALESCE(b.name, b.name_ua, b.name_en) AS "brandName",
         NULL::text AS difficulty,
         NULL::integer AS "totalTimeMin",
+        NULL::integer AS "baseServings",
+        NULL::double precision AS "yieldWeightG",
         NULL::text AS "recipeTypeId",
         NULL::text AS "recipeTypeCode",
         NULL::text AS "recipeTypeName",
@@ -626,6 +630,15 @@ async function searchFood(
             THEN NULL
           ELSE COALESCE(r.prep_time_min, 0) + COALESCE(r.cook_time_min, 0) + COALESCE(r.rest_time_min, 0)
         END AS "totalTimeMin",
+        r.base_servings AS "baseServings",
+        COALESCE(
+          r.yield_weight_g,
+          (
+            SELECT SUM(ri.gram_weight)
+            FROM recipe_ingredients ri
+            WHERE ri.recipe_id = r.id
+          )
+        )::double precision AS "yieldWeightG",
         rt.id::text AS "recipeTypeId",
         rt.code AS "recipeTypeCode",
         rt.name_ua AS "recipeTypeName",
@@ -766,6 +779,7 @@ async function searchFood(
     SELECT paged.kind, paged.id, paged.name, paged.summary,
            paged."categoryId", paged."categoryCode", paged."categoryName",
            paged."brandName", paged.difficulty, paged."totalTimeMin",
+           paged."baseServings", paged."yieldWeightG",
            paged."recipeTypeId", paged."recipeTypeCode", paged."recipeTypeName",
            paged."authorId", paged."authorName", paged."authorType",
            paged."cuisineNames", paged."dietaryTagNames", paged."imageObjectPath",
@@ -806,6 +820,8 @@ function mapSearchRow(row: SearchRow): FoodSearchItem[] {
       summary: row.summary,
       difficulty: normalizeDifficulty(row.difficulty),
       totalTimeMin: row.totalTimeMin,
+      baseServings: row.baseServings,
+      yieldWeightG: row.yieldWeightG,
       recipeType:
         row.recipeTypeId && row.recipeTypeCode && row.recipeTypeName
           ? { id: row.recipeTypeId, code: row.recipeTypeCode, name: row.recipeTypeName }
