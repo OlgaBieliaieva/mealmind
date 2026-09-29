@@ -487,7 +487,9 @@ function DiaryItemRow({
     skip.isPending ||
     restore.isPending ||
     update.isPending;
-  const detailsHref = `/food/${item.kind}/${item.foodId}?returnTo=${encodeURIComponent(returnTo)}`;
+  const detailsHref = item.cookingSessionId
+    ? `/plan/cooking/${item.cookingSessionId}`
+    : `/food/${item.kind}/${item.foodId}?returnTo=${encodeURIComponent(returnTo)}`;
   const checkboxTitle = skipped
     ? "Страву пропущено — відновіть її через меню"
     : checked
@@ -538,8 +540,9 @@ function DiaryItemRow({
         </p>
         {item.actualQuantityGrams !== null ? (
           <p>
-            Б {Math.round(item.macros.protein ?? 0)} · Ж {Math.round(item.macros.fat ?? 0)} · В{" "}
-            {Math.round(item.macros.carbohydrate ?? 0)}
+            Б {item.macros.protein === null ? "—" : Math.round(item.macros.protein)} · Ж{" "}
+            {item.macros.fat === null ? "—" : Math.round(item.macros.fat)} · В{" "}
+            {item.macros.carbohydrate === null ? "—" : Math.round(item.macros.carbohydrate)}
           </p>
         ) : null}
       </div>

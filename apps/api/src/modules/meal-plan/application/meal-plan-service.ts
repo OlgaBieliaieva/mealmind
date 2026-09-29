@@ -57,6 +57,13 @@ export interface MealPlanService {
     entryId: string,
     input: { expectedRevision: number; prepared: boolean },
   ): Promise<unknown>;
+  setEntriesPrepared(
+    userId: string,
+    input: {
+      prepared: false;
+      entries: readonly { entryId: string; expectedRevision: number }[];
+    },
+  ): Promise<unknown>;
   deleteEntry(userId: string, entryId: string, expectedRevision: number): Promise<void>;
   deleteParticipant(
     userId: string,
@@ -307,6 +314,16 @@ export function createMealPlanService(
         userId,
         role: family.role,
         entryId,
+        ...input,
+      });
+    },
+
+    async setEntriesPrepared(userId, input) {
+      const family = await familyContext.resolve(userId);
+      return repository.setEntriesPrepared({
+        familyId: family.id,
+        userId,
+        role: family.role,
         ...input,
       });
     },

@@ -72,6 +72,22 @@ export const setEntryPreparedSchema = z.object({
   body: z.object({ expectedRevision: revision, prepared: z.boolean() }),
 });
 
+export const setEntriesPreparedSchema = z.object({
+  params: z.object({}),
+  query: z.object({}),
+  body: z.object({
+    prepared: z.literal(false),
+    entries: z
+      .array(z.object({ entryId: uuid, expectedRevision: revision }))
+      .min(1)
+      .max(31)
+      .refine(
+        (items) => new Set(items.map((item) => item.entryId)).size === items.length,
+        "Позиції плану не мають повторюватися",
+      ),
+  }),
+});
+
 export const deleteEntrySchema = z.object({
   params: z.object({ entryId: uuid }),
   query: z.object({ expectedRevision: revision }),

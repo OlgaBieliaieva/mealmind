@@ -34,6 +34,8 @@ const session: CookingSessionView = {
     method: null,
     tareWeightG: null,
     grossWeightG: null,
+    portionAdjustmentApplied: null,
+    portionScaleFactor: null,
   },
   hasCookingProgress: false,
   canComplete: true,

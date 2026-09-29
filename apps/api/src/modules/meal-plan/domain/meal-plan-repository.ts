@@ -333,6 +333,17 @@ export interface SetEntryPreparedCommand extends DeleteEntryCommand {
   readonly prepared: boolean;
 }
 
+export interface SetEntriesPreparedCommand {
+  readonly familyId: string;
+  readonly userId: string;
+  readonly role: FamilyPlanningRole;
+  readonly prepared: false;
+  readonly entries: readonly {
+    readonly entryId: string;
+    readonly expectedRevision: number;
+  }[];
+}
+
 export interface MealPlanRepository {
   readWeek(familyId: string, query: MealPlanWeekQuery): Promise<MealPlanWeekView>;
   readPlanningContext(
@@ -350,6 +361,9 @@ export interface MealPlanRepository {
   setEntryPrepared(
     command: SetEntryPreparedCommand,
   ): Promise<{ id: string; revision: number; preparedAt: string | null }>;
+  setEntriesPrepared(
+    command: SetEntriesPreparedCommand,
+  ): Promise<readonly { id: string; revision: number; preparedAt: null }[]>;
   deleteEntry(command: DeleteEntryCommand): Promise<void>;
   deleteParticipant(command: DeleteParticipantCommand): Promise<void>;
 }

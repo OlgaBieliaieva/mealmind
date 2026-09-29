@@ -206,4 +206,38 @@ describe("meal plan service", () => {
       prepared: true,
     });
   });
+
+  it("delegates an atomic readiness reset for several entries", async () => {
+    const setEntriesPrepared = vi.fn(async () => []);
+    const repository = { setEntriesPrepared } as unknown as MealPlanRepository;
+    const familyContext: ActiveFamilyContextResolver = {
+      resolve: vi.fn(
+        async () =>
+          ({
+            id: "family-id",
+            name: "Родина",
+            timeZone: "Europe/Kyiv",
+            weekStartsOn: "MONDAY",
+            role: "OWNER",
+          }) as const,
+      ),
+    };
+    const entries = [
+      { entryId: "entry-1", expectedRevision: 2 },
+      { entryId: "entry-2", expectedRevision: 4 },
+    ];
+
+    await createMealPlanService(repository, familyContext).setEntriesPrepared("user-id", {
+      prepared: false,
+      entries,
+    });
+
+    expect(setEntriesPrepared).toHaveBeenCalledWith({
+      familyId: "family-id",
+      userId: "user-id",
+      role: "OWNER",
+      prepared: false,
+      entries,
+    });
+  });
 });

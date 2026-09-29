@@ -28,6 +28,7 @@ const EXPECTED_MIGRATIONS = [
   "20260901120000_consumption_deviation_controls",
   "20260918120000_product_source_origins",
   "20260922120000_cooking_mode",
+  "20260928120000_cooking_portion_snapshots",
 ] as const;
 
 loadEnvironment({
@@ -244,6 +245,38 @@ async function verifyAppliedMigrations(
 
     if (cookingModeResult.rows.length !== 6) {
       throw new Error("Cooking mode migration was not applied");
+    }
+
+    const cookingPortionSnapshotsResult = await client.query<{ readonly object_name: string }>(`
+      SELECT table_name AS object_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = 'cooking_session_meal_entry_participants'
+      UNION ALL
+      SELECT column_name AS object_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'cooking_sessions'
+        AND column_name IN (
+          'portion_adjustment_applied',
+          'portion_scale_factor'
+        )
+    `);
+
+    if (cookingPortionSnapshotsResult.rows.length !== 3) {
+      throw new Error("Cooking portion snapshot migration was not applied");
+    }
+
+    const cookingLifecycleTriggerResult = await client.query<{
+      readonly enabled: string;
+    }>(`
+      SELECT tgenabled AS enabled
+      FROM pg_trigger
+      WHERE tgname = 'cooking_sessions_lifecycle_trigger'
+    `);
+
+    if (cookingLifecycleTriggerResult.rows[0]?.enabled !== "O") {
+      throw new Error("Cooking session lifecycle trigger must remain enabled after migrations");
     }
 
     return {

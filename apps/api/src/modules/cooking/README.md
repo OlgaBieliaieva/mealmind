@@ -47,7 +47,8 @@ IN_PROGRESS → CANCELLED
 5. атомарно створює recipe metadata, ingredient, step і plan-context snapshots.
 
 Snapshot зберігає назву, короткий і довгий опис, складність, час, storage path
-основного зображення, інструкції кроків і planned ingredient values. API
+основного зображення, інструкції кроків, planned ingredient values і базову
+порцію кожного учасника в `CookingSessionMealEntryParticipant`. API
 перетворює storage path на короткоживучий signed `imageUrl`.
 
 ## Зміни плану
@@ -55,6 +56,7 @@ Snapshot зберігає назву, короткий і довгий опис,
 До появи cooking progress Meal Plan може синхронізувати session:
 
 - зміна порцій перераховує demand, planned yield та scaled ingredients;
+- participant snapshots синхронізуються зі складом і порціями плану;
 - вилучення одного entry звільняє його allocation і перераховує решту;
 - вилучення останнього entry автоматично переводить незапущену по суті session
   у `CANCELLED`.
@@ -128,8 +130,15 @@ Completeness використовує `COMPLETE`, `PARTIAL` або `UNVERIFIED`.
   ingredients у `USED` із planned values, pending steps — у `COMPLETED`.
 
 Completion створює фінальний nutrient snapshot і виставляє `preparedAt` для
-всіх активних allocations в одній транзакції. Звичайний manual prepared
-endpoint не може скинути стан, авторитетно встановлений completed session.
+всіх активних allocations в одній транзакції. `applyPortionAdjustment: true`
+за наявності actual yield зберігає коефіцієнт `actual / planned` і пропорційно
+формує prepared-порції учасників. Якщо рішення не застосовано або actual yield
+відсутній, prepared-порція дорівнює planned snapshot.
+
+Prepared-порцію можна редагувати окремо від базового плану. Явне скасування
+стану «Приготовано» звільняє allocation й повертає Meal Plan до базових порцій
+та нутрієнтів рецепта, але не змінює immutable CookingSession. Операція
+блокується, доки для entry існує підтверджений факт споживання.
 
 ## HTTP API
 
@@ -163,7 +172,8 @@ Start body містить `requestId` і від 1 до 31 `{ id, expectedRevisio
 ## Інтеграції
 
 - Meal Plan показує active CookingSession і захищає session-controlled
-  prepared state;
+  prepared state; після completion використовує prepared-порції та nutrient
+  snapshot цієї session;
 - Shopping List і planning queries виключають soft-removed entries;
 - Consumption Diary для completed session використовує cooking nutrient
   snapshot і пропорційно масштабує його за фактичним/planned yield;

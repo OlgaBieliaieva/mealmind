@@ -220,6 +220,48 @@ try {
     MealPlanConflictError,
   );
 
+  const secondProductEntry = await repository.createEntries({
+    ...command,
+    requestId: crypto.randomUUID(),
+    fingerprint: "0".repeat(64),
+    entries: [{ ...command.entries[0]!, date: "2026-08-29" }],
+  });
+  const preparedProductEntries = [];
+  for (const entry of [recreated.entries[0]!, secondProductEntry.entries[0]!]) {
+    preparedProductEntries.push(
+      await repository.setEntryPrepared({
+        familyId: family.id,
+        userId: owner.id,
+        role: "OWNER",
+        entryId: entry.id,
+        expectedRevision: entry.revision,
+        prepared: true,
+      }),
+    );
+  }
+  const resetProductEntries = await repository.setEntriesPrepared({
+    familyId: family.id,
+    userId: owner.id,
+    role: "OWNER",
+    prepared: false,
+    entries: preparedProductEntries.map((entry) => ({
+      entryId: entry.id,
+      expectedRevision: entry.revision,
+    })),
+  });
+  assert.equal(resetProductEntries.length, 2);
+  assert.deepEqual(
+    await database.mealEntry.findMany({
+      where: { id: { in: resetProductEntries.map((entry) => entry.id) } },
+      orderBy: { date: "asc" },
+      select: { preparedAt: true, preparedByUserId: true },
+    }),
+    [
+      { preparedAt: null, preparedByUserId: null },
+      { preparedAt: null, preparedByUserId: null },
+    ],
+  );
+
   const recipeCommand = {
     ...command,
     requestId: crypto.randomUUID(),

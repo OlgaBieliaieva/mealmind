@@ -18,8 +18,13 @@
 - ручний запис має source `MANUAL`, прийом їжі, рівно один `Product` або
   `Recipe` і не змінює план.
 
-Snapshot використовує completed `CookingSession` як пріоритетне джерело,
-інакше — канонічні нутрієнти продукту або рецепта. До snapshot потрапляють лише
+Для планового рецепта completed `CookingSession` є обов’язковим джерелом:
+без неї confirm повертає `MEAL_NOT_PREPARED`. Планова порція snapshot-иться з
+prepared-порції конкретного учасника, а нутрієнти масштабуються з
+`CookingSessionNutrient` за `actualYieldWeightG ?? plannedYieldWeightG`.
+Наступне ручне редагування факту використовує ту саму Cooking Session.
+Для продукту й ручного запису без плану використовуються канонічні нутрієнти.
+До snapshot потрапляють лише
 активні базові або цільові нутрієнти, дозволені DB whitelist. Агрегати включають
 лише активні `CONFIRMED` facts.
 

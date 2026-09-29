@@ -32,6 +32,7 @@ import {
   deleteMealEntry,
   deleteMealEntryParticipant,
   getMealPlanWeek,
+  setMealEntriesPrepared,
   setMealEntryPrepared,
   type AggregatedMealPlanEntry,
   type NutritionAggregate,
@@ -473,7 +474,9 @@ function AggregatedPlannedFoodCard({
     ).values(),
   ];
   const activeCookingSession = cookingSessions.find((session) => session.status === "IN_PROGRESS");
-  const cookingControlled = cookingSessions.length > 0;
+  const completedCookingSessions = cookingSessions.filter(
+    (session) => session.status === "COMPLETED",
+  );
   const availableForCooking = entry.sources.filter(
     (source) => source.cookingSession === null && source.preparedAt === null,
   );
@@ -526,14 +529,20 @@ function AggregatedPlannedFoodCard({
 
   const prepared = useMutation({
     mutationFn: async () => {
+      if (allPrepared) {
+        await setMealEntriesPrepared(
+          getBrowserApiClient(),
+          entry.sources.map((source) => ({
+            entryId: source.entryId,
+            expectedRevision: source.revision,
+          })),
+        );
+        return;
+      }
+
       await Promise.all(
         entry.sources.map((source) =>
-          setMealEntryPrepared(
-            getBrowserApiClient(),
-            source.entryId,
-            source.revision,
-            !allPrepared,
-          ),
+          setMealEntryPrepared(getBrowserApiClient(), source.entryId, source.revision, true),
         ),
       );
     },
@@ -545,7 +554,15 @@ function AggregatedPlannedFoodCard({
       ]);
     },
 
-    onError: () => toast.error("Не вдалося оновити стан готовності."),
+    onError: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["meal-plan"] }),
+        queryClient.invalidateQueries({ queryKey: ["consumption"] }),
+      ]);
+      toast.error(
+        "Не вдалося скасувати приготування. Якщо страву вже додано до щоденника, спочатку скасуйте підтвердження споживання.",
+      );
+    },
   });
 
   const dayCount = entry.dates.length;
@@ -628,7 +645,7 @@ function AggregatedPlannedFoodCard({
               href={`/food/${entry.kind}/${entry.foodId}?returnTo=${encodeURIComponent(returnTo)}`}
             >
               <Eye />
-              Переглянути
+              {entry.kind === "recipe" ? "Переглянути рецепт" : "Переглянути продукт"}
             </Link>
 
             {activeCookingSession ? (
@@ -637,6 +654,21 @@ function AggregatedPlannedFoodCard({
                 Продовжити приготування
               </Link>
             ) : null}
+
+            {completedCookingSessions.map((session) => {
+              const sessionDates = entry.sources
+                .filter((source) => source.cookingSession?.id === session.id)
+                .map((source) => source.date);
+              return (
+                <Link key={session.id} href={`/plan/cooking/${session.id}`}>
+                  <CookingPot />
+                  Переглянути приготування
+                  {completedCookingSessions.length > 1
+                    ? ` · ${sessionDates.map((date) => date.slice(5).split("-").reverse().join(".")).join(", ")}`
+                    : ""}
+                </Link>
+              );
+            })}
 
             {entry.kind === "recipe" && availableForCooking.length > 0 ? (
               <button
@@ -685,8 +717,23 @@ function AggregatedPlannedFoodCard({
             type="checkbox"
             aria-label={allPrepared ? markIncompleteLabel : markCompletedLabel}
             checked={allPrepared}
-            disabled={prepared.isPending || cookingControlled}
-            onChange={() => prepared.mutate()}
+            disabled={
+              prepared.isPending ||
+              Boolean(activeCookingSession) ||
+              (entry.kind === "recipe" && !allPrepared)
+            }
+            onChange={(event) => {
+              if (!event.target.checked && entry.kind === "recipe") {
+                toast("Позначити страву як неприготовану?", {
+                  description:
+                    "Порції та поживна цінність повернуться до базового рецепта. Завершене приготування залишиться в історії.",
+                  action: { label: "Підтвердити", onClick: () => prepared.mutate() },
+                  cancel: { label: "Залишити", onClick: () => undefined },
+                });
+                return;
+              }
+              prepared.mutate();
+            }}
           />
 
           <span aria-hidden="true">✓</span>

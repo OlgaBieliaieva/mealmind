@@ -80,6 +80,8 @@ export interface CookingSessionView {
     readonly method: "DIRECT" | "CONTAINER_DIFFERENCE" | null;
     readonly tareWeightG: number | null;
     readonly grossWeightG: number | null;
+    readonly portionAdjustmentApplied: boolean | null;
+    readonly portionScaleFactor: number | null;
   };
   readonly hasCookingProgress: boolean;
   readonly canComplete: boolean;
@@ -146,6 +148,7 @@ export interface CookingRepository {
     input: {
       expectedRevision: number;
       resolvePending: boolean;
+      applyPortionAdjustment: boolean;
     },
   ): Promise<CookingSessionView>;
   cancel(

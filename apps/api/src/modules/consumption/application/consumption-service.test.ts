@@ -139,6 +139,7 @@ describe("consumption service", () => {
               macros: { protein: null, fat: null, carbohydrate: null },
               status: "CONFIRMED",
               preparedAt: null,
+              cookingSessionId: null,
             },
           ],
         },

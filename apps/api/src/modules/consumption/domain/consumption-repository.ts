@@ -51,6 +51,7 @@ export interface DiaryItem {
   };
   readonly status: DiaryItemStatus;
   readonly preparedAt: string | null;
+  readonly cookingSessionId: string | null;
 }
 
 export interface DiaryMember {

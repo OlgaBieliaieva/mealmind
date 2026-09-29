@@ -310,6 +310,8 @@ async function present(
       method: row.yieldMeasurementMethod,
       tareWeightG: number(row.containerTareWeightG),
       grossWeightG: number(row.containerGrossWeightG),
+      portionAdjustmentApplied: row.portionAdjustmentApplied,
+      portionScaleFactor: number(row.portionScaleFactor),
     }),
     hasCookingProgress,
     canComplete:
@@ -393,6 +395,7 @@ export function createPrismaCookingRepository(database: DatabaseClient): Cooking
               participants: {
                 include: {
                   familyMember: { select: { personProfile: { select: { userId: true } } } },
+                  measurementUnit: { select: { symbol: true } },
                 },
               },
               cookingAllocations: {
@@ -497,6 +500,15 @@ export function createPrismaCookingRepository(database: DatabaseClient): Cooking
                   plannedDemandWeightG: demand,
                   dateSnapshot: entry.date,
                   mealTypeNameSnapshot: entry.mealType.nameUa,
+                  participants: {
+                    create: entry.participants.map((participant) => ({
+                      mealEntryParticipantId: participant.id,
+                      familyMemberId: participant.familyMemberId,
+                      plannedQuantity: participant.quantity,
+                      plannedUnitSnapshot: participant.measurementUnit.symbol,
+                      plannedQuantityInGrams: participant.quantityInGrams,
+                    })),
+                  },
                 })),
               },
               ingredients: {
@@ -764,6 +776,38 @@ export function createPrismaCookingRepository(database: DatabaseClient): Cooking
           where: { id: sessionId },
           select: { actualYieldWeightG: true, plannedYieldWeightG: true },
         });
+        const plannedYield = current.plannedYieldWeightG?.toNumber() ?? 0;
+        const actualYield = current.actualYieldWeightG?.toNumber() ?? null;
+        const portionAdjustmentApplied =
+          input.applyPortionAdjustment && actualYield !== null && plannedYield > 0;
+        const portionScaleFactor = portionAdjustmentApplied ? actualYield / plannedYield : 1;
+        const participantSnapshots = await tx.cookingSessionMealEntryParticipant.findMany({
+          where: {
+            cookingSessionId: sessionId,
+            mealEntryAllocation: { releasedAt: null },
+          },
+          select: {
+            cookingSessionId: true,
+            mealEntryId: true,
+            familyMemberId: true,
+            plannedQuantityInGrams: true,
+          },
+        });
+        for (const snapshot of participantSnapshots) {
+          await tx.cookingSessionMealEntryParticipant.update({
+            where: {
+              cookingSessionId_mealEntryId_familyMemberId: {
+                cookingSessionId: snapshot.cookingSessionId,
+                mealEntryId: snapshot.mealEntryId,
+                familyMemberId: snapshot.familyMemberId,
+              },
+            },
+            data: {
+              preparedQuantityInGrams:
+                snapshot.plannedQuantityInGrams.toNumber() * portionScaleFactor,
+            },
+          });
+        }
         await tx.cookingSession.update({
           where: { id: sessionId },
           data: {
@@ -775,6 +819,8 @@ export function createPrismaCookingRepository(database: DatabaseClient): Cooking
               : current.plannedYieldWeightG
                 ? "PLANNED_ESTIMATE"
                 : "UNAVAILABLE",
+            portionAdjustmentApplied,
+            portionScaleFactor,
             revision: { increment: 1 },
           },
         });

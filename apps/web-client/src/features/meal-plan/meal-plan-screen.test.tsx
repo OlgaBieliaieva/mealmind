@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { startCookingSession } from "@/shared/api/cooking";
 import {
   getMealPlanWeek,
+  setMealEntriesPrepared,
   type MealPlanWeek,
   type NutrientTargetAmount,
 } from "@/shared/api/meal-plans";
@@ -37,6 +38,7 @@ vi.mock("@/shared/api/meal-plans", () => ({
   getMealPlanWeek: vi.fn(),
   deleteMealEntry: vi.fn(),
   deleteMealEntryParticipant: vi.fn(),
+  setMealEntriesPrepared: vi.fn(),
   setMealEntryPrepared: vi.fn(),
 }));
 
@@ -658,7 +660,12 @@ describe("MealPlanScreen", () => {
           date: "2026-08-21",
           mealTypeId: "breakfast",
           preparedAt,
-          cookingSession: null,
+          cookingSession: {
+            id: "cooking-session-id",
+            status: "COMPLETED" as const,
+            resolvedSteps: 3,
+            totalSteps: 3,
+          },
         },
       ],
     };
@@ -710,6 +717,29 @@ describe("MealPlanScreen", () => {
     expect(
       screen.getByRole("checkbox", { name: "Позначити всі позиції як непридбані" }),
     ).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Дії для Овочеве рагу" }));
+    expect(screen.getByRole("link", { name: "Переглянути рецепт" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Переглянути приготування" })).toHaveAttribute(
+      "href",
+      "/plan/cooking/cooking-session-id",
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Позначити всі позиції як неприготовані" }),
+    );
+    expect(toastMock).toHaveBeenCalledWith(
+      "Позначити страву як неприготовану?",
+      expect.objectContaining({
+        description: expect.stringContaining("базового рецепта"),
+      }),
+    );
+    const confirmation = toastMock.mock.calls.at(-1)?.[1] as
+      { action?: { onClick?: () => void } } | undefined;
+    confirmation?.action?.onClick?.();
+    await waitFor(() =>
+      expect(setMealEntriesPrepared).toHaveBeenCalledWith({}, [
+        { entryId: "recipe-entry", expectedRevision: 1 },
+      ]),
+    );
   });
 
   it("renders a selected member summary and meal groups for one day", async () => {

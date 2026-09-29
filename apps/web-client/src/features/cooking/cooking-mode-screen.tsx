@@ -75,6 +75,7 @@ export function CookingModeScreen({ sessionId }: { readonly sessionId: string })
   const [addingIngredient, setAddingIngredient] = useState(false);
   const [yieldOpen, setYieldOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
+  const [applyPortionAdjustment, setApplyPortionAdjustment] = useState(true);
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => getCookingSession(getBrowserApiClient(), sessionId, signal),
@@ -176,13 +177,17 @@ export function CookingModeScreen({ sessionId }: { readonly sessionId: string })
     onError: handleMutationError,
   });
   const completeMutation = useMutation({
-    mutationFn: (resolvePending: boolean) => {
+    mutationFn: (input: {
+      readonly resolvePending: boolean;
+      readonly applyPortionAdjustment: boolean;
+    }) => {
       if (!session) throw new Error("Cooking session unavailable");
       return completeCookingSession(
         getBrowserApiClient(),
         session.id,
         session.revision,
-        resolvePending,
+        input.resolvePending,
+        input.applyPortionAdjustment,
       );
     },
     onSuccess: (response) => {
@@ -334,7 +339,13 @@ export function CookingModeScreen({ sessionId }: { readonly sessionId: string })
           <Button variant="secondary" disabled={mutationPending} onClick={() => setYieldOpen(true)}>
             <Scale /> Вага страви
           </Button>
-          <Button disabled={mutationPending} onClick={() => setCompletionOpen(true)}>
+          <Button
+            disabled={mutationPending}
+            onClick={() => {
+              setApplyPortionAdjustment(true);
+              setCompletionOpen(true);
+            }}
+          >
             <Check /> Завершити
           </Button>
           <Button
@@ -393,7 +404,13 @@ export function CookingModeScreen({ sessionId }: { readonly sessionId: string })
             <Button
               isLoading={completeMutation.isPending}
               loadingLabel="Завершуємо…"
-              onClick={() => completeMutation.mutate(pendingCount > 0)}
+              onClick={() =>
+                completeMutation.mutate({
+                  resolvePending: pendingCount > 0,
+                  applyPortionAdjustment:
+                    session.yield.actualWeightG !== null && applyPortionAdjustment,
+                })
+              }
             >
               {pendingCount > 0 ? "Завершити автоматично" : "Завершити приготування"}
             </Button>
@@ -403,7 +420,34 @@ export function CookingModeScreen({ sessionId }: { readonly sessionId: string })
         {session.yield.actualWeightG === null ? (
           <p>Фактичну вагу не вказано — нутрієнти на 100 г залишаться орієнтовними.</p>
         ) : (
-          <p>Фактична вага готової страви: {grams(session.yield.actualWeightG)}.</p>
+          <div className="cooking-completion-summary">
+            <p>Фактична вага готової страви: {grams(session.yield.actualWeightG)}.</p>
+            {session.yield.plannedWeightG > 0 &&
+            session.yield.actualWeightG !== session.yield.plannedWeightG ? (
+              <>
+                <p>
+                  Відхилення від плану:{" "}
+                  {session.yield.actualWeightG > session.yield.plannedWeightG ? "+" : ""}
+                  {grams(session.yield.actualWeightG - session.yield.plannedWeightG)} (
+                  {session.yield.actualWeightG > session.yield.plannedWeightG ? "+" : ""}
+                  {new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(
+                    ((session.yield.actualWeightG - session.yield.plannedWeightG) /
+                      session.yield.plannedWeightG) *
+                      100,
+                  )}
+                  %).
+                </p>
+                <label className="cooking-portion-adjustment">
+                  <input
+                    type="checkbox"
+                    checked={applyPortionAdjustment}
+                    onChange={(event) => setApplyPortionAdjustment(event.target.checked)}
+                  />
+                  <span>Автоматично перерахувати порції всіх учасників</span>
+                </label>
+              </>
+            ) : null}
+          </div>
         )}
       </Modal>
     </article>
@@ -812,11 +856,6 @@ function CookingNutrition({ session }: { readonly session: CookingSession }) {
           : session.nutrition.basis === "PLANNED_ESTIMATE"
             ? `Орієнтовно за плановою вагою ${grams(session.yield.plannedWeightG)}.`
             : "Недостатньо даних для розрахунку на 100 г."}
-        {session.nutrition.completeness === "PARTIAL"
-          ? " Дані про склад часткові."
-          : session.nutrition.completeness === "UNVERIFIED"
-            ? " Частина продуктів ще не верифікована."
-            : ""}
       </p>
       <dl className="cooking-nutrient-list">
         {session.nutrition.nutrients.map((nutrient) => (
