@@ -1,6 +1,19 @@
 import { getBrowserApiClient } from "./browser-api-client";
 
 export type ProductSearchItemType = "GENERIC" | "BRANDED";
+export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
+export type ProductFoodCharacteristicKind =
+  "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+
+export interface ProductFoodCharacteristic {
+  readonly id: string;
+  readonly code: string;
+  readonly kind: ProductFoodCharacteristicKind;
+  readonly nameUa: string;
+  readonly nameEn: string;
+  readonly source: "MANUAL" | "SOURCE_IMPORT" | "RULE_BASED";
+  readonly confidence: "UNSPECIFIED" | "LOW" | "MEDIUM" | "HIGH";
+}
 
 export interface ProductSearchItem {
   readonly id: string;
@@ -8,6 +21,8 @@ export interface ProductSearchItem {
   readonly type: ProductSearchItemType;
   readonly categoryName: string;
   readonly brandName: string | null;
+  readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
 }
 
 export interface ProductSearchPage {

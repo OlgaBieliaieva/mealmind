@@ -37,6 +37,7 @@ import {
 } from "@/shared/api/cooking";
 import { getFoodDetails, type FoodNutrient, type RecipeFoodDetails } from "@/shared/api/food";
 import { searchProducts, type ProductSearchItem } from "@/shared/api/products";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { Button, Modal, PageState } from "@/shared/ui";
 
 import { useScreenWakeLock } from "./use-screen-wake-lock";
@@ -710,6 +711,11 @@ function CookingIngredients({
             ingredient.actual?.productName ?? ingredient.planned?.productName ?? "Інгредієнт";
           const actualWeight = ingredient.actual?.gramWeight ?? null;
           const plannedWeight = ingredient.planned?.gramWeight ?? null;
+          const displayedProduct = ingredient.actual ?? ingredient.planned;
+          const subtitle = formatProductCharacteristics(
+            displayedProduct?.foodState ?? "UNSPECIFIED",
+            displayedProduct?.foodCharacteristics ?? [],
+          );
           return (
             <li key={ingredient.id} data-status={ingredient.status}>
               <label>
@@ -722,6 +728,7 @@ function CookingIngredients({
                 />
                 <span>
                   <strong>{name}</strong>
+                  {subtitle ? <small>{subtitle}</small> : null}
                   <small>
                     {ingredient.status === "OMITTED"
                       ? "Не використано"
@@ -916,6 +923,23 @@ function ProductSearchField({
                 onClick={() => onSelect(product)}
               >
                 <strong>{product.name}</strong>
+                {formatProductCharacteristics(
+                  product.foodState,
+                  product.foodCharacteristics.map((item) => ({
+                    kind: item.kind,
+                    name: item.nameUa,
+                  })),
+                ) ? (
+                  <small>
+                    {formatProductCharacteristics(
+                      product.foodState,
+                      product.foodCharacteristics.map((item) => ({
+                        kind: item.kind,
+                        name: item.nameUa,
+                      })),
+                    )}
+                  </small>
+                ) : null}
                 <small>
                   {product.categoryName}
                   {product.brandName ? ` · ${product.brandName}` : ""}

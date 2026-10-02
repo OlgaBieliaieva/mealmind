@@ -42,6 +42,7 @@ import {
   type MemberDayNutrition,
 } from "@/shared/api/meal-plans";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { Button, PageState } from "@/shared/ui";
 
 function today(): string {
@@ -577,6 +578,19 @@ function AggregatedPlannedFoodCard({
         <Link href={`/food/${entry.kind}/${entry.foodId}?returnTo=${encodeURIComponent(returnTo)}`}>
           <strong>{entry.name}</strong>
         </Link>
+
+        {entry.kind === "product" &&
+        formatProductCharacteristics(
+          entry.foodState ?? "UNSPECIFIED",
+          entry.foodCharacteristics ?? [],
+        ) ? (
+          <p>
+            {formatProductCharacteristics(
+              entry.foodState ?? "UNSPECIFIED",
+              entry.foodCharacteristics ?? [],
+            )}
+          </p>
+        ) : null}
 
         <p>
           {entry.kind === "recipe"
@@ -1467,6 +1481,19 @@ function MemberFoodCard({
         <Link href={`/food/${entry.kind}/${entry.foodId}?returnTo=${encodeURIComponent(returnTo)}`}>
           <strong>{entry.name}</strong>
         </Link>
+
+        {entry.kind === "product" &&
+        formatProductCharacteristics(
+          entry.foodState ?? "UNSPECIFIED",
+          entry.foodCharacteristics ?? [],
+        ) ? (
+          <p>
+            {formatProductCharacteristics(
+              entry.foodState ?? "UNSPECIFIED",
+              entry.foodCharacteristics ?? [],
+            )}
+          </p>
+        ) : null}
 
         <p>
           {entry.kind === "recipe" ? entry.recipeType?.name : entry.categoryName}

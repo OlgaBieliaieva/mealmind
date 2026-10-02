@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
 import { getPublicRecipe } from "@/shared/api/recipes";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { Button, PageState } from "@/shared/ui";
 type Tab = "overview" | "ingredients" | "steps" | "nutrition";
 const difficulty = { EASY: "Легко", MEDIUM: "Середньо", HARD: "Складно" } as const;
@@ -145,6 +146,17 @@ export function RecipeDetails({ recipeId }: { readonly recipeId: string }) {
               <li key={item.id}>
                 <span>
                   <strong>{item.productName}</strong>
+                  {formatProductCharacteristics(
+                    item.productFoodState ?? "UNSPECIFIED",
+                    item.productFoodCharacteristics ?? [],
+                  ) ? (
+                    <small>
+                      {formatProductCharacteristics(
+                        item.productFoodState ?? "UNSPECIFIED",
+                        item.productFoodCharacteristics ?? [],
+                      )}
+                    </small>
+                  ) : null}
                   {item.note ? <small>{item.note}</small> : null}
                 </span>
                 <span>

@@ -27,6 +27,11 @@ export interface ShoppingListItemView {
   readonly status: ShoppingListItemStatus;
   readonly productId: string | null;
   readonly name: string;
+  readonly foodState?: string | null;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
   readonly category: {
     readonly code: string;
     readonly name: string;

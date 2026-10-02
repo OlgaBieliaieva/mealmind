@@ -29,6 +29,7 @@ import {
 } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
 import { defaultFoodQuantityGrams } from "@/shared/lib/default-food-quantity";
+import { formatProductCharacteristicNames } from "@/shared/lib/product-characteristics";
 import { getRecipeTypeEmoji } from "@/shared/lib/recipe-type-emoji";
 import { createMealEntries, getPlanningContext } from "@/shared/api/meal-plans";
 import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
@@ -514,7 +515,21 @@ export function FoodDiscovery() {
                           }}
                         >
                           <span aria-hidden="true">{getCategoryEmoji(product.category.code)}</span>
-                          {product.name}
+                          <span className="ingredient-filter__option-content">
+                            <strong>{product.name}</strong>
+                            {formatProductCharacteristicNames(
+                              product.foodState,
+                              product.foodCharacteristicNames,
+                            ) ? (
+                              <small>
+                                {formatProductCharacteristicNames(
+                                  product.foodState,
+                                  product.foodCharacteristicNames,
+                                )}
+                              </small>
+                            ) : null}
+                            <small>{product.category.name}</small>
+                          </span>
                         </button>
                       ))}
                       {!ingredientResults.isPending && ingredientOptions.length === 0 ? (
@@ -667,7 +682,7 @@ function FoodCard({
         </span>
         <span className="food-result-list__content">
           <strong>{item.name}</strong>
-          <NutritionLine item={item} />
+          {item.kind === "product" ? <ProductCharacteristicsLine item={item} /> : null}
           {item.kind === "product" ? (
             <small className="food-card-category">
               <span aria-hidden="true">{getCategoryEmoji(item.category.code)}</span>
@@ -676,6 +691,7 @@ function FoodCard({
           ) : (
             <RecipeMetadata item={item} />
           )}
+          <NutritionLine item={item} />
         </span>
       </Link>
       <div className="food-result-list__actions">
@@ -729,6 +745,17 @@ function NutritionLine({ item }: { readonly item: FoodSearchItem }) {
       {" · "}Ж {formatNumber(nutrition.fatG)}
       {" · "}В {formatNumber(nutrition.carbohydrateG)}
     </small>
+  );
+}
+
+function ProductCharacteristicsLine({
+  item,
+}: {
+  readonly item: Extract<FoodSearchItem, { kind: "product" }>;
+}) {
+  const subtitle = formatProductCharacteristicNames(item.foodState, item.foodCharacteristicNames);
+  return subtitle.length === 0 ? null : (
+    <small className="food-card-characteristics">{subtitle}</small>
   );
 }
 

@@ -8,6 +8,7 @@ const resources = [
   "measurement-units",
   "nutrients",
   "product-categories",
+  "product-food-characteristics",
   "recipe-types",
 ] as const;
 
@@ -324,6 +325,16 @@ function createReferenceExamples() {
         nameEn: "Test category",
         kind: "GROUP",
         parentCategoryId: null,
+        sortOrder: 10,
+      },
+    },
+    productFoodCharacteristic: {
+      summary: "Характеристика продукту",
+      value: {
+        code: "test_cooking_method",
+        kind: "COOKING_METHOD",
+        nameUa: "Тестовий спосіб",
+        nameEn: "Test method",
         sortOrder: 10,
       },
     },

@@ -22,6 +22,13 @@ export interface FoodCardNutrition {
   readonly carbohydrateG: number | null;
 }
 
+export interface ProductFoodCharacteristicView {
+  readonly id: string;
+  readonly code: string;
+  readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+  readonly name: string;
+}
+
 export type FoodSearchItem =
   | {
       readonly kind: "product";
@@ -29,6 +36,8 @@ export type FoodSearchItem =
       readonly name: string;
       readonly category: { readonly id: string; readonly code: string; readonly name: string };
       readonly brandName: string | null;
+      readonly foodState: string;
+      readonly foodCharacteristicNames: readonly string[];
       readonly imageObjectPath?: string | null;
       readonly imageUrl: string | null;
       readonly nutrition: FoodCardNutrition;
@@ -82,6 +91,7 @@ export interface ProductFoodDetails {
   readonly imageObjectPath?: string | null;
   readonly imageUrl: string | null;
   readonly foodState: string;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristicView[];
   readonly defaultUnit: { readonly id: string; readonly symbol: string };
   readonly isFavorite: boolean;
   readonly nutrients: readonly {
@@ -153,6 +163,11 @@ export interface RecipeFoodDetails {
     readonly id: string;
     readonly productId: string;
     readonly productName: string;
+    readonly productFoodState?: string;
+    readonly productFoodCharacteristics?: readonly {
+      readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+      readonly name: string;
+    }[];
     readonly category: { readonly code: string; readonly name: string };
     readonly imageObjectPath?: string | null;
     readonly imageUrl: string | null;

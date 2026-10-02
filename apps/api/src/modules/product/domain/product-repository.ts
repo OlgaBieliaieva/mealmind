@@ -13,6 +13,19 @@ export const PRODUCT_FOOD_STATES = [
 ] as const;
 export type ProductFoodState = (typeof PRODUCT_FOOD_STATES)[number];
 
+export type ProductFoodCharacteristicKind =
+  "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+
+export interface ProductFoodCharacteristicRecord {
+  readonly id: string;
+  readonly code: string;
+  readonly kind: ProductFoodCharacteristicKind;
+  readonly nameUa: string;
+  readonly nameEn: string;
+  readonly source: "MANUAL" | "SOURCE_IMPORT" | "RULE_BASED";
+  readonly confidence: "UNSPECIFIED" | "LOW" | "MEDIUM" | "HIGH";
+}
+
 export const NUTRIENT_VALUE_TYPES = [
   "ANALYTICAL",
   "DERIVED",
@@ -69,6 +82,7 @@ export interface ProductWrite {
   readonly defaultMeasurementUnitId: string;
   readonly baseProductId?: string | null | undefined;
   readonly foodState: ProductFoodState;
+  readonly characteristicIds?: readonly string[] | undefined;
   readonly ediblePortionPercent?: string | null | undefined;
   readonly status: ProductStatus;
   readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
@@ -86,6 +100,7 @@ export interface ProductUpdate {
   readonly brandId?: string | undefined;
   readonly defaultMeasurementUnitId?: string | undefined;
   readonly foodState?: ProductFoodState | undefined;
+  readonly characteristicIds?: readonly string[] | undefined;
   readonly ediblePortionPercent?: string | null | undefined;
   readonly notes?: string | null | undefined;
   readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
@@ -139,6 +154,7 @@ export interface ProductDetails {
   readonly sourceProvider: ProductSourceProvider | null;
   readonly sourceDataset: ProductSourceDataset | null;
   readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristicRecord[];
   readonly ediblePortionPercent: string | null;
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
@@ -166,6 +182,8 @@ export interface ProductSummary {
   readonly brandName: string | null;
   readonly sourceProvider: ProductSourceProvider | null;
   readonly sourceDataset: ProductSourceDataset | null;
+  readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristicRecord[];
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
   readonly updatedAt: string;
@@ -206,6 +224,8 @@ export interface ProductSearchItem {
   readonly type: ProductType;
   readonly categoryName: string;
   readonly brandName: string | null;
+  readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristicRecord[];
 }
 
 export interface ProductSearchPage {

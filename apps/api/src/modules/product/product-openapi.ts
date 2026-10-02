@@ -3,7 +3,7 @@ export const productOpenApiPaths = Object.freeze({
     get: {
       summary: "Пошук активних продуктів",
       description:
-        "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає мінімальні display-поля без nutrients, portions і media.",
+        "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає display-поля, загальний foodState і призначені характеристики без nutrients, portions і media.",
       security: [{ bearerAuth: [] }],
       parameters: [
         query("search", { type: "string", minLength: 2, maxLength: 120 }),
@@ -197,6 +197,8 @@ export const productOpenApiSchemas = Object.freeze({
       "brandName",
       "sourceProvider",
       "sourceDataset",
+      "foodState",
+      "foodCharacteristics",
       "status",
       "verificationStatus",
       "updatedAt",
@@ -220,6 +222,14 @@ export const productOpenApiSchemas = Object.freeze({
         type: ["string", "null"],
         enum: ["FOUNDATION_FOOD", "SR_LEGACY", "ADMIN_CATALOG", "USER_CATALOG", null],
       },
+      foodState: {
+        type: "string",
+        enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
+      },
+      foodCharacteristics: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ProductFoodCharacteristic" },
+      },
       status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] },
       verificationStatus: {
         type: "string",
@@ -231,13 +241,29 @@ export const productOpenApiSchemas = Object.freeze({
   },
   ProductSearchItem: {
     type: "object",
-    required: ["id", "name", "type", "categoryName", "brandName"],
+    required: [
+      "id",
+      "name",
+      "type",
+      "categoryName",
+      "brandName",
+      "foodState",
+      "foodCharacteristics",
+    ],
     properties: {
       id: { type: "string", format: "uuid" },
       name: { type: "string" },
       type: { type: "string", enum: ["GENERIC", "BRANDED"] },
       categoryName: { type: "string" },
       brandName: { type: ["string", "null"] },
+      foodState: {
+        type: "string",
+        enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
+      },
+      foodCharacteristics: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ProductFoodCharacteristic" },
+      },
     },
   },
   ProductNutrientWrite: {
@@ -269,6 +295,12 @@ export const productOpenApiSchemas = Object.freeze({
         type: "string",
         enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
       },
+      characteristicIds: {
+        type: "array",
+        maxItems: 50,
+        uniqueItems: true,
+        items: { type: "string", format: "uuid" },
+      },
       ediblePortionPercent: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
       status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"], default: "DRAFT" },
       verificationStatus: {
@@ -285,6 +317,22 @@ export const productOpenApiSchemas = Object.freeze({
     allOf: [{ $ref: "#/components/schemas/ProductCreate" }],
     description:
       "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору.",
+  },
+  ProductFoodCharacteristic: {
+    type: "object",
+    required: ["id", "code", "kind", "nameUa", "nameEn", "source", "confidence"],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      code: { type: "string" },
+      kind: {
+        type: "string",
+        enum: ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"],
+      },
+      nameUa: { type: "string" },
+      nameEn: { type: "string" },
+      source: { type: "string", enum: ["MANUAL", "SOURCE_IMPORT", "RULE_BASED"] },
+      confidence: { type: "string", enum: ["UNSPECIFIED", "LOW", "MEDIUM", "HIGH"] },
+    },
   },
   ProductStatusChange: {
     type: "object",

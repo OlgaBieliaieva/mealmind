@@ -258,6 +258,31 @@ enum ProductFoodState {
   @@map("product_food_state")
 }
 
+enum ProductFoodCharacteristicKind {
+  PRESERVATION_STATE @map("preservation_state")
+  COOKING_METHOD     @map("cooking_method")
+  PROCESSING_METHOD  @map("processing_method")
+
+  @@map("product_food_characteristic_kind")
+}
+
+enum ProductFoodCharacteristicSource {
+  MANUAL        @map("manual")
+  SOURCE_IMPORT @map("source_import")
+  RULE_BASED    @map("rule_based")
+
+  @@map("product_food_characteristic_source")
+}
+
+enum ProductFoodCharacteristicConfidence {
+  UNSPECIFIED @map("unspecified")
+  LOW         @map("low")
+  MEDIUM      @map("medium")
+  HIGH        @map("high")
+
+  @@map("product_food_characteristic_confidence")
+}
+
 enum ProductSourceProvider {
   USDA           @map("usda")
   MEALMIND_ADMIN @map("mealmind_admin")
@@ -1016,13 +1041,13 @@ model Product {
   createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  category                  ProductCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  brand                     Brand?                     @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  defaultMeasurementUnit    MeasurementUnit            @relation(fields: [defaultMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  baseProduct               Product?                   @relation("BrandedProductBase", fields: [baseProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  brandedVariants           Product[]                  @relation("BrandedProductBase")
-  cookingIngredientsPlanned CookingSessionIngredient[] @relation("CookingIngredientPlannedProduct")
-  cookingIngredientsActual  CookingSessionIngredient[] @relation("CookingIngredientActualProduct")
+  category                  ProductCategory                       @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  brand                     Brand?                                @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  defaultMeasurementUnit    MeasurementUnit                       @relation(fields: [defaultMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  baseProduct               Product?                              @relation("BrandedProductBase", fields: [baseProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  brandedVariants           Product[]                             @relation("BrandedProductBase")
+  cookingIngredientsPlanned CookingSessionIngredient[]            @relation("CookingIngredientPlannedProduct")
+  cookingIngredientsActual  CookingSessionIngredient[]            @relation("CookingIngredientActualProduct")
   sourceReferences          ProductSourceReference[]
   nutrients                 ProductNutrient[]
   media                     ProductMedia[]
@@ -1036,6 +1061,7 @@ model Product {
   shoppingListItems         ShoppingListItem[]
   shoppingListItemSources   ShoppingListItemSource[]
   consumptionEntries        ConsumptionEntry[]
+  foodCharacteristics       ProductFoodCharacteristicAssignment[]
 
   @@index([categoryId, status])
   @@index([brandId, status])
@@ -1046,6 +1072,44 @@ model Product {
   @@index([nameEn])
   @@index([nameUa])
   @@map("products")
+}
+
+model ProductFoodCharacteristic {
+  id        String                        @id @default(uuid()) @db.Uuid
+  code      String                        @unique @db.VarChar(64)
+  kind      ProductFoodCharacteristicKind
+  nameUa    String                        @map("name_ua") @db.VarChar(120)
+  nameEn    String                        @map("name_en") @db.VarChar(120)
+  isActive  Boolean                       @default(true) @map("is_active")
+  sortOrder Int                           @default(0) @map("sort_order") @db.SmallInt
+  createdAt DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  products ProductFoodCharacteristicAssignment[]
+
+  @@index([kind, isActive, sortOrder])
+  @@map("product_food_characteristics")
+}
+
+model ProductFoodCharacteristicAssignment {
+  productId         String                              @map("product_id") @db.Uuid
+  characteristicId  String                              @map("characteristic_id") @db.Uuid
+  source            ProductFoodCharacteristicSource     @default(MANUAL)
+  confidence        ProductFoodCharacteristicConfidence @default(UNSPECIFIED)
+  sourceReferenceId String?                             @map("source_reference_id") @db.Uuid
+  sortOrder         Int                                 @default(0) @map("sort_order") @db.SmallInt
+  createdAt         DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product         Product                   @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  characteristic  ProductFoodCharacteristic @relation(fields: [characteristicId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sourceReference ProductSourceReference?   @relation(fields: [sourceReferenceId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([productId, characteristicId])
+  @@index([characteristicId, productId])
+  @@index([productId, source, sortOrder])
+  @@index([sourceReferenceId])
+  @@map("product_food_characteristic_assignments")
 }
 
 model ProductNutrient {
@@ -2157,11 +2221,12 @@ model ProductSourceReference {
   isPrimary       Boolean               @default(false) @map("is_primary")
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  nutrientValues     ProductNutrient[]   @relation("ProductNutrientSource")
-  productPortions    ProductPortion[]    @relation("ProductPortionSource")
-  productDietaryTags ProductDietaryTag[] @relation("ProductDietaryTagSource")
-  productAllergens   ProductAllergen[]   @relation("ProductAllergenSource")
+  product                       Product                               @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  nutrientValues                ProductNutrient[]                     @relation("ProductNutrientSource")
+  productPortions               ProductPortion[]                      @relation("ProductPortionSource")
+  productDietaryTags            ProductDietaryTag[]                   @relation("ProductDietaryTagSource")
+  productAllergens              ProductAllergen[]                     @relation("ProductAllergenSource")
+  foodCharacteristicAssignments ProductFoodCharacteristicAssignment[]
 
   @@unique([provider, dataset, externalId])
   @@unique([id, productId])

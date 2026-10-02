@@ -23,6 +23,18 @@ function productSummary(overrides: Partial<ProductSummary> = {}): ProductSummary
     brandName: null,
     sourceProvider: null,
     sourceDataset: null,
+    foodState: "RAW",
+    foodCharacteristics: [
+      {
+        id: "64b79ffc-e6af-440c-ae38-8cd37c22be1c",
+        code: "fresh",
+        kind: "PRESERVATION_STATE",
+        nameUa: "Свіжий",
+        nameEn: "Fresh",
+        source: "MANUAL",
+        confidence: "HIGH",
+      },
+    ],
     status: "ACTIVE",
     verificationStatus: "UNVERIFIED",
     updatedAt: "2026-08-05T00:00:00.000Z",
@@ -77,6 +89,7 @@ describe("ProductList", () => {
       "/products/24b79ffc-e6af-440c-ae38-8cd37c22be1c",
     );
     expect(screen.getByRole("search")).toBeInTheDocument();
+    expect(screen.getAllByText("Сирий, Свіжий")).toHaveLength(3);
     const table = screen.getByRole("table");
     expect(table).toHaveAccessibleName("Знайдено продуктів: 3");
     expect(within(table).getByText("Не перевірено")).toHaveClass(

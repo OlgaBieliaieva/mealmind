@@ -6,6 +6,7 @@ export interface BaseProductOption {
   readonly value: string;
   readonly label: string;
   readonly description?: string;
+  readonly category?: string;
 }
 
 interface BaseProductSearchProps {
@@ -155,6 +156,7 @@ export function BaseProductSearch({
             >
               <span>{option.label}</span>
               {option.description === undefined ? null : <small>{option.description}</small>}
+              {option.category === undefined ? null : <small>{option.category}</small>}
             </button>
           ))}
         </div>

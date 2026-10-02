@@ -157,7 +157,7 @@ export const familyOpenApiSchemas = Object.freeze({
   ProfileProduct: {
     type: "object",
     additionalProperties: false,
-    required: ["id", "name"],
+    required: ["id", "name", "foodState", "foodCharacteristics"],
     properties: {
       id: {
         type: "string",
@@ -165,6 +165,25 @@ export const familyOpenApiSchemas = Object.freeze({
       },
       name: {
         type: "string",
+      },
+      foodState: {
+        type: "string",
+        enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
+      },
+      foodCharacteristics: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["kind", "name"],
+          properties: {
+            kind: {
+              type: "string",
+              enum: ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"],
+            },
+            name: { type: "string" },
+          },
+        },
       },
     },
   },

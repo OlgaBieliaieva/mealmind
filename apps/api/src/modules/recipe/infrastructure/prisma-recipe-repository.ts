@@ -5,6 +5,7 @@ import { RECIPE_CALCULATOR_VERSION } from "../application/recipe-nutrition-calcu
 import type {
   RecipeDetails,
   RecipeIngredientInput,
+  RecipeListItem,
   RecipeListQuery,
   RecipeMediaRecord,
   RecipeMutationData,
@@ -19,7 +20,21 @@ const recipeInclude = {
   author: { select: { displayName: true, bio: true } },
   ingredients: {
     include: {
-      product: { select: { nameUa: true, nameEn: true } },
+      product: {
+        select: {
+          nameUa: true,
+          nameEn: true,
+          foodState: true,
+          foodCharacteristics: {
+            select: { characteristic: { select: { kind: true, nameUa: true } } },
+            orderBy: [
+              { characteristic: { kind: "asc" } },
+              { sortOrder: "asc" },
+              { characteristic: { sortOrder: "asc" } },
+            ],
+          },
+        },
+      },
       measurementUnit: { select: { symbol: true } },
     },
     orderBy: [{ position: "asc" }, { id: "asc" }],
@@ -73,7 +88,7 @@ export function createPrismaRecipeRepository(database: DatabaseClient): RecipeRe
         database.recipe.count({ where }),
       ]);
       return Object.freeze({
-        items: Object.freeze(rows.map(mapSummary)),
+        items: Object.freeze(rows.map(mapListItem)),
         page: query.page,
         pageSize: query.pageSize,
         total,
@@ -574,6 +589,15 @@ function mapSummary(row: RecipeRow): RecipeSummary {
   });
 }
 
+function mapListItem(row: RecipeRow): RecipeListItem {
+  const primaryImage =
+    row.media.find((item) => item.kind === "STORED_IMAGE" && item.isPrimary) ?? null;
+  return Object.freeze({
+    ...mapSummary(row),
+    primaryImage: primaryImage === null ? null : mapStoredImage(primaryImage),
+  });
+}
+
 function mapDetails(row: RecipeRow): RecipeDetails {
   const baseServings = row.baseServings;
   const yieldWeight = row.yieldWeightG === null ? null : Number(row.yieldWeightG);
@@ -596,6 +620,11 @@ function mapDetails(row: RecipeRow): RecipeDetails {
         id: item.id,
         productId: item.productId,
         productName: item.product.nameUa ?? item.product.nameEn,
+        productFoodState: item.product.foodState,
+        productFoodCharacteristics: item.product.foodCharacteristics.map(({ characteristic }) => ({
+          kind: characteristic.kind,
+          name: characteristic.nameUa,
+        })),
         quantity: item.quantity.toString(),
         measurementUnitId: item.measurementUnitId,
         measurementUnitSymbol: item.measurementUnit?.symbol ?? null,

@@ -50,6 +50,14 @@ const product: Extract<Food, { kind: "product" }> = {
   brand: { name: "Metro Chef", countryCode: "UA", websiteUrl: "https://example.com" },
   imageUrl: "https://storage.test/product.webp",
   foodState: "RAW",
+  foodCharacteristics: [
+    {
+      id: "characteristic-id",
+      code: "frozen",
+      kind: "PRESERVATION_STATE",
+      name: "Заморожений",
+    },
+  ],
   defaultUnit: { id: "unit-id", symbol: "г" },
   isFavorite: false,
   nutrients: [
@@ -161,6 +169,16 @@ describe("FoodDetails", () => {
       "/plan/discover?returnTo=%2Fplan&tab=product&query=%D1%87%D1%96%D0%B0",
     );
     expect(screen.getByText("Metro Chef")).toBeVisible();
+    expect(screen.getByText("Сирий")).toBeVisible();
+    expect(screen.getByText("Заморожений")).toBeVisible();
+    const titleMetadata = container.querySelectorAll(".food-details__title p");
+    expect([...titleMetadata].map((item) => item.textContent)).toEqual([
+      "Сирий, Заморожений",
+      "Кіноа та інші",
+    ]);
+    expect(screen.getByText("Стан продукту")).toBeVisible();
+    expect(screen.getByText("Спосіб приготування")).toBeVisible();
+    expect(screen.getByText("Спосіб обробки")).toBeVisible();
     await validateRenderedUi(container);
   });
 

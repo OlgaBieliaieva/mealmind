@@ -172,6 +172,21 @@ const productCategoryCreate = z
   .strict();
 const productCategoryUpdate = productCategoryCreate.omit({ code: true }).partial().strict();
 
+const productFoodCharacteristicCreate = z
+  .object({
+    code: code(80),
+    kind: z.enum(["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]),
+    nameUa: name(160),
+    nameEn: name(160),
+    isActive: active,
+    sortOrder,
+  })
+  .strict();
+const productFoodCharacteristicUpdate = productFoodCharacteristicCreate
+  .omit({ code: true })
+  .partial()
+  .strict();
+
 const recipeTypeCreate = z
   .object({
     code: code(64),
@@ -218,6 +233,7 @@ export const createReferenceSchema = z.union([
   createEnvelope("measurement-units", measurementUnitCreate),
   createEnvelope("nutrients", nutrientCreate),
   createEnvelope("product-categories", productCategoryCreate),
+  createEnvelope("product-food-characteristics", productFoodCharacteristicCreate),
   createEnvelope("recipe-types", recipeTypeCreate),
 ]);
 
@@ -231,5 +247,6 @@ export const updateReferenceSchema = z.union([
   updateEnvelope("measurement-units", measurementUnitUpdate),
   updateEnvelope("nutrients", nutrientUpdate),
   updateEnvelope("product-categories", productCategoryUpdate),
+  updateEnvelope("product-food-characteristics", productFoodCharacteristicUpdate),
   updateEnvelope("recipe-types", recipeTypeUpdate),
 ]);

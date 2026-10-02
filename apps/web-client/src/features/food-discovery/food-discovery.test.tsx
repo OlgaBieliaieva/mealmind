@@ -55,6 +55,8 @@ describe("FoodDiscovery", () => {
             name: "Яблуко",
             category: { id: "category-id", code: "fruits", name: "Фрукти" },
             brandName: null,
+            foodState: "raw",
+            foodCharacteristicNames: ["Заморожений"],
             imageUrl: null,
             nutrition: {
               basis: "PER_100G",
@@ -107,6 +109,12 @@ describe("FoodDiscovery", () => {
       "href",
       "/food/product/product-id?returnTo=%2Fplan%2Fdiscover%3FreturnTo%3D%252Fplan%26tab%3Dfavorites",
     );
+    expect(screen.getByText("Сирий, Заморожений")).toBeVisible();
+    const cardMetadata = container.querySelectorAll(".food-result-list__content > small");
+    expect([...cardMetadata].map((item) => item.textContent?.trim()).slice(0, 2)).toEqual([
+      "Сирий, Заморожений",
+      "🍎Фрукти",
+    ]);
     expect(searchFood).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ query: "", favorites: true }),

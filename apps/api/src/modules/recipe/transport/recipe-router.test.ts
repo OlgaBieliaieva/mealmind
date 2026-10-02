@@ -69,7 +69,12 @@ function recipe(): RecipeDetailsView {
 
 function service(): RecipeService {
   return {
-    list: vi.fn(async () => ({ items: [recipe()], page: 1, pageSize: 20, total: 1 })),
+    list: vi.fn(async () => ({
+      items: [{ ...recipe(), primaryImage: null }],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    })),
     getAdmin: vi.fn(async () => recipe()),
     getPublic: vi.fn(async () => {
       const value = recipe();

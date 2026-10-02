@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { RecipeDetails, RecipeRepository } from "../domain/recipe-repository.js";
+import type { RecipeMediaStorage } from "../domain/recipe-media-storage.js";
 import { RecipeInvariantError } from "./recipe-errors.js";
 import { createRecipeService } from "./recipe-service.js";
 
@@ -74,6 +75,58 @@ function repository(): RecipeRepository {
 }
 
 describe("recipe service", () => {
+  it("returns a signed thumbnail for the primary image in the admin list", async () => {
+    const store = repository();
+    const primaryImage = {
+      id: "00000000-0000-4000-8000-000000000005",
+      recipeId: recipe.id,
+      status: "ACTIVE" as const,
+      storageObjectPath: "recipes/primary.webp",
+      mimeType: "image/webp",
+      byteSize: "1024",
+      widthPx: 1200,
+      heightPx: 800,
+      checksumSha256: "a".repeat(64),
+      altTextUa: "Суп",
+      altTextEn: null,
+      isPrimary: true,
+      sortOrder: 0,
+      createdAt: "2026-08-06T00:00:00.000Z",
+    };
+    store.list = vi.fn(async () => ({
+      items: [
+        {
+          id: recipe.id,
+          title: recipe.title,
+          status: recipe.status,
+          visibility: recipe.visibility,
+          difficulty: recipe.difficulty,
+          recipeTypeName: recipe.recipeTypeName,
+          authorName: recipe.authorName,
+          baseServings: recipe.baseServings,
+          updatedAt: recipe.updatedAt,
+          primaryImage,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    }));
+    const storage: RecipeMediaStorage = {
+      createUploadUrl: vi.fn(),
+      createReadUrl: vi.fn(async (path) => `https://storage.example/${path}`),
+      read: vi.fn(),
+      write: vi.fn(),
+      remove: vi.fn(),
+    };
+
+    const page = await createRecipeService(store, storage).list({ page: 1, pageSize: 20 });
+
+    expect(page.items[0]?.primaryImage?.thumbnailUrl).toBe(
+      "https://storage.example/recipes/primary.webp.thumbnail.webp",
+    );
+  });
+
   it("keeps administrative details separate from the public read contract", async () => {
     const store = repository();
     const published = {

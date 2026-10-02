@@ -30,11 +30,18 @@ const READ_URL_TTL_SECONDS = 300;
 
 export interface CreateProductInput extends Omit<
   ProductWrite,
-  "categoryId" | "defaultMeasurementUnitId" | "foodState" | "nutrients" | "portions" | "source"
+  | "categoryId"
+  | "defaultMeasurementUnitId"
+  | "foodState"
+  | "characteristicIds"
+  | "nutrients"
+  | "portions"
+  | "source"
 > {
   readonly categoryId?: string | undefined;
   readonly defaultMeasurementUnitId?: string | undefined;
   readonly foodState?: ProductWrite["foodState"] | undefined;
+  readonly characteristicIds?: ProductWrite["characteristicIds"] | undefined;
   readonly nutrients?: ProductWrite["nutrients"] | undefined;
   readonly portions?: ProductWrite["portions"] | undefined;
 }
@@ -287,6 +294,7 @@ async function resolveCreateInput(
       categoryId: input.categoryId,
       defaultMeasurementUnitId: input.defaultMeasurementUnitId,
       foodState: input.foodState ?? "UNSPECIFIED",
+      characteristicIds: input.characteristicIds ?? [],
       nutrients: input.nutrients ?? [],
       portions: input.portions ?? [],
     };
@@ -304,6 +312,7 @@ async function resolveCreateInput(
       categoryId: input.categoryId,
       defaultMeasurementUnitId: input.defaultMeasurementUnitId,
       foodState: input.foodState ?? "UNSPECIFIED",
+      characteristicIds: input.characteristicIds ?? [],
       nutrients: toLabelNutrients(input.nutrients ?? []),
       portions: input.portions ?? [],
     };
@@ -322,6 +331,9 @@ async function resolveCreateInput(
     categoryId: input.categoryId ?? base.categoryId,
     defaultMeasurementUnitId: input.defaultMeasurementUnitId ?? base.defaultMeasurementUnitId,
     foodState: input.foodState ?? base.foodState,
+    characteristicIds:
+      input.characteristicIds ??
+      base.foodCharacteristics.map((characteristic) => characteristic.id),
     ediblePortionPercent: input.ediblePortionPercent ?? base.ediblePortionPercent,
     nutrients: mergeBrandedNutrients(base.nutrients, input.nutrients ?? []),
     portions:

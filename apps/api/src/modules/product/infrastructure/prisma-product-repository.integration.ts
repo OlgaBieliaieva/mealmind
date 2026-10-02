@@ -25,10 +25,11 @@ const adminSource = {
 } as const;
 
 try {
-  const [category, unit, nutrient] = await Promise.all([
+  const [category, unit, nutrient, characteristic] = await Promise.all([
     database.productCategory.findFirstOrThrow({ where: { isAssignable: true, isActive: true } }),
     database.measurementUnit.findFirstOrThrow({ where: { isActive: true } }),
     database.nutrient.findFirstOrThrow({ where: { isActive: true } }),
+    database.productFoodCharacteristic.findFirstOrThrow({ where: { code: "frozen" } }),
   ]);
   const brand = await database.brand.create({
     data: { name: `Integration Brand ${crypto.randomUUID()}`, status: "ACTIVE" },
@@ -41,6 +42,7 @@ try {
     categoryId: category.id,
     defaultMeasurementUnitId: unit.id,
     foodState: "RAW",
+    characteristicIds: [characteristic.id],
     ediblePortionPercent: "95",
     status: "ACTIVE",
     nutrients: [{ nutrientId: nutrient.id, valuePer100g: "1.25", valueType: "ANALYTICAL" }],
@@ -60,6 +62,11 @@ try {
     source: adminSource,
   });
   createdProductIds.push(generic.id);
+  assert.deepEqual(
+    generic.foodCharacteristics.map((item) => item.code),
+    ["frozen"],
+  );
+  assert.equal(generic.foodCharacteristics[0]?.source, "MANUAL");
 
   const updatedWithoutRelations = await repository.update(generic.id, {
     notes: "updated",
@@ -68,10 +75,17 @@ try {
   assert.equal(updatedWithoutRelations?.nutrients.length, 1);
   assert.equal(updatedWithoutRelations?.portions.length, 1);
   assert.equal(updatedWithoutRelations?.verificationStatus, "VERIFIED");
+  assert.deepEqual(
+    updatedWithoutRelations?.foodCharacteristics.map((item) => item.code),
+    ["frozen"],
+  );
 
   const explicitlyCleared = await repository.update(generic.id, { nutrients: [] });
   assert.equal(explicitlyCleared?.nutrients.length, 0);
   assert.equal(explicitlyCleared?.portions.length, 1);
+
+  const characteristicsCleared = await repository.update(generic.id, { characteristicIds: [] });
+  assert.equal(characteristicsCleared?.foodCharacteristics.length, 0);
 
   const gtin = String(Date.now()).slice(-12).padStart(14, "0");
   const branded = await repository.create({

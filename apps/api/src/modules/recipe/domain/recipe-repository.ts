@@ -105,6 +105,10 @@ export interface RecipeSummary {
   readonly updatedAt: string;
 }
 
+export interface RecipeListItem extends RecipeSummary {
+  readonly primaryImage: RecipeMediaRecord | null;
+}
+
 export interface RecipeNutrientView {
   readonly nutrientId: string;
   readonly code: string;
@@ -151,6 +155,11 @@ export interface RecipeDetails extends RecipeSummary {
   readonly archivedAt: string | null;
   readonly ingredients: readonly (Omit<ResolvedRecipeIngredient, "nutrients"> & {
     readonly id: string;
+    readonly productFoodState?: string;
+    readonly productFoodCharacteristics?: readonly {
+      readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+      readonly name: string;
+    }[];
   })[];
   readonly steps: readonly (RecipeStepInput & { readonly id: string; readonly position: number })[];
   readonly sources: readonly (RecipeSourceInput & { readonly id: string })[];
@@ -205,7 +214,7 @@ export interface RecipeListQuery {
 }
 
 export interface RecipePage {
-  readonly items: readonly RecipeSummary[];
+  readonly items: readonly RecipeListItem[];
   readonly page: number;
   readonly pageSize: number;
   readonly total: number;

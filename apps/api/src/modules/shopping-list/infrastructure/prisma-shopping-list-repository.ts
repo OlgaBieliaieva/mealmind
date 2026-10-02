@@ -366,6 +366,21 @@ async function derive(
 }
 
 const itemInclude = {
+  product: {
+    select: {
+      foodState: true,
+      foodCharacteristics: {
+        select: {
+          characteristic: { select: { kind: true, nameUa: true } },
+        },
+        orderBy: [
+          { characteristic: { kind: "asc" } },
+          { sortOrder: "asc" },
+          { characteristic: { sortOrder: "asc" } },
+        ],
+      },
+    },
+  },
   requestedMeasurementUnit: {
     select: { id: true, code: true, symbol: true },
   },
@@ -468,6 +483,12 @@ async function mapDetail(client: Client, row: ListRow): Promise<ShoppingListDeta
       status: item.status,
       productId: item.productId,
       name: item.productNameSnapshot ?? item.customName ?? "Без назви",
+      foodState: item.product?.foodState ?? null,
+      foodCharacteristics:
+        item.product?.foodCharacteristics.map(({ characteristic }) => ({
+          kind: characteristic.kind,
+          name: characteristic.nameUa,
+        })) ?? [],
       category:
         item.categoryCodeSnapshot && item.categoryNameSnapshot
           ? { code: item.categoryCodeSnapshot, name: item.categoryNameSnapshot }

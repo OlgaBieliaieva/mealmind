@@ -133,13 +133,25 @@ export const foodOpenApiSchemas = Object.freeze({
     oneOf: [
       {
         type: "object",
-        required: ["kind", "id", "name", "category", "imageUrl", "nutrition", "isFavorite"],
+        required: [
+          "kind",
+          "id",
+          "name",
+          "category",
+          "foodState",
+          "foodCharacteristicNames",
+          "imageUrl",
+          "nutrition",
+          "isFavorite",
+        ],
         properties: {
           kind: { const: "product" },
           id: { type: "string", format: "uuid" },
           name: { type: "string" },
           category: { type: "object" },
           brandName: { type: ["string", "null"] },
+          foodState: { type: "string" },
+          foodCharacteristicNames: { type: "array", items: { type: "string" } },
           imageUrl: { type: ["string", "null"], format: "uri" },
           nutrition: { $ref: "#/components/schemas/FoodCardNutrition" },
           isFavorite: { type: "boolean" },
@@ -226,6 +238,8 @@ export const foodOpenApiSchemas = Object.freeze({
           "name",
           "category",
           "brand",
+          "foodState",
+          "foodCharacteristics",
           "imageUrl",
           "nutrients",
           "portions",
@@ -238,6 +252,11 @@ export const foodOpenApiSchemas = Object.freeze({
           name: { type: "string" },
           category: { type: "object" },
           brand: { type: ["object", "null"] },
+          foodState: { type: "string" },
+          foodCharacteristics: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ProductFoodCharacteristic" },
+          },
           imageUrl: { type: ["string", "null"], format: "uri" },
           nutrients: { type: "array", items: { type: "object" } },
           portions: { type: "array", items: { type: "object" } },
@@ -288,6 +307,19 @@ export const foodOpenApiSchemas = Object.freeze({
           isFavorite: { type: "boolean" },
         },
       },
+    },
+  },
+  ProductFoodCharacteristic: {
+    type: "object",
+    required: ["id", "code", "kind", "name"],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      code: { type: "string" },
+      kind: {
+        type: "string",
+        enum: ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"],
+      },
+      name: { type: "string" },
     },
   },
 });

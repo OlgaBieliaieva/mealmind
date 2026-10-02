@@ -17,6 +17,11 @@ export interface PublicRecipeDetails {
     readonly id: string;
     readonly productId: string;
     readonly productName: string;
+    readonly productFoodState?: string;
+    readonly productFoodCharacteristics?: readonly {
+      readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+      readonly name: string;
+    }[];
     readonly quantity: string;
     readonly gramWeight: string;
     readonly measurementUnitSymbol: string | null;

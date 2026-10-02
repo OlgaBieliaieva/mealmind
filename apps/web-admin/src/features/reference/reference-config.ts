@@ -331,6 +331,29 @@ export const REFERENCE_CONFIGS: Readonly<Record<ReferenceResource, ReferenceConf
       sortOrder,
     ],
   },
+  "product-food-characteristics": {
+    label: "Характеристики продуктів",
+    itemLabel: "характеристику продукту",
+    description: "Контрольовані стани зберігання та способи приготування або обробки продуктів.",
+    fields: [
+      code,
+      {
+        name: "kind",
+        label: "Група",
+        kind: "select",
+        required: true,
+        options: [
+          option("PRESERVATION_STATE", "Стан продукту"),
+          option("COOKING_METHOD", "Спосіб приготування"),
+          option("PROCESSING_METHOD", "Спосіб обробки"),
+        ],
+      },
+      nameUa,
+      nameEn,
+      active,
+      sortOrder,
+    ],
+  },
   "recipe-types": {
     label: "Типи рецептів",
     itemLabel: "тип рецепта",

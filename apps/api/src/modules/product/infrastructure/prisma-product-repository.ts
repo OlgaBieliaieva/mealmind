@@ -31,6 +31,10 @@ const productInclude = {
     orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
   },
   portions: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+  foodCharacteristics: {
+    include: { characteristic: true },
+    orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
+  },
   media: {
     where: { status: { not: "ARCHIVED" } },
     orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
@@ -42,6 +46,11 @@ const productSearchSelect = {
   type: true,
   nameUa: true,
   nameEn: true,
+  foodState: true,
+  foodCharacteristics: {
+    include: { characteristic: true },
+    orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
+  },
   category: {
     select: {
       nameUa: true,
@@ -291,6 +300,20 @@ function mapProductSearchItem(row: ProductSearchRow): ProductSearchItem {
     type: row.type,
     categoryName: row.category.nameUa ?? row.category.nameEn,
     brandName: row.brand?.name ?? null,
+    foodState: row.foodState,
+    foodCharacteristics: Object.freeze(
+      row.foodCharacteristics.map((assignment) =>
+        Object.freeze({
+          id: assignment.characteristic.id,
+          code: assignment.characteristic.code,
+          kind: assignment.characteristic.kind,
+          nameUa: assignment.characteristic.nameUa,
+          nameEn: assignment.characteristic.nameEn,
+          source: assignment.source,
+          confidence: assignment.confidence,
+        }),
+      ),
+    ),
   });
 }
 
@@ -310,6 +333,14 @@ function productCreateData(id: string, data: ProductWrite): Prisma.ProductCreate
       ? {}
       : { baseProduct: { connect: { id: data.baseProductId } } }),
     foodState: data.foodState,
+    foodCharacteristics: {
+      create: (data.characteristicIds ?? []).map((characteristicId, sortOrder) => ({
+        characteristic: { connect: { id: characteristicId } },
+        source: "MANUAL",
+        confidence: "UNSPECIFIED",
+        sortOrder,
+      })),
+    },
     ...(data.ediblePortionPercent === undefined
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
@@ -344,6 +375,19 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
       ? {}
       : { defaultMeasurementUnit: { connect: { id: data.defaultMeasurementUnitId } } }),
     ...(data.foodState === undefined ? {} : { foodState: data.foodState }),
+    ...(data.characteristicIds === undefined
+      ? {}
+      : {
+          foodCharacteristics: {
+            deleteMany: {},
+            create: data.characteristicIds.map((characteristicId, sortOrder) => ({
+              characteristic: { connect: { id: characteristicId } },
+              source: "MANUAL" as const,
+              confidence: "UNSPECIFIED" as const,
+              sortOrder,
+            })),
+          },
+        }),
     ...(data.ediblePortionPercent === undefined
       ? {}
       : { ediblePortionPercent: data.ediblePortionPercent }),
@@ -418,6 +462,19 @@ function mapProductDetails(row: ProductRow): ProductDetails {
     sourceProvider: source?.provider ?? null,
     sourceDataset: source?.dataset ?? null,
     foodState: row.foodState,
+    foodCharacteristics: Object.freeze(
+      row.foodCharacteristics.map((assignment) =>
+        Object.freeze({
+          id: assignment.characteristic.id,
+          code: assignment.characteristic.code,
+          kind: assignment.characteristic.kind,
+          nameUa: assignment.characteristic.nameUa,
+          nameEn: assignment.characteristic.nameEn,
+          source: assignment.source,
+          confidence: assignment.confidence,
+        }),
+      ),
+    ),
     ediblePortionPercent: row.ediblePortionPercent?.toString() ?? null,
     status: row.status,
     verificationStatus: row.verificationStatus,
@@ -473,6 +530,8 @@ function mapProductSummary(row: ProductRow): ProductSummary {
     brandName: details.brandName,
     sourceProvider: details.sourceProvider,
     sourceDataset: details.sourceDataset,
+    foodState: details.foodState,
+    foodCharacteristics: details.foodCharacteristics,
     status: details.status,
     verificationStatus: details.verificationStatus,
     updatedAt: details.updatedAt,

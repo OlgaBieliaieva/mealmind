@@ -197,6 +197,22 @@ export function createPrismaReferenceRepository(database: DatabaseClient): Refer
               },
             }),
           );
+        case "product-food-characteristics":
+          return mapRecords(
+            await database.productFoodCharacteristic.findMany({
+              where: { ...activeFilter(query), ...localizedSearch(query) },
+              select: {
+                id: true,
+                code: true,
+                kind: true,
+                nameUa: true,
+                nameEn: true,
+                isActive: true,
+                sortOrder: true,
+              },
+              orderBy: [{ kind: "asc" }, { sortOrder: "asc" }, { code: "asc" }],
+            }),
+          );
         case "recipe-types":
           return mapRecords(
             await database.recipeType.findMany({

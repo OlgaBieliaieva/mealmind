@@ -5,6 +5,18 @@ export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductVerificationStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED";
 export type ProductSourceProvider = "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER";
 export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
+export type ProductFoodCharacteristicKind =
+  "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+
+export interface ProductFoodCharacteristic {
+  readonly id: string;
+  readonly code: string;
+  readonly kind: ProductFoodCharacteristicKind;
+  readonly nameUa: string;
+  readonly nameEn: string;
+  readonly source: "MANUAL" | "SOURCE_IMPORT" | "RULE_BASED";
+  readonly confidence: "UNSPECIFIED" | "LOW" | "MEDIUM" | "HIGH";
+}
 export type ProductMediaKind =
   "PRODUCT" | "PACKAGING" | "INGREDIENTS_LABEL" | "NUTRITION_LABEL" | "BARCODE" | "OTHER";
 
@@ -55,6 +67,8 @@ export interface ProductSummary {
   readonly brandName: string | null;
   readonly sourceProvider: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | null;
   readonly sourceDataset: "FOUNDATION_FOOD" | "SR_LEGACY" | "ADMIN_CATALOG" | "USER_CATALOG" | null;
+  readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
   readonly status: ProductStatus;
   readonly verificationStatus: ProductVerificationStatus;
   readonly updatedAt: string;
@@ -67,6 +81,7 @@ export interface ProductDetails extends Omit<ProductSummary, "primaryMedia"> {
   readonly baseProductId: string | null;
   readonly baseProductName: string | null;
   readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
   readonly ediblePortionPercent: string | null;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
   readonly notes: string | null;
@@ -89,6 +104,7 @@ export interface ProductWrite {
   readonly defaultMeasurementUnitId?: string;
   readonly baseProductId?: string | null;
   readonly foodState?: ProductFoodState;
+  readonly characteristicIds?: readonly string[];
   readonly ediblePortionPercent?: string | null;
   readonly notes?: string | null;
   readonly verificationStatus?: ProductVerificationStatus;
@@ -128,6 +144,8 @@ export interface ProductSearchItem {
   readonly type: ProductType;
   readonly categoryName: string;
   readonly brandName: string | null;
+  readonly foodState: ProductFoodState;
+  readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
 }
 
 export interface ProductSearchResponse {

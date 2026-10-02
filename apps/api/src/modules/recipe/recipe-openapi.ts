@@ -54,7 +54,15 @@ export const recipeOpenApiPaths = Object.freeze({
                 : "string",
         },
       })),
-      responses: { "200": { description: "Сторінка рецептів" }, ...errors },
+      responses: {
+        "200": {
+          description: "Сторінка рецептів з основним зображенням",
+          content: {
+            "application/json": { schema: { $ref: "#/components/schemas/RecipeListResponse" } },
+          },
+        },
+        ...errors,
+      },
     },
     post: {
       summary: "Створити рецепт із розрахунком поживності",
@@ -150,6 +158,60 @@ const ingredient = {
 };
 
 export const recipeOpenApiSchemas = Object.freeze({
+  RecipeListResponse: {
+    type: "object",
+    required: ["data", "meta"],
+    properties: {
+      data: {
+        type: "object",
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              required: [
+                "id",
+                "title",
+                "status",
+                "visibility",
+                "difficulty",
+                "recipeTypeName",
+                "authorName",
+                "baseServings",
+                "updatedAt",
+                "primaryImage",
+              ],
+              properties: {
+                id: { type: "string", format: "uuid" },
+                title: { type: "string" },
+                status: { type: "string", enum: ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"] },
+                visibility: { type: "string", enum: ["FAMILY", "PUBLIC"] },
+                difficulty: { type: ["string", "null"], enum: ["EASY", "MEDIUM", "HARD", null] },
+                recipeTypeName: { type: ["string", "null"] },
+                authorName: { type: ["string", "null"] },
+                baseServings: { type: ["integer", "null"] },
+                updatedAt: { type: "string", format: "date-time" },
+                primaryImage: {
+                  type: ["object", "null"],
+                  properties: { thumbnailUrl: { type: ["string", "null"], format: "uri" } },
+                },
+              },
+            },
+          },
+        },
+      },
+      meta: {
+        type: "object",
+        required: ["page", "pageSize", "total"],
+        properties: {
+          page: { type: "integer" },
+          pageSize: { type: "integer" },
+          total: { type: "integer" },
+        },
+      },
+    },
+  },
   RecipeIngredientWrite: ingredient,
   RecipeWrite: {
     type: "object",

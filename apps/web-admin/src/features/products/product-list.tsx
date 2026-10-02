@@ -14,6 +14,7 @@ import {
   type ProductType,
   type ProductVerificationStatus,
 } from "@/shared/api/products";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { Button, Card, PageState, SelectField, TextInput } from "@/shared/ui";
 
 import {
@@ -248,9 +249,22 @@ export function ProductList() {
                             height="48"
                           />
                         )}
-                        <Link href={`/products/${product.id}`}>
-                          {product.nameUa ?? product.nameEn}
-                        </Link>
+                        <div className="product-table__title">
+                          <Link href={`/products/${product.id}`}>
+                            {product.nameUa ?? product.nameEn}
+                          </Link>
+                          {formatProductCharacteristics(
+                            product.foodState,
+                            product.foodCharacteristics,
+                          ) ? (
+                            <small>
+                              {formatProductCharacteristics(
+                                product.foodState,
+                                product.foodCharacteristics,
+                              )}
+                            </small>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                     <td>{PRODUCT_TYPE_LABELS[product.type]}</td>

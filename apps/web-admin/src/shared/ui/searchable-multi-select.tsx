@@ -2,11 +2,14 @@
 
 import { useId, useMemo, useState } from "react";
 
-import type { RecipeOption } from "./recipe-form";
-
-interface SearchableMultiSelectProps {
+export interface MultiSelectOption {
+  readonly value: string;
   readonly label: string;
-  readonly options: readonly RecipeOption[];
+}
+
+export interface SearchableMultiSelectProps {
+  readonly label: string;
+  readonly options: readonly MultiSelectOption[];
   readonly value: readonly string[];
   readonly onChange: (value: string[]) => void;
 }
@@ -27,7 +30,7 @@ export function SearchableMultiSelect({
     return options.filter((item) => item.label.toLocaleLowerCase("uk").includes(normalizedQuery));
   }, [options, query]);
 
-  function toggle(option: RecipeOption) {
+  function toggle(option: MultiSelectOption) {
     onChange(
       selected.has(option.value)
         ? value.filter((item) => item !== option.value)
@@ -40,13 +43,13 @@ export function SearchableMultiSelect({
     .map((item) => item.label);
 
   return (
-    <div className="ui-field recipe-multi-select">
+    <div className="ui-field ui-multi-select">
       <span className="ui-field__label" id={`${id}-label`}>
         {label}
       </span>
       <button
         type="button"
-        className="ui-control recipe-multi-select__toggle"
+        className="ui-control ui-multi-select__toggle"
         aria-expanded={isOpen}
         aria-controls={`${id}-panel`}
         aria-labelledby={`${id}-label ${id}-value`}
@@ -63,7 +66,7 @@ export function SearchableMultiSelect({
       </button>
 
       {isOpen ? (
-        <div className="recipe-multi-select__panel" id={`${id}-panel`}>
+        <div className="ui-multi-select__panel" id={`${id}-panel`}>
           <label className="ui-field">
             <span className="ui-field__label">Пошук за назвою</span>
             <input
@@ -73,12 +76,12 @@ export function SearchableMultiSelect({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          <div className="recipe-multi-select__options" role="group" aria-label={label}>
+          <div className="ui-multi-select__options" role="group" aria-label={label}>
             {filtered.length === 0 ? (
-              <p className="recipe-form__hint">Збігів не знайдено.</p>
+              <p className="ui-multi-select__empty">Збігів не знайдено.</p>
             ) : (
               filtered.map((item) => (
-                <label className="recipe-multi-select__option" key={item.value}>
+                <label className="ui-multi-select__option" key={item.value}>
                   <input
                     type="checkbox"
                     checked={selected.has(item.value)}
@@ -89,11 +92,7 @@ export function SearchableMultiSelect({
               ))
             )}
           </div>
-          <button
-            type="button"
-            className="recipe-multi-select__done"
-            onClick={() => setIsOpen(false)}
-          >
+          <button type="button" className="ui-multi-select__done" onClick={() => setIsOpen(false)}>
             Готово
           </button>
         </div>

@@ -20,6 +20,7 @@ import type {
   RecipeDetails,
   RecipeIngredientInput,
   RecipeListQuery,
+  RecipeListItem,
   RecipeMediaRecord,
   RecipeMutationData,
   RecipePage,
@@ -43,6 +44,14 @@ export interface RecipeDetailsView extends Omit<RecipeDetails, "images"> {
   readonly images: readonly RecipeImageView[];
 }
 
+export interface RecipeListItemView extends Omit<RecipeListItem, "primaryImage"> {
+  readonly primaryImage: RecipeImageView | null;
+}
+
+export interface RecipePageView extends Omit<RecipePage, "items"> {
+  readonly items: readonly RecipeListItemView[];
+}
+
 export interface PublicRecipeDetailsView extends Omit<PublicRecipeDetails, "images"> {
   readonly images: readonly RecipeImageView[];
 }
@@ -52,7 +61,7 @@ export interface RecipeNutritionPreview extends RecipeNutritionCalculation {
 }
 
 export interface RecipeService {
-  list(query: RecipeListQuery): Promise<RecipePage>;
+  list(query: RecipeListQuery): Promise<RecipePageView>;
   getAdmin(id: string): Promise<RecipeDetailsView>;
   getPublic(id: string): Promise<PublicRecipeDetailsView>;
   preview(ingredients: readonly RecipeIngredientInput[]): Promise<RecipeNutritionPreview>;
@@ -81,7 +90,17 @@ export function createRecipeService(
   storage: RecipeMediaStorage = unavailableStorage,
 ): RecipeService {
   const service: RecipeService = {
-    list: (query) => repository.list(query),
+    async list(query) {
+      const page = await repository.list(query);
+      const items = await Promise.all(
+        page.items.map(async (item): Promise<RecipeListItemView> => ({
+          ...item,
+          primaryImage:
+            item.primaryImage === null ? null : await presentImage(storage, item.primaryImage),
+        })),
+      );
+      return Object.freeze({ ...page, items: Object.freeze(items) });
+    },
 
     async getAdmin(id) {
       const recipe = await repository.findAdminById(id);

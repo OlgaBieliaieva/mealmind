@@ -159,6 +159,7 @@ export function ProductSearchCombobox({
             >
               <span>{option.label}</span>
               {option.description === undefined ? null : <small>{option.description}</small>}
+              {option.category === undefined ? null : <small>{option.category}</small>}
             </button>
           ))}
         </div>

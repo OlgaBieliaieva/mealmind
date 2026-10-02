@@ -28,6 +28,11 @@ export interface DiaryItem {
   readonly imageObjectPath?: string | null;
   readonly categoryCode: string | null;
   readonly categoryName: string | null;
+  readonly foodState?: string | null;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
   readonly recipeType: { readonly code: string; readonly name: string } | null;
   readonly mealType: {
     readonly id: string;
