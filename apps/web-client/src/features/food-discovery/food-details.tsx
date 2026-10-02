@@ -31,6 +31,7 @@ import {
   type RecipeDifficulty,
 } from "@/shared/api/food";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { addCatalogShoppingItem } from "@/shared/api/shopping-lists";
 import { Button, PageState } from "@/shared/ui";
 
@@ -204,6 +205,9 @@ function ProductDetails({
       <div className="food-details__sheet">
         <header className="food-details__title">
           <h1 id="food-details-title">{food.name}</h1>
+          {formatProductCharacteristics(food.foodState, food.foodCharacteristics) ? (
+            <p>{formatProductCharacteristics(food.foodState, food.foodCharacteristics)}</p>
+          ) : null}
           <p>{food.category.name}</p>
         </header>
         <DetailTabs
@@ -235,6 +239,19 @@ function ProductDetails({
                   <dt>Базова одиниця</dt>
                   <dd>{food.defaultUnit.symbol}</dd>
                 </div>
+                <div>
+                  <dt>Загальний стан</dt>
+                  <dd>{foodStateLabel(food.foodState)}</dd>
+                </div>
+                {CHARACTERISTIC_GROUPS.map((group) => {
+                  const items = food.foodCharacteristics.filter((item) => item.kind === group.kind);
+                  return (
+                    <div key={group.kind}>
+                      <dt>{group.label}</dt>
+                      <dd>{items.map((item) => item.name).join(", ") || "—"}</dd>
+                    </div>
+                  );
+                })}
               </dl>
               {food.portions.length ? (
                 <>
@@ -315,6 +332,23 @@ function ProductDetails({
       </div>
     </>
   );
+}
+
+const CHARACTERISTIC_GROUPS = [
+  { kind: "PRESERVATION_STATE", label: "Стан продукту" },
+  { kind: "COOKING_METHOD", label: "Спосіб приготування" },
+  { kind: "PROCESSING_METHOD", label: "Спосіб обробки" },
+] as const;
+
+function foodStateLabel(value: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    UNSPECIFIED: "Не вказано",
+    RAW: "Сирий",
+    COOKED: "Приготований",
+    PROCESSED: "Оброблений",
+    READY_TO_EAT: "Готовий до споживання",
+  };
+  return labels[value.toUpperCase()] ?? value;
 }
 
 function RecipeDetails({
@@ -491,14 +525,25 @@ function RecipeDetails({
                       />
                       <span className="ingredient-card__content">
                         <strong>{ingredient.productName}</strong>
-                        <small className="ingredient-card__nutrition">
-                          {nutritionSummary(ingredient.nutrition)}
-                        </small>
+                        {formatProductCharacteristics(
+                          ingredient.productFoodState ?? "UNSPECIFIED",
+                          ingredient.productFoodCharacteristics ?? [],
+                        ) ? (
+                          <small>
+                            {formatProductCharacteristics(
+                              ingredient.productFoodState ?? "UNSPECIFIED",
+                              ingredient.productFoodCharacteristics ?? [],
+                            )}
+                          </small>
+                        ) : null}
                         <small>
                           <span aria-hidden="true">
                             {getCategoryEmoji(ingredient.category.code)}
                           </span>{" "}
                           {ingredient.category.name}
+                        </small>
+                        <small className="ingredient-card__nutrition">
+                          {nutritionSummary(ingredient.nutrition)}
                         </small>
                       </span>
                       <span className="ingredient-card__amount">

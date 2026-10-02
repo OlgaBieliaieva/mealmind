@@ -12,7 +12,7 @@ const testDirectory = dirname(fileURLToPath(import.meta.url));
 
 const repositoryRoot = resolve(testDirectory, "../../../..");
 
-const EXPECTED_TOTAL = 181;
+const EXPECTED_TOTAL = 208;
 
 loadEnvironment({
   path: resolve(repositoryRoot, ".env"),
@@ -167,6 +167,21 @@ async function inspectReferenceTables(
       expectedCount: 22,
       load: () =>
         database.cuisine.findMany({
+          select: {
+            id: true,
+            code: true,
+            updatedAt: true,
+          },
+          orderBy: {
+            id: "asc",
+          },
+        }),
+    },
+    {
+      entity: "ProductFoodCharacteristic",
+      expectedCount: 27,
+      load: () =>
+        database.productFoodCharacteristic.findMany({
           select: {
             id: true,
             code: true,

@@ -28,6 +28,7 @@
                 "measurement-units",
                 "nutrients",
                 "product-categories",
+                "product-food-characteristics",
                 "recipe-types"
               ]
             }
@@ -72,6 +73,7 @@
                 "measurement-units",
                 "nutrients",
                 "product-categories",
+                "product-food-characteristics",
                 "recipe-types"
               ]
             }
@@ -119,6 +121,7 @@
                 "measurement-units",
                 "nutrients",
                 "product-categories",
+                "product-food-characteristics",
                 "recipe-types"
               ]
             }
@@ -218,6 +221,16 @@
                     "sortOrder": 10
                   }
                 },
+                "productFoodCharacteristic": {
+                  "summary": "Характеристика продукту",
+                  "value": {
+                    "code": "test_cooking_method",
+                    "kind": "COOKING_METHOD",
+                    "nameUa": "Тестовий спосіб",
+                    "nameEn": "Test method",
+                    "sortOrder": 10
+                  }
+                },
                 "recipeType": {
                   "summary": "Тип рецепта",
                   "value": {
@@ -262,6 +275,7 @@
                 "measurement-units",
                 "nutrients",
                 "product-categories",
+                "product-food-characteristics",
                 "recipe-types"
               ]
             }
@@ -316,6 +330,7 @@
                 "measurement-units",
                 "nutrients",
                 "product-categories",
+                "product-food-characteristics",
                 "recipe-types"
               ]
             }
@@ -635,7 +650,7 @@
     "/api/v1/products/search": {
       "get": {
         "summary": "Пошук активних продуктів",
-        "description": "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає мінімальні display-поля без nutrients, portions і media.",
+        "description": "Authenticated lightweight пошук ACTIVE продуктів для клієнтських selector-ів. Повертає display-поля, загальний foodState і призначені характеристики без nutrients, portions і media.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -1027,7 +1042,14 @@
           { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer" } }
         ],
         "responses": {
-          "200": { "description": "Сторінка рецептів" },
+          "200": {
+            "description": "Сторінка рецептів з основним зображенням",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RecipeListResponse" }
+              }
+            }
+          },
           "400": { "description": "Порушено validation або domain invariant" },
           "401": { "$ref": "#/components/responses/AuthenticationRequired" },
           "403": { "description": "Недостатньо прав" },
@@ -4165,6 +4187,8 @@
           "brandName",
           "sourceProvider",
           "sourceDataset",
+          "foodState",
+          "foodCharacteristics",
           "status",
           "verificationStatus",
           "updatedAt",
@@ -4188,6 +4212,14 @@
             "type": ["string", "null"],
             "enum": ["FOUNDATION_FOOD", "SR_LEGACY", "ADMIN_CATALOG", "USER_CATALOG", null]
           },
+          "foodState": {
+            "type": "string",
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProductFoodCharacteristic" }
+          },
           "status": { "type": "string", "enum": ["DRAFT", "ACTIVE", "ARCHIVED"] },
           "verificationStatus": {
             "type": "string",
@@ -4199,13 +4231,29 @@
       },
       "ProductSearchItem": {
         "type": "object",
-        "required": ["id", "name", "type", "categoryName", "brandName"],
+        "required": [
+          "id",
+          "name",
+          "type",
+          "categoryName",
+          "brandName",
+          "foodState",
+          "foodCharacteristics"
+        ],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
           "type": { "type": "string", "enum": ["GENERIC", "BRANDED"] },
           "categoryName": { "type": "string" },
-          "brandName": { "type": ["string", "null"] }
+          "brandName": { "type": ["string", "null"] },
+          "foodState": {
+            "type": "string",
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProductFoodCharacteristic" }
+          }
         }
       },
       "ProductNutrientWrite": {
@@ -4237,6 +4285,12 @@
             "type": "string",
             "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
           },
+          "characteristicIds": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": { "type": "string", "format": "uuid" }
+          },
           "ediblePortionPercent": {
             "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "null" }]
           },
@@ -4265,6 +4319,19 @@
         "allOf": [{ "$ref": "#/components/schemas/ProductCreate" }],
         "description": "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору."
       },
+      "ProductFoodCharacteristic": {
+        "type": "object",
+        "required": ["id", "code", "kind", "name"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+          },
+          "name": { "type": "string" }
+        }
+      },
       "ProductStatusChange": {
         "type": "object",
         "required": ["status"],
@@ -4290,6 +4357,68 @@
           "altTextUa": { "type": ["string", "null"], "maxLength": 300 },
           "altTextEn": { "type": ["string", "null"], "maxLength": 300 },
           "isPrimary": { "type": "boolean", "default": false }
+        }
+      },
+      "RecipeListResponse": {
+        "type": "object",
+        "required": ["data", "meta"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["items"],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "status",
+                    "visibility",
+                    "difficulty",
+                    "recipeTypeName",
+                    "authorName",
+                    "baseServings",
+                    "updatedAt",
+                    "primaryImage"
+                  ],
+                  "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "title": { "type": "string" },
+                    "status": {
+                      "type": "string",
+                      "enum": ["DRAFT", "READY", "PUBLISHED", "ARCHIVED"]
+                    },
+                    "visibility": { "type": "string", "enum": ["FAMILY", "PUBLIC"] },
+                    "difficulty": {
+                      "type": ["string", "null"],
+                      "enum": ["EASY", "MEDIUM", "HARD", null]
+                    },
+                    "recipeTypeName": { "type": ["string", "null"] },
+                    "authorName": { "type": ["string", "null"] },
+                    "baseServings": { "type": ["integer", "null"] },
+                    "updatedAt": { "type": "string", "format": "date-time" },
+                    "primaryImage": {
+                      "type": ["object", "null"],
+                      "properties": {
+                        "thumbnailUrl": { "type": ["string", "null"], "format": "uri" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": ["page", "pageSize", "total"],
+            "properties": {
+              "page": { "type": "integer" },
+              "pageSize": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          }
         }
       },
       "RecipeIngredientWrite": {
@@ -4661,8 +4790,30 @@
       "ProfileProduct": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name"],
-        "properties": { "id": { "type": "string", "format": "uuid" }, "name": { "type": "string" } }
+        "required": ["id", "name", "foodState", "foodCharacteristics"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "foodState": {
+            "type": "string",
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "name"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+                },
+                "name": { "type": "string" }
+              }
+            }
+          }
+        }
       },
       "ProfileAllergy": {
         "type": "object",
@@ -4857,13 +5008,25 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind", "id", "name", "category", "imageUrl", "nutrition", "isFavorite"],
+            "required": [
+              "kind",
+              "id",
+              "name",
+              "category",
+              "foodState",
+              "foodCharacteristicNames",
+              "imageUrl",
+              "nutrition",
+              "isFavorite"
+            ],
             "properties": {
               "kind": { "const": "product" },
               "id": { "type": "string", "format": "uuid" },
               "name": { "type": "string" },
               "category": { "type": "object" },
               "brandName": { "type": ["string", "null"] },
+              "foodState": { "type": "string" },
+              "foodCharacteristicNames": { "type": "array", "items": { "type": "string" } },
               "imageUrl": { "type": ["string", "null"], "format": "uri" },
               "nutrition": { "$ref": "#/components/schemas/FoodCardNutrition" },
               "isFavorite": { "type": "boolean" }
@@ -4953,6 +5116,8 @@
               "name",
               "category",
               "brand",
+              "foodState",
+              "foodCharacteristics",
               "imageUrl",
               "nutrients",
               "portions",
@@ -4965,6 +5130,11 @@
               "name": { "type": "string" },
               "category": { "type": "object" },
               "brand": { "type": ["object", "null"] },
+              "foodState": { "type": "string" },
+              "foodCharacteristics": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/ProductFoodCharacteristic" }
+              },
               "imageUrl": { "type": ["string", "null"], "format": "uri" },
               "nutrients": { "type": "array", "items": { "type": "object" } },
               "portions": { "type": "array", "items": { "type": "object" } },
@@ -5165,6 +5335,8 @@
           "imageUrl",
           "categoryCode",
           "categoryName",
+          "foodState",
+          "foodCharacteristics",
           "recipeType",
           "totalTimeMin",
           "difficulty",
@@ -5181,6 +5353,24 @@
           "imageUrl": { "type": ["string", "null"], "format": "uri" },
           "categoryCode": { "type": ["string", "null"] },
           "categoryName": { "type": ["string", "null"] },
+          "foodState": {
+            "type": ["string", "null"],
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT", null]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "name"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+                },
+                "name": { "type": "string" }
+              }
+            }
+          },
           "recipeType": {
             "oneOf": [{ "$ref": "#/components/schemas/RecipeTypeSummary" }, { "type": "null" }]
           },
@@ -5243,6 +5433,8 @@
           "imageUrl",
           "categoryCode",
           "categoryName",
+          "foodState",
+          "foodCharacteristics",
           "recipeType",
           "totalTimeMin",
           "difficulty",
@@ -5260,6 +5452,24 @@
           "imageUrl": { "type": ["string", "null"], "format": "uri" },
           "categoryCode": { "type": ["string", "null"] },
           "categoryName": { "type": ["string", "null"] },
+          "foodState": {
+            "type": ["string", "null"],
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT", null]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "name"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+                },
+                "name": { "type": "string" }
+              }
+            }
+          },
           "recipeType": {
             "oneOf": [{ "$ref": "#/components/schemas/RecipeTypeSummary" }, { "type": "null" }]
           },
@@ -5392,6 +5602,8 @@
           "imageUrl",
           "categoryCode",
           "categoryName",
+          "foodState",
+          "foodCharacteristics",
           "recipeType",
           "preparedAt",
           "portionGrams",
@@ -5410,6 +5622,24 @@
           "imageUrl": { "type": ["string", "null"], "format": "uri" },
           "categoryCode": { "type": ["string", "null"] },
           "categoryName": { "type": ["string", "null"] },
+          "foodState": {
+            "type": ["string", "null"],
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT", null]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "name"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+                },
+                "name": { "type": "string" }
+              }
+            }
+          },
           "recipeType": {
             "oneOf": [{ "$ref": "#/components/schemas/RecipeTypeSummary" }, { "type": "null" }]
           },
@@ -5887,10 +6117,36 @@
       },
       "CookingIngredientAmount": {
         "type": ["object", "null"],
-        "required": ["productId", "productName", "quantity", "unit", "gramWeight"],
+        "required": [
+          "productId",
+          "productName",
+          "foodState",
+          "foodCharacteristics",
+          "quantity",
+          "unit",
+          "gramWeight"
+        ],
         "properties": {
           "productId": { "type": "string", "format": "uuid" },
           "productName": { "type": "string" },
+          "foodState": {
+            "type": "string",
+            "enum": ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"]
+          },
+          "foodCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "name"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"]
+                },
+                "name": { "type": "string" }
+              }
+            }
+          },
           "quantity": { "type": "number" },
           "unit": { "type": ["string", "null"] },
           "gramWeight": { "type": ["number", "null"] }

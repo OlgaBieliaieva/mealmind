@@ -14,6 +14,10 @@ import {
 } from "../domain/product-repository.js";
 
 const uuid = z.string().uuid();
+const characteristicIds = z
+  .array(uuid)
+  .max(50)
+  .refine((values) => new Set(values).size === values.length, "Characteristic IDs must be unique");
 const nullableText = (maximum: number) =>
   z
     .string()
@@ -72,6 +76,7 @@ const productFields = {
   defaultMeasurementUnitId: uuid.optional(),
   baseProductId: uuid.nullable().optional(),
   foodState: z.enum(PRODUCT_FOOD_STATES).optional(),
+  characteristicIds: characteristicIds.default([]),
   ediblePortionPercent: decimal(0, 100, 2).nullable().optional(),
   notes: nullableText(20_000),
   nutrients: z.array(nutrient).max(200).optional(),
@@ -117,6 +122,7 @@ const updateProductBody = z.object({
   brandId: uuid.optional(),
   defaultMeasurementUnitId: uuid.optional(),
   foodState: z.enum(PRODUCT_FOOD_STATES).optional(),
+  characteristicIds: characteristicIds.optional(),
   ediblePortionPercent: productFields.ediblePortionPercent,
   notes: productFields.notes,
   verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),

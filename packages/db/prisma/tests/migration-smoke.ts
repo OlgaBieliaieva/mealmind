@@ -29,6 +29,7 @@ const EXPECTED_MIGRATIONS = [
   "20260918120000_product_source_origins",
   "20260922120000_cooking_mode",
   "20260928120000_cooking_portion_snapshots",
+  "20260930120000_product_food_characteristics",
 ] as const;
 
 loadEnvironment({
@@ -277,6 +278,28 @@ async function verifyAppliedMigrations(
 
     if (cookingLifecycleTriggerResult.rows[0]?.enabled !== "O") {
       throw new Error("Cooking session lifecycle trigger must remain enabled after migrations");
+    }
+
+    const productFoodCharacteristicsResult = await client.query<{ readonly object_name: string }>(`
+      SELECT table_name AS object_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'product_food_characteristics',
+          'product_food_characteristic_assignments'
+        )
+      UNION ALL
+      SELECT typname AS object_name
+      FROM pg_type
+      WHERE typname IN (
+        'product_food_characteristic_kind',
+        'product_food_characteristic_source',
+        'product_food_characteristic_confidence'
+      )
+    `);
+
+    if (productFoodCharacteristicsResult.rows.length !== 5) {
+      throw new Error("Product food characteristics migration was not applied");
     }
 
     return {

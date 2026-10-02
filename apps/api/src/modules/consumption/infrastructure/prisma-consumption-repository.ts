@@ -304,6 +304,17 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                 select: {
                   nameUa: true,
                   nameEn: true,
+                  foodState: true,
+                  foodCharacteristics: {
+                    select: {
+                      characteristic: { select: { kind: true, nameUa: true } },
+                    },
+                    orderBy: [
+                      { characteristic: { kind: "asc" } },
+                      { sortOrder: "asc" },
+                      { characteristic: { sortOrder: "asc" } },
+                    ],
+                  },
                   category: { select: { code: true, nameUa: true } },
                   media: {
                     where: { status: "ACTIVE", archivedAt: null },
@@ -410,6 +421,17 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
             select: {
               nameUa: true,
               nameEn: true,
+              foodState: true,
+              foodCharacteristics: {
+                select: {
+                  characteristic: { select: { kind: true, nameUa: true } },
+                },
+                orderBy: [
+                  { characteristic: { kind: "asc" } },
+                  { sortOrder: "asc" },
+                  { characteristic: { sortOrder: "asc" } },
+                ],
+              },
               category: { select: { code: true, nameUa: true } },
               media: {
                 where: { status: "ACTIVE", archivedAt: null },
@@ -533,6 +555,12 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                 null,
               categoryCode: item.mealEntry.product?.category.code ?? null,
               categoryName: item.mealEntry.product?.category.nameUa ?? null,
+              foodState: item.mealEntry.product?.foodState ?? null,
+              foodCharacteristics:
+                item.mealEntry.product?.foodCharacteristics.map(({ characteristic }) => ({
+                  kind: characteristic.kind,
+                  name: characteristic.nameUa,
+                })) ?? [],
               recipeType: item.mealEntry.recipe?.recipeType
                 ? {
                     code: item.mealEntry.recipe.recipeType.code,
@@ -594,6 +622,12 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                 null,
               categoryCode: item.product?.category.code ?? null,
               categoryName: item.product?.category.nameUa ?? null,
+              foodState: item.product?.foodState ?? null,
+              foodCharacteristics:
+                item.product?.foodCharacteristics.map(({ characteristic }) => ({
+                  kind: characteristic.kind,
+                  name: characteristic.nameUa,
+                })) ?? [],
               recipeType: item.recipe?.recipeType
                 ? { code: item.recipe.recipeType.code, name: item.recipe.recipeType.nameUa }
                 : null,

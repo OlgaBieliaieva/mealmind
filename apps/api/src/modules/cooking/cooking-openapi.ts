@@ -388,10 +388,36 @@ export const cookingOpenApiSchemas = Object.freeze({
   },
   CookingIngredientAmount: {
     type: ["object", "null"],
-    required: ["productId", "productName", "quantity", "unit", "gramWeight"],
+    required: [
+      "productId",
+      "productName",
+      "foodState",
+      "foodCharacteristics",
+      "quantity",
+      "unit",
+      "gramWeight",
+    ],
     properties: {
       productId: uuid,
       productName: { type: "string" },
+      foodState: {
+        type: "string",
+        enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT"],
+      },
+      foodCharacteristics: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["kind", "name"],
+          properties: {
+            kind: {
+              type: "string",
+              enum: ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"],
+            },
+            name: { type: "string" },
+          },
+        },
+      },
       quantity: { type: "number" },
       unit: { type: ["string", "null"] },
       gramWeight: nullableGrams,

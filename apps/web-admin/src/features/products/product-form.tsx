@@ -7,7 +7,7 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { getUserFacingErrorMessage } from "@/shared/api/api-error";
 import type { ProductDetails } from "@/shared/api/products";
 import type { ReferenceWriteData } from "@/shared/api/reference-data";
-import { Button, Modal, SelectField, TextInput } from "@/shared/ui";
+import { Button, Modal, SearchableMultiSelect, SelectField, TextInput } from "@/shared/ui";
 
 import { REFERENCE_CONFIGS } from "../reference/reference-config";
 import { ReferenceForm } from "../reference/reference-form";
@@ -29,6 +29,7 @@ export interface ProductOption {
   readonly value: string;
   readonly label: string;
   readonly unit?: string;
+  readonly kind?: string;
 }
 
 export interface ProductFormProps {
@@ -39,6 +40,7 @@ export interface ProductFormProps {
   readonly brands: readonly ProductOption[];
   readonly genericProducts: readonly ProductOption[];
   readonly nutrients: readonly ProductOption[];
+  readonly foodCharacteristics?: readonly ProductOption[];
   readonly isSubmitting?: boolean;
   readonly onSearchGenericProducts: (query: string) => Promise<readonly BaseProductOption[]>;
   readonly onLoadBaseProduct: (id: string) => Promise<ProductDetails>;
@@ -63,6 +65,7 @@ export function ProductForm({
   brands,
   genericProducts,
   nutrients,
+  foodCharacteristics = [],
   isSubmitting = false,
   onSearchGenericProducts,
   onLoadBaseProduct,
@@ -128,6 +131,11 @@ export function ProductForm({
         shouldDirty: true,
         shouldValidate: true,
       });
+      setValue(
+        "characteristicIds",
+        base.foodCharacteristics.map((characteristic) => characteristic.id),
+        { shouldDirty: true, shouldValidate: true },
+      );
       setBaseStatus("idle");
     } catch {
       setBasePreview(null);
@@ -230,6 +238,56 @@ export function ProductForm({
               {...register("ediblePortionPercent")}
             />
           </div>
+
+          <section
+            className="product-form__characteristics"
+            aria-labelledby="characteristics-title"
+          >
+            <h3 id="characteristics-title">Характеристики продукту</h3>
+            <p className="product-form__hint">
+              Оберіть незалежні характеристики стану, способу приготування та обробки. Наприклад,
+              продукт може одночасно бути замороженим і вареним.
+            </p>
+            <Controller
+              control={control}
+              name="characteristicIds"
+              render={({ field }) => (
+                <div className="product-form__characteristic-selects">
+                  {CHARACTERISTIC_GROUPS.map((group) => {
+                    const options = foodCharacteristics.filter(
+                      (option) => option.kind === group.kind,
+                    );
+                    const optionIds = new Set(options.map((option) => option.value));
+                    const groupValue = field.value.filter((id) => optionIds.has(id));
+                    return options.length === 0 ? null : (
+                      <SearchableMultiSelect
+                        key={group.kind}
+                        label={group.label}
+                        options={options}
+                        value={groupValue}
+                        onChange={(nextGroupValue) => {
+                          const selected = new Set([
+                            ...field.value.filter((id) => !optionIds.has(id)),
+                            ...nextGroupValue,
+                          ]);
+                          field.onChange(
+                            foodCharacteristics
+                              .filter((option) => selected.has(option.value))
+                              .map((option) => option.value),
+                          );
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            />
+            {errors.characteristicIds?.message === undefined ? null : (
+              <p className="ui-field__error" role="alert">
+                {errors.characteristicIds.message}
+              </p>
+            )}
+          </section>
 
           {productType === "BRANDED" ? (
             <div className="product-form__conditional">
@@ -463,6 +521,12 @@ export function ProductForm({
     </>
   );
 }
+
+const CHARACTERISTIC_GROUPS = [
+  { kind: "PRESERVATION_STATE", label: "Стан продукту" },
+  { kind: "COOKING_METHOD", label: "Спосіб приготування" },
+  { kind: "PROCESSING_METHOD", label: "Спосіб обробки" },
+] as const;
 
 function nutrientValueLabel(
   nutrientId: string | undefined,

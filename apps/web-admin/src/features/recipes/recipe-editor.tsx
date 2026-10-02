@@ -21,6 +21,7 @@ import {
 } from "@/shared/api/recipes";
 import { searchProducts } from "@/shared/api/products";
 import { showErrorToast } from "@/shared/feedback/error-toast";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { PageState } from "@/shared/ui";
 import { InlineAuthorForm } from "./inline-author-form";
 import { RecipeForm, type RecipeNutrientOption, type RecipeOption } from "./recipe-form";
@@ -50,11 +51,15 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
   const searchProductOptions = useCallback(
     async (query: string) => {
       const response = await searchProducts(api, query);
-      return response.data.items.map((item) => ({
-        value: item.id,
-        label: item.name,
-        description: [item.categoryName, item.brandName].filter(Boolean).join(" · "),
-      }));
+      return response.data.items.map((item) => {
+        const description = formatProductCharacteristics(item.foodState, item.foodCharacteristics);
+        return {
+          value: item.id,
+          label: item.name,
+          ...(description ? { description } : {}),
+          category: [item.categoryName, item.brandName].filter(Boolean).join(" · "),
+        };
+      });
     },
     [api],
   );
@@ -134,7 +139,18 @@ export function RecipeEditor({ recipeId }: { readonly recipeId?: string }) {
         new Map(
           current.ingredients.map((item) => [
             item.productId,
-            { value: item.productId, label: item.productName },
+            {
+              value: item.productId,
+              label: item.productName,
+              description: formatProductCharacteristics(
+                (item.productFoodState ??
+                  "UNSPECIFIED") as import("@/shared/api/products").ProductFoodState,
+                (item.productFoodCharacteristics ?? []).map((characteristic) => ({
+                  kind: characteristic.kind,
+                  nameUa: characteristic.name,
+                })),
+              ),
+            },
           ]),
         ).values(),
       )

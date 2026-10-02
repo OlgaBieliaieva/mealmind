@@ -612,6 +612,13 @@ function aggregateMealEntries(
 
     categoryName: string | null;
 
+    foodState: string | null;
+
+    foodCharacteristics: readonly {
+      readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+      readonly name: string;
+    }[];
+
     recipeType: MealPlanEntryView["recipeType"];
 
     totalTimeMin: number | null;
@@ -678,6 +685,10 @@ function aggregateMealEntries(
         categoryCode: entry.categoryCode,
 
         categoryName: entry.categoryName,
+
+        foodState: entry.foodState ?? null,
+
+        foodCharacteristics: entry.foodCharacteristics ?? [],
 
         recipeType: entry.recipeType,
 
@@ -769,6 +780,10 @@ function aggregateMealEntries(
       categoryCode: group.categoryCode,
 
       categoryName: group.categoryName,
+
+      foodState: group.foodState,
+
+      foodCharacteristics: group.foodCharacteristics,
 
       recipeType: group.recipeType,
 
@@ -1026,6 +1041,17 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                     id: true,
                     nameUa: true,
                     nameEn: true,
+                    foodState: true,
+                    foodCharacteristics: {
+                      select: {
+                        characteristic: { select: { kind: true, nameUa: true } },
+                      },
+                      orderBy: [
+                        { characteristic: { kind: "asc" } },
+                        { sortOrder: "asc" },
+                        { characteristic: { sortOrder: "asc" } },
+                      ],
+                    },
 
                     category: {
                       select: {
@@ -1294,6 +1320,14 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
           categoryName: entry.product?.category.nameUa ?? null,
 
+          foodState: entry.product?.foodState ?? null,
+
+          foodCharacteristics:
+            entry.product?.foodCharacteristics.map(({ characteristic }) => ({
+              kind: characteristic.kind,
+              name: characteristic.nameUa,
+            })) ?? [],
+
           recipeType: entry.recipe?.recipeType
             ? {
                 code: entry.recipe.recipeType.code,
@@ -1398,6 +1432,10 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                   categoryCode: view.categoryCode,
 
                   categoryName: view.categoryName,
+
+                  foodState: view.foodState ?? null,
+
+                  foodCharacteristics: view.foodCharacteristics ?? [],
 
                   recipeType: view.recipeType,
 

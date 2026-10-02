@@ -61,7 +61,12 @@ describe("RecipeForm", () => {
 
   it("searches products remotely and selects a result", async () => {
     const onSearchProducts = vi.fn(async () => [
-      { value: productId, label: "Яблуко", description: "Фрукти" },
+      {
+        value: productId,
+        label: "Яблуко",
+        description: "Сирий, Свіжий",
+        category: "Фрукти",
+      },
     ]);
     const { container } = render(
       <RecipeForm {...props} products={[]} onSearchProducts={onSearchProducts} />,
@@ -71,6 +76,8 @@ describe("RecipeForm", () => {
     fireEvent.change(input, { target: { value: "яб" } });
 
     expect(await screen.findByRole("option", { name: /Яблуко/ })).toBeInTheDocument();
+    expect(screen.getByText("Сирий, Свіжий")).toBeVisible();
+    expect(screen.getByText("Фрукти")).toBeVisible();
     fireEvent.click(screen.getByRole("option", { name: /Яблуко/ }));
 
     expect(onSearchProducts).toHaveBeenCalledWith("яб");

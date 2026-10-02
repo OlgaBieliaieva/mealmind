@@ -219,7 +219,18 @@ export function RecipeList() {
                 {query.data.data.items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <Link href={`/recipes/${item.id}`}>{item.title}</Link>
+                      <div className="recipe-table__identity">
+                        {item.primaryImage?.thumbnailUrl ? (
+                          // Signed URLs point only to validated private recipe media.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.primaryImage.thumbnailUrl} alt="" width="48" height="48" />
+                        ) : (
+                          <span className="recipe-table__placeholder" aria-hidden="true">
+                            R
+                          </span>
+                        )}
+                        <Link href={`/recipes/${item.id}`}>{item.title}</Link>
+                      </div>
                     </td>
                     <td>{item.authorName ?? "—"}</td>
                     <td>{item.recipeTypeName ?? "—"}</td>

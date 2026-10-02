@@ -36,6 +36,7 @@ import {
 } from "@/shared/api/consumption";
 import { Button, PageState } from "@/shared/ui";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -516,6 +517,18 @@ function DiaryItemRow({
         <Link href={detailsHref}>
           <strong>{item.name}</strong>
         </Link>
+        {item.kind === "product" &&
+        formatProductCharacteristics(
+          item.foodState ?? "UNSPECIFIED",
+          item.foodCharacteristics ?? [],
+        ) ? (
+          <p>
+            {formatProductCharacteristics(
+              item.foodState ?? "UNSPECIFIED",
+              item.foodCharacteristics ?? [],
+            )}
+          </p>
+        ) : null}
         {item.source === "MANUAL" ? <span className="diary-source-badge">Поза планом</span> : null}
         <p>
           {item.kind === "recipe" ? item.recipeType?.name : item.categoryName}

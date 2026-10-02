@@ -10,6 +10,9 @@ const categoryId = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const unitId = "34b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const brandId = "44b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const baseProductId = "54b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const frozenId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const boiledId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const fermentedId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 const options = {
   categories: [{ value: categoryId, label: "Фрукти" }],
@@ -40,13 +43,19 @@ describe("ProductForm", () => {
   });
 
   it("autofills classification from a selected base product", async () => {
-    const onSearchGenericProducts = vi
-      .fn()
-      .mockResolvedValue([{ value: baseProductId, label: "Яблуко", description: "Фрукти" }]);
+    const onSearchGenericProducts = vi.fn().mockResolvedValue([
+      {
+        value: baseProductId,
+        label: "Яблуко",
+        description: "Сирий, Свіжий",
+        category: "Фрукти",
+      },
+    ]);
     const onLoadBaseProduct = vi.fn().mockResolvedValue({
       categoryId,
       defaultMeasurementUnitId: unitId,
       nutrients: [],
+      foodCharacteristics: [],
     });
     render(
       <ProductForm
@@ -66,11 +75,51 @@ describe("ProductForm", () => {
     });
 
     await waitFor(() => expect(onSearchGenericProducts).toHaveBeenCalledWith("Яб"));
-    fireEvent.click(await screen.findByRole("option", { name: /Яблуко/ }));
+    const baseProductOption = await screen.findByRole("option", { name: /Яблуко/ });
+    expect(within(baseProductOption).getByText("Сирий, Свіжий")).toBeVisible();
+    expect(within(baseProductOption).getByText("Фрукти")).toBeVisible();
+    fireEvent.click(baseProductOption);
 
     await waitFor(() => expect(onLoadBaseProduct).toHaveBeenCalledWith(baseProductId));
     expect(screen.getByRole("combobox", { name: "Категорія" })).toHaveValue(categoryId);
     expect(screen.getByRole("combobox", { name: "Базова одиниця" })).toHaveValue(unitId);
+  });
+
+  it("submits independently selected product characteristics", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ProductForm
+        mode="create"
+        {...options}
+        foodCharacteristics={[
+          { value: frozenId, label: "Заморожений", kind: "PRESERVATION_STATE" },
+          { value: boiledId, label: "Варений", kind: "COOKING_METHOD" },
+          { value: fermentedId, label: "Ферментований", kind: "PROCESSING_METHOD" },
+        ]}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          nameEn: "Frozen apple",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.queryByRole("checkbox", { name: "Заморожений" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Стан продукту/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Заморожений" }));
+    fireEvent.click(screen.getByRole("button", { name: /Спосіб приготування/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Варений" }));
+    fireEvent.click(screen.getByRole("button", { name: /Спосіб обробки/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Ферментований" }));
+    fireEvent.click(screen.getByRole("button", { name: "Створити продукт" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ characteristicIds: [frozenId, boiledId, fermentedId] }),
+      ),
+    );
   });
 
   it("creates a brand with the complete reference form and selects it", async () => {

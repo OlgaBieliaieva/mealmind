@@ -8,6 +8,7 @@ export const REFERENCE_RESOURCES = [
   "measurement-units",
   "nutrients",
   "product-categories",
+  "product-food-characteristics",
   "recipe-types",
 ] as const;
 

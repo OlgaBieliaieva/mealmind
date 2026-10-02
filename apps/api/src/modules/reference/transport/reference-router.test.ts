@@ -136,6 +136,16 @@ describe("reference router", () => {
         sortOrder: 10,
       },
     ],
+    [
+      "product-food-characteristics",
+      {
+        code: "test_method",
+        kind: "COOKING_METHOD",
+        nameUa: "Тестовий спосіб",
+        nameEn: "Test method",
+        sortOrder: 10,
+      },
+    ],
     ["recipe-types", { code: "test_recipe", nameUa: "Тип", nameEn: "Type", sortOrder: 10 }],
   ] as const;
 

@@ -23,6 +23,7 @@
 - `measurement-units` — одиниці вимірювання;
 - `nutrients` — нутрієнти;
 - `product-categories` — категорії продуктів;
+- `product-food-characteristics` — стани й способи приготування/обробки продуктів;
 - `recipe-types` — типи рецептів.
 
 ## HTTP endpoints
@@ -69,18 +70,19 @@ product category проходить hierarchy validation і відхиляєть
 
 ### Обов’язкові поля POST
 
-| Ресурс               | Обов’язкові поля                                                                   |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `allergens`          | `code`, `nameUa`, `nameEn`                                                         |
-| `authors`            | `type`, `slug`, `displayName`; для `EXPERT` також `expertiseArea`                  |
-| `brands`             | `name`                                                                             |
-| `cuisines`           | `code`, `nameUa`, `nameEn`, `scope`, `sortOrder`                                   |
-| `dietary-tags`       | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
-| `meal-types`         | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
-| `measurement-units`  | `code`, `symbol`, `nameUa`, `nameEn`, `dimension`, `factorToBaseUnit`, `sortOrder` |
-| `nutrients`          | `code`, `nameUa`, `nameEn`, `group`, `unit`, `sortOrder`                           |
-| `product-categories` | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
-| `recipe-types`       | `code`, `nameUa`, `nameEn`, `sortOrder`                                            |
+| Ресурс                         | Обов’язкові поля                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `allergens`                    | `code`, `nameUa`, `nameEn`                                                         |
+| `authors`                      | `type`, `slug`, `displayName`; для `EXPERT` також `expertiseArea`                  |
+| `brands`                       | `name`                                                                             |
+| `cuisines`                     | `code`, `nameUa`, `nameEn`, `scope`, `sortOrder`                                   |
+| `dietary-tags`                 | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
+| `meal-types`                   | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
+| `measurement-units`            | `code`, `symbol`, `nameUa`, `nameEn`, `dimension`, `factorToBaseUnit`, `sortOrder` |
+| `nutrients`                    | `code`, `nameUa`, `nameEn`, `group`, `unit`, `sortOrder`                           |
+| `product-categories`           | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
+| `product-food-characteristics` | `code`, `nameUa`, `nameEn`, `kind`, `sortOrder`                                    |
+| `recipe-types`                 | `code`, `nameUa`, `nameEn`, `sortOrder`                                            |
 
 Авторів типів `MEALMIND`, `BLOGGER` та `EXPERT` створює адміністратор. Для
 `EXPERT` API самостійно фіксує поточного адміністратора і час перевірки
@@ -110,6 +112,20 @@ YouTube, TikTok, вебсайт та інше посилання. API транз
 Перед mutation service перевіряє, що батьківська категорія існує. Оновлення, яке
 робить категорію власним предком або нащадком, відхиляється до запису в БД.
 Repository додатково покладається на foreign key актуальної Prisma-схеми.
+
+## Характеристики продуктів
+
+`product-food-characteristics` містить незалежні ознаки трьох груп:
+`PRESERVATION_STATE`, `COOKING_METHOD` і `PROCESSING_METHOD`. Базовий
+`Product.foodState` не дублюється в цьому довіднику. Один продукт може одночасно
+мати кілька характеристик, наприклад `frozen` і `boiled`.
+
+Група `PRESERVATION_STATE` охоплює каталогові стани `fresh`, `chilled`,
+`frozen` і `thawed`. Вони описують форму продукту, а не температурний режим чи
+строк зберігання.
+
+Reference seed створює повний контрольований набір значень, але не призначає їх
+наявним продуктам. Прив’язки додаються вручну під час верифікації каталогу.
 
 ## Помилки
 

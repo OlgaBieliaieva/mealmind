@@ -54,6 +54,16 @@
   gap: 0.75rem;
 }
 
+.product-table__title {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.product-table__title small {
+  color: var(--admin-color-text-muted);
+  font-weight: 400;
+}
+
 .product-table__identity img,
 .product-table__placeholder {
   width: 3rem;
@@ -164,6 +174,22 @@
   gap: 1rem;
   padding-top: 1rem;
   border-top: 0.0625rem solid var(--admin-color-border);
+}
+
+.product-form__characteristics {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.product-form__characteristics h3 {
+  margin: 0;
+}
+
+.product-form__characteristic-selects {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .product-form__field-with-action {
@@ -354,6 +380,7 @@
 
   .product-filters,
   .product-form__grid,
+  .product-form__characteristic-selects,
   .product-form__repeat-row,
   .product-media__form,
   .product-media__grid {
@@ -364,6 +391,7 @@
 @media (min-width: 48.0625rem) and (max-width: 64rem) {
   .product-filters,
   .product-form__grid,
+  .product-form__characteristic-selects,
   .product-form__repeat-row,
   .product-media__form,
   .product-media__grid {

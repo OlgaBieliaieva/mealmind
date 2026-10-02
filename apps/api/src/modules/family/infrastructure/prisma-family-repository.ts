@@ -361,6 +361,17 @@ async function profileViewById(
               id: true,
               nameUa: true,
               nameEn: true,
+              foodState: true,
+              foodCharacteristics: {
+                select: {
+                  characteristic: { select: { kind: true, nameUa: true } },
+                },
+                orderBy: [
+                  { characteristic: { kind: "asc" } },
+                  { sortOrder: "asc" },
+                  { characteristic: { sortOrder: "asc" } },
+                ],
+              },
             },
           },
         },
@@ -611,6 +622,11 @@ async function profileViewById(
       Object.freeze({
         id: product.id,
         name: product.nameUa ?? product.nameEn,
+        foodState: product.foodState,
+        foodCharacteristics: product.foodCharacteristics.map(({ characteristic }) => ({
+          kind: characteristic.kind,
+          name: characteristic.nameUa,
+        })),
       }),
     ),
 

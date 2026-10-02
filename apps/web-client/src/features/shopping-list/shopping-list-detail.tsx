@@ -31,6 +31,7 @@ import {
   type ShoppingListDetail,
   type ShoppingListItem,
 } from "@/shared/api/shopping-lists";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { getCategoryEmoji } from "@/shared/lib/category-emoji";
 
 import { periodLabel, StatusBadge } from "./shopping-lists-screen";
@@ -372,6 +373,18 @@ function ShoppingItemRow({
       </label>
       <div className="shopping-item__content">
         <strong>{item.name}</strong>
+        {item.productId &&
+        formatProductCharacteristics(
+          item.foodState ?? "UNSPECIFIED",
+          item.foodCharacteristics ?? [],
+        ) ? (
+          <small>
+            {formatProductCharacteristics(
+              item.foodState ?? "UNSPECIFIED",
+              item.foodCharacteristics ?? [],
+            )}
+          </small>
+        ) : null}
         {item.category && item.category.name !== item.groupCategory?.name ? (
           <small>{item.category.name}</small>
         ) : null}

@@ -1,6 +1,7 @@
 # Модуль продуктів і медіа
 
-Модуль володіє адміністративним lifecycle generic/branded продуктів, nutrients, portions і фото.
+Модуль володіє адміністративним lifecycle generic/branded продуктів, nutrients, portions,
+контрольованих food characteristics і фото.
 Назовні він повертає domain contracts без Prisma-моделей і службових storage credentials.
 Адміністративний list contract повертає для кожного продукту як lifecycle `status`,
 так і `verificationStatus`, щоб каталог міг явно показувати стан перевірки.
@@ -11,15 +12,25 @@
 - branded product обов’язково має brand; GTIN і generic base optional;
 - branded product без base повинен явно мати category і default measurement unit;
 - якщо вибрано ACTIVE generic base, його category, unit, food state, edible portion і portions можуть бути використані як контрольований snapshot;
+- `foodState` задає загальний стан, а незалежні характеристики з довідника описують
+  заморожування, спосіб приготування та спосіб обробки; форма дозволяє вибрати кілька значень;
+- переданий `characteristicIds` є повним ручним набором характеристик продукту;
+- authenticated `GET /api/v1/products/search` повертає `foodState` і характеристики,
+  щоб усі клієнтські селекти використовували той самий subtitle, що й каталог;
 - nutrient values із пакування зберігаються як LABEL і перекривають base за nutrientId, а відсутні значення base копіюються як ESTIMATED;
 - створені адміністратором продукти мають primary source MEALMIND_ADMIN / ADMIN_CATALOG; MEALMIND_USER / USER_CATALOG зарезервовано для майбутнього user-generated catalog;
 - тип і base product після створення не змінюються;
 - update змінює nutrients/portions лише коли поле явно присутнє; порожній масив означає свідоме очищення;
+- update змінює characteristics лише коли `characteristicIds` явно присутнє; порожній масив
+  свідомо очищає всі призначення;
 - дозволені переходи status: `DRAFT → ACTIVE|ARCHIVED`, `ACTIVE → ARCHIVED`, `ARCHIVED → DRAFT`.
 
 Актуальна Prisma-схема не містить product-level cooking/retention factor. У продукті зберігаються
 `ediblePortionPercent`, portions і values per 100 g. Cooking yield належить recipe/cooking-session
 моделям і не кодується в `notes`.
+
+USDA importer не визначає і не призначає food characteristics. Наявний каталог
+залишається без змін до ручної перевірки кожного продукту адміністратором.
 
 ## Lifecycle фото
 

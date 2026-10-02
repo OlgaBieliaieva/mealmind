@@ -5,4 +5,5 @@ export { MEAL_TYPES } from "./meal-types.js";
 export { MEASUREMENT_UNITS } from "./measurement-units.js";
 export { NUTRIENTS } from "./nutrients.js";
 export { PRODUCT_CATEGORIES } from "./product-categories.js";
+export { PRODUCT_FOOD_CHARACTERISTICS } from "./product-food-characteristics.js";
 export { RECIPE_TYPES } from "./recipe-types.js";

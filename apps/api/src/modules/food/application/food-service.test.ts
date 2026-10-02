@@ -77,6 +77,8 @@ describe("food service", () => {
           name: "Яблуко",
           category: { id: "category-id", code: "fruits", name: "Фрукти" },
           brandName: null,
+          foodState: "raw",
+          foodCharacteristicNames: [],
           imageObjectPath: "products/product-id/original.webp",
           imageUrl: null,
           nutrition: {

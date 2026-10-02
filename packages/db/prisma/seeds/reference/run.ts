@@ -8,6 +8,7 @@ import {
   MEASUREMENT_UNITS,
   NUTRIENTS,
   PRODUCT_CATEGORIES,
+  PRODUCT_FOOD_CHARACTERISTICS,
   RECIPE_TYPES,
 } from "./data/index.js";
 
@@ -126,6 +127,26 @@ export async function seedReferenceData(database: DatabaseClient): Promise<Refer
        * PRODUCT_CATEGORIES вже впорядкований parent-first.
        * Тому батьківські категорії будуть створені раніше за дочірні.
        */
+      sections.push(
+        await synchronizeReferenceRows("ProductFoodCharacteristic", PRODUCT_FOOD_CHARACTERISTICS, {
+          findMatches: (row) =>
+            transaction.productFoodCharacteristic.findMany({
+              where: {
+                OR: [{ id: row.id }, { code: row.code }],
+              },
+            }),
+          create: (row) =>
+            transaction.productFoodCharacteristic.create({
+              data: row,
+            }),
+          update: ({ id, ...data }) =>
+            transaction.productFoodCharacteristic.update({
+              where: { id },
+              data,
+            }),
+        }),
+      );
+
       sections.push(
         await synchronizeReferenceRows("ProductCategory", PRODUCT_CATEGORIES, {
           findMatches: (row) =>

@@ -95,6 +95,10 @@ async function createRecord(
       return database.productCategory.create({
         data: data as unknown as Prisma.ProductCategoryUncheckedCreateInput,
       });
+    case "product-food-characteristics":
+      return database.productFoodCharacteristic.create({
+        data: data as unknown as Prisma.ProductFoodCharacteristicUncheckedCreateInput,
+      });
     case "recipe-types":
       return database.recipeType.create({
         data: data as unknown as Prisma.RecipeTypeUncheckedCreateInput,
@@ -171,6 +175,11 @@ async function updateRecord(
       return database.productCategory.update({
         where: { id },
         data: data as unknown as Prisma.ProductCategoryUncheckedUpdateInput,
+      });
+    case "product-food-characteristics":
+      return database.productFoodCharacteristic.update({
+        where: { id },
+        data: data as unknown as Prisma.ProductFoodCharacteristicUncheckedUpdateInput,
       });
     case "recipe-types":
       return database.recipeType.update({
@@ -346,6 +355,15 @@ const FIELDS: Readonly<Record<ReferenceResource, readonly string[]>> = {
     "kind",
     "parentCategoryId",
     "isAssignable",
+    "isActive",
+    "sortOrder",
+  ],
+  "product-food-characteristics": [
+    "id",
+    "code",
+    "kind",
+    "nameUa",
+    "nameEn",
     "isActive",
     "sortOrder",
   ],

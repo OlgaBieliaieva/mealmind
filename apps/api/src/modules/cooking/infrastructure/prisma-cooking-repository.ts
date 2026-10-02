@@ -25,6 +25,32 @@ const sessionInclude = {
     include: {
       plannedMeasurementUnit: { select: { symbol: true } },
       actualMeasurementUnit: { select: { symbol: true } },
+      plannedProduct: {
+        select: {
+          foodState: true,
+          foodCharacteristics: {
+            select: { characteristic: { select: { kind: true, nameUa: true } } },
+            orderBy: [
+              { characteristic: { kind: "asc" } },
+              { sortOrder: "asc" },
+              { characteristic: { sortOrder: "asc" } },
+            ],
+          },
+        },
+      },
+      actualProduct: {
+        select: {
+          foodState: true,
+          foodCharacteristics: {
+            select: { characteristic: { select: { kind: true, nameUa: true } } },
+            orderBy: [
+              { characteristic: { kind: "asc" } },
+              { sortOrder: "asc" },
+              { characteristic: { sortOrder: "asc" } },
+            ],
+          },
+        },
+      },
     },
   },
   steps: { orderBy: [{ position: "asc" }, { id: "asc" }] },
@@ -254,6 +280,17 @@ async function present(
               : Object.freeze({
                   productId: item.plannedProductId!,
                   productName: item.productNameSnapshot!,
+                  ...(item.plannedProduct
+                    ? {
+                        foodState: item.plannedProduct.foodState,
+                        foodCharacteristics: item.plannedProduct.foodCharacteristics.map(
+                          ({ characteristic }) => ({
+                            kind: characteristic.kind,
+                            name: characteristic.nameUa,
+                          }),
+                        ),
+                      }
+                    : {}),
                   quantity: item.plannedQuantity!.toNumber(),
                   unit: item.plannedMeasurementUnit?.symbol ?? null,
                   gramWeight: number(item.plannedGramWeight),
@@ -264,6 +301,17 @@ async function present(
               : Object.freeze({
                   productId: item.actualProductId,
                   productName: item.actualProductNameSnapshot,
+                  ...(item.actualProduct
+                    ? {
+                        foodState: item.actualProduct.foodState,
+                        foodCharacteristics: item.actualProduct.foodCharacteristics.map(
+                          ({ characteristic }) => ({
+                            kind: characteristic.kind,
+                            name: characteristic.nameUa,
+                          }),
+                        ),
+                      }
+                    : {}),
                   quantity: item.actualQuantity.toNumber(),
                   unit: item.actualMeasurementUnit?.symbol ?? null,
                   gramWeight: number(item.actualGramWeight),

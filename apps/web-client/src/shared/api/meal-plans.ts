@@ -35,6 +35,11 @@ export interface MealPlanEntry {
   readonly imageUrl: string | null;
   readonly categoryCode: string | null;
   readonly categoryName: string | null;
+  readonly foodState?: string | null;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
   readonly recipeType: { readonly code: string; readonly name: string } | null;
   readonly totalTimeMin: number | null;
   readonly difficulty: string | null;
@@ -60,6 +65,11 @@ export interface AggregatedMealPlanEntry {
 
   readonly categoryCode: string | null;
   readonly categoryName: string | null;
+  readonly foodState?: string | null;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
 
   readonly recipeType: {
     readonly code: string;
@@ -189,6 +199,11 @@ export interface MemberFood {
 
   readonly categoryCode: string | null;
   readonly categoryName: string | null;
+  readonly foodState?: string | null;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
 
   readonly recipeType: {
     readonly code: string;

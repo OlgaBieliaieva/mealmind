@@ -11,6 +11,7 @@ const categoryId = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const unitId = "34b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const brandId = "44b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const baseProductId = "54b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const characteristicId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 describe("product form schema and mapper", () => {
   it("maps a valid generic form without branded-only fields", () => {
@@ -21,6 +22,7 @@ describe("product form schema and mapper", () => {
       categoryId,
       defaultMeasurementUnitId: unitId,
       ediblePortionPercent: "95",
+      characteristicIds: [characteristicId],
     };
 
     expect(productFormSchema.safeParse(values).success).toBe(true);
@@ -31,6 +33,7 @@ describe("product form schema and mapper", () => {
         nameUa: "Яблуко",
         ediblePortionPercent: "95",
         verificationStatus: "UNVERIFIED",
+        characteristicIds: [characteristicId],
       }),
     );
     expect(mapProductFormToCreate(values)).not.toHaveProperty("brandId");

@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { OwnProfile, ProfileProduct } from "@/shared/api/family";
 
 import type { ProductSearchItem } from "@/shared/api/products";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 
 import { Button, Modal, TextInput, Typography } from "@/shared/ui";
 
@@ -23,12 +24,25 @@ interface DislikedProductsFormProps {
 interface SelectedProduct {
   readonly id: string;
   readonly name: string;
+  readonly subtitle?: string;
 }
 
 function toSelectedProduct(product: ProfileProduct | ProductSearchItem): SelectedProduct {
   return {
     id: product.id,
     name: product.name,
+    ...("foodState" in product && product.foodState
+      ? {
+          subtitle: formatProductCharacteristics(
+            product.foodState,
+            (product.foodCharacteristics ?? []).map((item) =>
+              "nameUa" in item
+                ? { kind: item.kind, name: item.nameUa }
+                : { kind: item.kind, name: item.name },
+            ),
+          ),
+        }
+      : {}),
   };
 }
 
@@ -181,7 +195,12 @@ export function DislikedProductsForm({
             <div className="profile-disliked-products-selected">
               {selectedList.map((product) => (
                 <div key={product.id} className="profile-disliked-products-selected__item">
-                  <Typography variant="body">{product.name}</Typography>
+                  <div>
+                    <Typography variant="body">{product.name}</Typography>
+                    {product.subtitle ? (
+                      <Typography variant="caption">{product.subtitle}</Typography>
+                    ) : null}
+                  </div>
 
                   <Button
                     type="button"
@@ -229,6 +248,16 @@ export function DislikedProductsForm({
                   <div key={product.id} className="profile-disliked-product-result">
                     <div className="profile-disliked-product-result__content">
                       <Typography variant="body">{product.name}</Typography>
+
+                      <Typography variant="caption">
+                        {formatProductCharacteristics(
+                          product.foodState,
+                          product.foodCharacteristics.map((item) => ({
+                            kind: item.kind,
+                            name: item.nameUa,
+                          })),
+                        )}
+                      </Typography>
 
                       <Typography variant="caption">
                         {product.brandName === null

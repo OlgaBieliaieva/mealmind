@@ -18,6 +18,8 @@ interface SearchRow {
   readonly categoryCode: string | null;
   readonly categoryName: string | null;
   readonly brandName: string | null;
+  readonly foodState: string | null;
+  readonly foodCharacteristicNames: readonly string[] | null;
   readonly difficulty: string | null;
   readonly totalTimeMin: number | null;
   readonly baseServings: number | null;
@@ -62,6 +64,14 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
           nameEn: true,
           nameUa: true,
           foodState: true,
+          foodCharacteristics: {
+            select: {
+              characteristic: {
+                select: { id: true, code: true, kind: true, nameUa: true },
+              },
+            },
+            orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
+          },
           category: { select: { id: true, code: true, nameUa: true } },
           brand: {
             select: {
@@ -185,6 +195,12 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
         imageObjectPath: product.media[0]?.storageObjectPath ?? null,
         imageUrl: null,
         foodState: product.foodState,
+        foodCharacteristics: product.foodCharacteristics.map(({ characteristic }) => ({
+          id: characteristic.id,
+          code: characteristic.code,
+          kind: characteristic.kind,
+          name: characteristic.nameUa,
+        })),
         defaultUnit: product.defaultMeasurementUnit,
         isFavorite: product.favorites.length > 0,
         nutrients: product.nutrients.map(({ nutrient, valuePer100g, valueType }) => ({
@@ -275,6 +291,17 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
                   id: true,
                   nameUa: true,
                   nameEn: true,
+                  foodState: true,
+                  foodCharacteristics: {
+                    select: {
+                      characteristic: { select: { kind: true, nameUa: true } },
+                    },
+                    orderBy: [
+                      { characteristic: { kind: "asc" } },
+                      { sortOrder: "asc" },
+                      { characteristic: { sortOrder: "asc" } },
+                    ],
+                  },
                   category: { select: { code: true, nameUa: true } },
                   media: {
                     where: { status: "ACTIVE", archivedAt: null },
@@ -406,6 +433,13 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
           id: ingredient.id,
           productId: ingredient.product.id,
           productName: ingredient.product.nameUa ?? ingredient.product.nameEn,
+          productFoodState: ingredient.product.foodState,
+          productFoodCharacteristics: ingredient.product.foodCharacteristics.map(
+            ({ characteristic }) => ({
+              kind: characteristic.kind,
+              name: characteristic.nameUa,
+            }),
+          ),
           category: {
             code: ingredient.product.category.code,
             name: ingredient.product.category.nameUa,
@@ -544,6 +578,24 @@ async function searchFood(
         c.code AS "categoryCode",
         c.name_ua AS "categoryName",
         COALESCE(b.name, b.name_ua, b.name_en) AS "brandName",
+        p.food_state::text AS "foodState",
+        ARRAY(
+          SELECT characteristic.name_ua
+          FROM product_food_characteristic_assignments assignment
+          JOIN product_food_characteristics characteristic
+            ON characteristic.id = assignment.characteristic_id
+          WHERE assignment.product_id = p.id
+          ORDER BY
+            CASE characteristic.kind::text
+              WHEN 'preservation_state' THEN 1
+              WHEN 'cooking_method' THEN 2
+              WHEN 'processing_method' THEN 3
+              ELSE 4
+            END,
+            assignment.sort_order,
+            characteristic.sort_order,
+            characteristic.code
+        )::text[] AS "foodCharacteristicNames",
         NULL::text AS difficulty,
         NULL::integer AS "totalTimeMin",
         NULL::integer AS "baseServings",
@@ -624,6 +676,8 @@ async function searchFood(
         NULL::text AS "categoryCode",
         NULL::text AS "categoryName",
         NULL::text AS "brandName",
+        NULL::text AS "foodState",
+        ARRAY[]::text[] AS "foodCharacteristicNames",
         r.difficulty::text,
         CASE
           WHEN r.prep_time_min IS NULL AND r.cook_time_min IS NULL AND r.rest_time_min IS NULL
@@ -778,7 +832,8 @@ async function searchFood(
     )
     SELECT paged.kind, paged.id, paged.name, paged.summary,
            paged."categoryId", paged."categoryCode", paged."categoryName",
-           paged."brandName", paged.difficulty, paged."totalTimeMin",
+           paged."brandName", paged."foodState", paged."foodCharacteristicNames",
+           paged.difficulty, paged."totalTimeMin",
            paged."baseServings", paged."yieldWeightG",
            paged."recipeTypeId", paged."recipeTypeCode", paged."recipeTypeName",
            paged."authorId", paged."authorName", paged."authorType",
@@ -804,6 +859,8 @@ function mapSearchRow(row: SearchRow): FoodSearchItem[] {
         name: row.name,
         category: { id: row.categoryId, code: row.categoryCode, name: row.categoryName },
         brandName: row.brandName,
+        foodState: row.foodState ?? "unspecified",
+        foodCharacteristicNames: row.foodCharacteristicNames ?? [],
         imageObjectPath: row.imageObjectPath,
         imageUrl: null,
         nutrition: mapCardNutrition(row),

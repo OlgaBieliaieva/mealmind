@@ -142,6 +142,11 @@ export interface OwnProfileReferenceView {
 export interface OwnProfileProductView {
   readonly id: string;
   readonly name: string;
+  readonly foodState?: string;
+  readonly foodCharacteristics?: readonly {
+    readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+    readonly name: string;
+  }[];
 }
 
 export interface OwnProfileAllergyView {

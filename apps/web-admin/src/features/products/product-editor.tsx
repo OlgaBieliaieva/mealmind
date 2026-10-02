@@ -15,6 +15,7 @@ import {
   updateProduct,
   type ProductStatus,
 } from "@/shared/api/products";
+import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import {
   createReferenceData,
   listReferenceData,
@@ -51,6 +52,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   const units = useReferenceOptions("measurement-units");
   const brands = useReferenceOptions("brands", true);
   const nutrients = useReferenceOptions("nutrients");
+  const foodCharacteristics = useReferenceOptions("product-food-characteristics");
 
   const initialValues = useMemo(
     () =>
@@ -67,11 +69,18 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         search,
         pageSize: 20,
       });
-      return response.data.items.map((product) => ({
-        value: product.id,
-        label: product.nameUa ?? product.nameEn,
-        description: product.categoryName,
-      }));
+      return response.data.items.map((product) => {
+        const description = formatProductCharacteristics(
+          product.foodState,
+          product.foodCharacteristics,
+        );
+        return {
+          value: product.id,
+          label: product.nameUa ?? product.nameEn,
+          ...(description ? { description } : {}),
+          category: product.categoryName,
+        };
+      });
     },
     [apiClient],
   );
@@ -125,9 +134,17 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   });
 
   const referencesPending =
-    categories.isPending || units.isPending || brands.isPending || nutrients.isPending;
+    categories.isPending ||
+    units.isPending ||
+    brands.isPending ||
+    nutrients.isPending ||
+    foodCharacteristics.isPending;
   const referencesError =
-    categories.isError || units.isError || brands.isError || nutrients.isError;
+    categories.isError ||
+    units.isError ||
+    brands.isError ||
+    nutrients.isError ||
+    foodCharacteristics.isError;
 
   if ((isEdit && productQuery.isPending) || referencesPending) {
     return <PageState kind="loading" title="Завантажуємо редактор продукту" />;
@@ -188,6 +205,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         brands={brands.options}
         genericProducts={initialGenericOptions}
         nutrients={nutrients.options}
+        foodCharacteristics={foodCharacteristics.options}
         isSubmitting={saveMutation.isPending}
         onSearchGenericProducts={searchGenericProducts}
         onLoadBaseProduct={loadBaseProduct}
@@ -211,7 +229,12 @@ export function ProductEditor({ productId }: ProductEditorProps) {
 }
 
 function useReferenceOptions(
-  resource: "product-categories" | "measurement-units" | "brands" | "nutrients",
+  resource:
+    | "product-categories"
+    | "product-food-characteristics"
+    | "measurement-units"
+    | "brands"
+    | "nutrients",
   includeInactive = false,
 ) {
   const apiClient = getBrowserApiClient();
@@ -243,6 +266,7 @@ function flattenReferenceItems(
       value: item.id,
       label: `${"— ".repeat(depth)}${name}`,
       ...(typeof item.unit === "string" ? { unit: nutrientUnitLabel(item.unit) } : {}),
+      ...(typeof item.kind === "string" ? { kind: item.kind } : {}),
     };
     const children = Array.isArray(item.children)
       ? flattenReferenceItems(

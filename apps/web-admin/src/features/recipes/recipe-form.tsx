@@ -5,13 +5,12 @@ import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import type { RecipeNutritionPreview } from "@/shared/api/recipes";
-import { Button, SelectField, TextInput } from "@/shared/ui";
+import { Button, SearchableMultiSelect, SelectField, TextInput } from "@/shared/ui";
 
 import { RECIPE_DIFFICULTY_LABELS } from "./recipe-labels";
 import { EMPTY_RECIPE_FORM, recipeFormSchema, type RecipeFormValues } from "./recipe-form-schema";
 import { ProductSearchCombobox } from "./product-search-combobox";
 import { useDirtyFormGuard } from "../products/use-dirty-form-guard";
-import { SearchableMultiSelect } from "./searchable-multi-select";
 
 export interface RecipeOption {
   readonly value: string;
@@ -19,6 +18,7 @@ export interface RecipeOption {
 }
 export interface RecipeProductOption extends RecipeOption {
   readonly description?: string;
+  readonly category?: string;
 }
 export interface RecipeNutrientOption extends RecipeOption {
   readonly unit: string;

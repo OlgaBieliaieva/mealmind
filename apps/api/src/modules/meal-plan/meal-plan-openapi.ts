@@ -20,6 +20,26 @@ const commonErrors = {
   },
 } as const;
 
+const productFoodState = {
+  type: ["string", "null"],
+  enum: ["UNSPECIFIED", "RAW", "COOKED", "PROCESSED", "READY_TO_EAT", null],
+} as const;
+
+const productFoodCharacteristics = {
+  type: "array",
+  items: {
+    type: "object",
+    required: ["kind", "name"],
+    properties: {
+      kind: {
+        type: "string",
+        enum: ["PRESERVATION_STATE", "COOKING_METHOD", "PROCESSING_METHOD"],
+      },
+      name: { type: "string" },
+    },
+  },
+} as const;
+
 export const mealPlanOpenApiPaths = Object.freeze({
   "/api/v1/meal-plans/week": {
     get: {
@@ -878,6 +898,8 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       "imageUrl",
       "categoryCode",
       "categoryName",
+      "foodState",
+      "foodCharacteristics",
       "recipeType",
       "totalTimeMin",
       "difficulty",
@@ -924,6 +946,10 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       categoryName: {
         type: ["string", "null"],
       },
+
+      foodState: productFoodState,
+
+      foodCharacteristics: productFoodCharacteristics,
 
       recipeType: {
         oneOf: [
@@ -1067,6 +1093,8 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       "imageUrl",
       "categoryCode",
       "categoryName",
+      "foodState",
+      "foodCharacteristics",
       "recipeType",
       "totalTimeMin",
       "difficulty",
@@ -1109,6 +1137,10 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       categoryName: {
         type: ["string", "null"],
       },
+
+      foodState: productFoodState,
+
+      foodCharacteristics: productFoodCharacteristics,
 
       recipeType: {
         oneOf: [
@@ -1420,6 +1452,8 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       "imageUrl",
       "categoryCode",
       "categoryName",
+      "foodState",
+      "foodCharacteristics",
       "recipeType",
       "preparedAt",
       "portionGrams",
@@ -1475,6 +1509,10 @@ export const mealPlanOpenApiSchemas = Object.freeze({
       categoryName: {
         type: ["string", "null"],
       },
+
+      foodState: productFoodState,
+
+      foodCharacteristics: productFoodCharacteristics,
 
       recipeType: {
         oneOf: [

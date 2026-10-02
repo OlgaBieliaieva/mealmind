@@ -57,6 +57,9 @@ export interface RecipeSummary {
   readonly authorName: string | null;
   readonly baseServings: number | null;
   readonly updatedAt: string;
+  readonly primaryImage: null | {
+    readonly thumbnailUrl: string | null;
+  };
 }
 
 export interface RecipeDetails extends RecipeSummary {
@@ -71,6 +74,11 @@ export interface RecipeDetails extends RecipeSummary {
   readonly ingredients: readonly (RecipeIngredientWrite & {
     readonly id: string;
     readonly productName: string;
+    readonly productFoodState?: string;
+    readonly productFoodCharacteristics?: readonly {
+      readonly kind: "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
+      readonly name: string;
+    }[];
     readonly position: number;
   })[];
   readonly steps: readonly {
