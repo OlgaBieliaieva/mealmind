@@ -48,7 +48,11 @@
     "usda:product-name-translation-batch": "tsx scripts/usda/src/index.ts product-name-translation-batch",
     "usda:import-product-name-translation-batch": "tsx scripts/usda/src/index.ts import-product-name-translation-batch",
     "usda:finalize": "tsx scripts/usda/src/index.ts finalize",
-    "usda:validate-final": "tsx scripts/usda/src/index.ts validate-final"
+    "usda:validate-final": "tsx scripts/usda/src/index.ts validate-final",
+    "zakaz": "tsx scripts/zakaz/src/index.ts",
+    "zakaz:typecheck": "tsc --project scripts/zakaz/tsconfig.json",
+    "zakaz:test": "tsx --test scripts/zakaz/src/**/*.test.ts",
+    "zakaz:validate:raw": "tsx scripts/zakaz/src/index.ts validate-raw"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
