@@ -52,7 +52,8 @@
     "zakaz": "tsx scripts/zakaz/src/index.ts",
     "zakaz:typecheck": "tsc --project scripts/zakaz/tsconfig.json",
     "zakaz:test": "tsx --test scripts/zakaz/src/**/*.test.ts",
-    "zakaz:validate:raw": "tsx scripts/zakaz/src/index.ts validate-raw"
+    "zakaz:validate:raw": "tsx scripts/zakaz/src/index.ts validate-raw",
+    "zakaz:aggregate": "tsx scripts/zakaz/src/index.ts aggregate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",

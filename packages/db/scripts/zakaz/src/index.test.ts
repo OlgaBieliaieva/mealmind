@@ -7,6 +7,7 @@ import { parseRawValidationArguments, RAW_VALIDATION_USAGE } from "./validate-ra
 
 test("resolves the validate-raw command", () => {
   assert.equal(resolveZakazCommand("validate-raw"), "validate-raw");
+  assert.equal(resolveZakazCommand("aggregate"), "aggregate");
   assert.throws(() => resolveZakazCommand("unknown"), /Невідома Zakaz команда/);
 });
 

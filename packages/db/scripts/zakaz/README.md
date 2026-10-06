@@ -34,4 +34,19 @@ npm run catalog:zakaz:validate:raw -- --root scripts/zakaz/data/raw --page-size 
 `src/index.ts` є єдиним основним entrypoint pipeline. Наступні етапи імпорту
 додаються як окремі команди цього runner.
 
+## Агрегація product observations
+
+Після успішної raw validation:
+
+```bash
+npm run catalog:zakaz -- aggregate --locale en
+```
+
+Команда групує записи за `storeId + SKU`, зберігає всі `sourceCategoryIds`,
+посилання на raw observations і список полів, значення яких відрізняються між
+категоріями. Category-context поля (`category_id`, `parent_category_id`, `hits`)
+не переносяться до агрегованого `productData`, а різні CDN-шарди одного Zakaz
+image asset не вважаються конфліктом. Результат створюється локально у
+`data/work/products-en-aggregated.json` і не потрапляє до Git.
+
 За наявності структурних помилок команда завершується з exit code `1`.
