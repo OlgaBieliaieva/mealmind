@@ -3,9 +3,10 @@ import { pathToFileURL } from "node:url";
 
 import { AGGREGATE_PRODUCTS_USAGE, runAggregateProductsCommand } from "./aggregate-products.js";
 import { CLASSIFY_PRODUCTS_USAGE, runClassifyProductsCommand } from "./classify-products.js";
+import { DOWNLOAD_LOCALE_USAGE, runDownloadLocaleCommand } from "./download-locale.js";
 import { RAW_VALIDATION_USAGE, runRawValidationCommand } from "./validate-raw.js";
 
-export type ZakazCommand = "validate-raw" | "aggregate" | "classify";
+export type ZakazCommand = "validate-raw" | "aggregate" | "classify" | "download-locale";
 
 export const ZAKAZ_USAGE = `MealMind Zakaz catalog pipeline
 
@@ -14,18 +15,25 @@ Usage:
   npm run zakaz -- validate-raw --locale en
   npm run zakaz -- aggregate --locale en
   npm run zakaz -- classify --locale en
+  npm run zakaz -- download-locale --source-locale en --locale uk
 
 Available commands:
   validate-raw   Перевірити структуру, pagination і consistency локальних raw JSON.
   aggregate      Об'єднати product observations у записи за store + SKU.
   classify       Визначити GTIN, package kind, eligibility і reason codes.
+  download-locale Завантажити локалізований raw snapshot за наявним source scope.
 
 Options:
   --help, -h     Показати цю довідку.
 `;
 
 export function resolveZakazCommand(argument: string): ZakazCommand {
-  if (argument === "validate-raw" || argument === "aggregate" || argument === "classify") {
+  if (
+    argument === "validate-raw" ||
+    argument === "aggregate" ||
+    argument === "classify" ||
+    argument === "download-locale"
+  ) {
     return argument;
   }
 
@@ -69,6 +77,16 @@ export async function runZakazCli(arguments_: readonly string[]): Promise<number
       }
 
       await runClassifyProductsCommand(commandArguments);
+      return 0;
+    }
+
+    case "download-locale": {
+      if (commandArguments.includes("--help") || commandArguments.includes("-h")) {
+        process.stdout.write(DOWNLOAD_LOCALE_USAGE);
+        return 0;
+      }
+
+      await runDownloadLocaleCommand(commandArguments);
       return 0;
     }
 

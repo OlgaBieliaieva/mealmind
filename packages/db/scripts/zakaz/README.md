@@ -34,6 +34,33 @@ npm run catalog:zakaz:validate:raw -- --root scripts/zakaz/data/raw --page-size 
 `src/index.ts` є єдиним основним entrypoint pipeline. Наступні етапи імпорту
 додаються як окремі команди цього runner.
 
+## Завантаження українського snapshot
+
+Downloader використовує перелік stores і leaf-category directories із уже
+перевіреної EN локалі, але самостійно визначає актуальну pagination кожної
+української категорії. Сторінки EN та UK не зіставляються між собою.
+
+```bash
+npm run catalog:zakaz:download:uk
+```
+
+Запити надсилаються лише до `https://stores-api.zakaz.ua` із заголовком
+`Accept-Language: uk-UA`. За замовчуванням одночасно завантажуються дві
+категорії, для тимчасових помилок і `429` виконується до трьох retry.
+
+Результат записується до ignored директорії `data/raw/uk`. Downloader не
+перезаписує наявний snapshot. Після перерваного запуску його можна продовжити:
+
+```bash
+npm run catalog:zakaz:download:uk -- --resume
+```
+
+Стан, checksums і помилки категорій зберігаються у
+`data/raw/uk/download-manifest.json`. Після завершення downloader запускає
+чинний raw validator для UK snapshot. `stores.json` копіюється зі source locale
+як registry стабільних store IDs, а локалізована taxonomy і product responses
+отримуються безпосередньо з Zakaz API.
+
 ## Агрегація product observations
 
 Після успішної raw validation:
