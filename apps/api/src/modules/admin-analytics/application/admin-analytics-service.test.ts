@@ -81,7 +81,7 @@ describe("admin analytics service", () => {
         foodStates: { UNSPECIFIED: 1, RAW: 4, COOKED: 2, PROCESSED: 3, READY_TO_EAT: 2 },
         statuses: { DRAFT: 4, ACTIVE: 7, ARCHIVED: 1 },
         verification: { UNVERIFIED: 3, VERIFIED: 8, REJECTED: 1 },
-        sources: { USDA: 6, MEALMIND_ADMIN: 3, MEALMIND_USER: 2, UNASSIGNED: 1 },
+        sources: { USDA: 6, ZAKAZ: 0, MEALMIND_ADMIN: 3, MEALMIND_USER: 2, UNASSIGNED: 1 },
         categories: [],
         brands: [],
         favorites: [],

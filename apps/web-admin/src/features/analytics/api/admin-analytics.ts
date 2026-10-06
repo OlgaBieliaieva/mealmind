@@ -126,7 +126,7 @@ export interface ProductsAnalytics {
     readonly statuses: Readonly<Record<"DRAFT" | "ACTIVE" | "ARCHIVED", number>>;
     readonly verification: Readonly<Record<"UNVERIFIED" | "VERIFIED" | "REJECTED", number>>;
     readonly sources: Readonly<
-      Record<"USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED", number>
+      Record<"USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED", number>
     >;
   };
   readonly rankings: {

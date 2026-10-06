@@ -181,6 +181,7 @@ function ProductsContent({ analytics }: { readonly analytics: ProductsAnalytics 
           title="За джерелом"
           values={[
             ["USDA", analytics.breakdowns.sources.USDA, "/products?sourceProvider=USDA"],
+            ["Zakaz", analytics.breakdowns.sources.ZAKAZ, "/products?sourceProvider=ZAKAZ"],
             [
               "MealMind admin",
               analytics.breakdowns.sources.MEALMIND_ADMIN,

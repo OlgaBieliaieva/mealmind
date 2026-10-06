@@ -176,6 +176,7 @@ export function ProductList() {
             options={[
               { value: "", label: "Усі джерела" },
               { value: "USDA", label: "USDA" },
+              { value: "ZAKAZ", label: "Zakaz" },
               { value: "MEALMIND_ADMIN", label: "MealMind admin" },
               { value: "MEALMIND_USER", label: "MealMind user" },
               { value: "UNASSIGNED", label: "Без primary source" },
@@ -339,6 +340,7 @@ function asFoodState(value: string | null): ProductFoodState | undefined {
 
 function asSourceProvider(value: string | null): ProductSourceProvider | "UNASSIGNED" | undefined {
   return value === "USDA" ||
+    value === "ZAKAZ" ||
     value === "MEALMIND_ADMIN" ||
     value === "MEALMIND_USER" ||
     value === "UNASSIGNED"

@@ -30,6 +30,7 @@ const EXPECTED_MIGRATIONS = [
   "20260922120000_cooking_mode",
   "20260928120000_cooking_portion_snapshots",
   "20260930120000_product_food_characteristics",
+  "20261006120000_product_package_foundation",
 ] as const;
 
 loadEnvironment({
@@ -300,6 +301,54 @@ async function verifyAppliedMigrations(
 
     if (productFoodCharacteristicsResult.rows.length !== 5) {
       throw new Error("Product food characteristics migration was not applied");
+    }
+
+    const productPackageFoundationResult = await client.query<{ readonly object_name: string }>(`
+      SELECT table_name AS object_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'product_packages',
+          'product_package_source_references',
+          'product_package_shelf_life_rules',
+          'product_ingredient_statements'
+        )
+      UNION ALL
+      SELECT column_name AS object_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND (
+          (table_name = 'product_portions' AND column_name = 'product_package_id')
+          OR (
+            table_name = 'product_media'
+            AND column_name IN (
+              'product_package_id',
+              'package_source_reference_id',
+              'source_url'
+            )
+          )
+        )
+      UNION ALL
+      SELECT value.enumlabel AS object_name
+      FROM pg_type AS type
+      JOIN pg_enum AS value ON type.oid = value.enumtypid
+      WHERE type.typname IN ('product_source_provider', 'product_source_dataset')
+        AND value.enumlabel IN ('zakaz', 'zakaz_retail_catalog')
+    `);
+
+    if (productPackageFoundationResult.rows.length !== 10) {
+      throw new Error("Product package foundation migration was not applied");
+    }
+
+    const productPackageDefaultIndexResult = await client.query<{ readonly indexdef: string }>(`
+      SELECT indexdef
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND indexname = 'product_packages_one_current_default_key'
+    `);
+
+    if (!productPackageDefaultIndexResult.rows[0]?.indexdef.includes("WHERE")) {
+      throw new Error("Product package default uniqueness policy was not applied");
     }
 
     return {

@@ -3,7 +3,7 @@ import type { ApiClient } from "./api-client";
 export type ProductType = "GENERIC" | "BRANDED";
 export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductVerificationStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED";
-export type ProductSourceProvider = "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER";
+export type ProductSourceProvider = "USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER";
 export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
 export type ProductFoodCharacteristicKind =
   "PRESERVATION_STATE" | "COOKING_METHOD" | "PROCESSING_METHOD";
@@ -65,8 +65,14 @@ export interface ProductSummary {
   readonly categoryName: string;
   readonly brandId: string | null;
   readonly brandName: string | null;
-  readonly sourceProvider: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | null;
-  readonly sourceDataset: "FOUNDATION_FOOD" | "SR_LEGACY" | "ADMIN_CATALOG" | "USER_CATALOG" | null;
+  readonly sourceProvider: "USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER" | null;
+  readonly sourceDataset:
+    | "FOUNDATION_FOOD"
+    | "SR_LEGACY"
+    | "ZAKAZ_RETAIL_CATALOG"
+    | "ADMIN_CATALOG"
+    | "USER_CATALOG"
+    | null;
   readonly foodState: ProductFoodState;
   readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
   readonly status: ProductStatus;

@@ -106,6 +106,13 @@ try {
   assert.equal(branded.sourceProvider, "MEALMIND_ADMIN");
   assert.equal(branded.sourceDataset, "ADMIN_CATALOG");
 
+  const createdDefaultPackage = await database.productPackage.findFirstOrThrow({
+    where: { productId: branded.id, isDefault: true, status: { not: "ARCHIVED" } },
+  });
+  assert.equal(createdDefaultPackage.gtin, gtin);
+  assert.equal(createdDefaultPackage.kind, "UNSPECIFIED");
+  assert.equal(createdDefaultPackage.status, "DRAFT");
+
   await assert.rejects(
     repository.create({
       type: "BRANDED",
@@ -123,6 +130,43 @@ try {
     }),
     ProductConflictError,
   );
+
+  const updatedGtin = String(Date.now() + 1).slice(-12).padStart(14, "0");
+  const updatedBranded = await repository.update(branded.id, { gtin: updatedGtin });
+  assert.equal(updatedBranded?.gtin, updatedGtin);
+
+  const updatedDefaultPackage = await database.productPackage.findUniqueOrThrow({
+    where: { id: createdDefaultPackage.id },
+  });
+  assert.equal(updatedDefaultPackage.gtin, updatedGtin);
+
+  const clearedBranded = await repository.update(branded.id, { gtin: null });
+  assert.equal(clearedBranded?.gtin, null);
+
+  const clearedDefaultPackage = await database.productPackage.findUniqueOrThrow({
+    where: { id: createdDefaultPackage.id },
+  });
+  assert.equal(clearedDefaultPackage.gtin, null);
+
+  await repository.update(branded.id, { gtin: updatedGtin });
+  await repository.updateStatus(branded.id, "ARCHIVED");
+  const archivedGtin = String(Date.now() + 2).slice(-12).padStart(14, "0");
+  await repository.update(branded.id, { gtin: archivedGtin });
+
+  const archivedDefaultPackage = await database.productPackage.findUniqueOrThrow({
+    where: { id: createdDefaultPackage.id },
+  });
+  assert.equal(archivedDefaultPackage.gtin, archivedGtin);
+  assert.equal(archivedDefaultPackage.status, "ARCHIVED");
+  assert.ok(archivedDefaultPackage.archivedAt instanceof Date);
+
+  await repository.updateStatus(branded.id, "DRAFT");
+
+  const restoredDefaultPackage = await database.productPackage.findUniqueOrThrow({
+    where: { id: createdDefaultPackage.id },
+  });
+  assert.equal(restoredDefaultPackage.status, "DRAFT");
+  assert.equal(restoredDefaultPackage.archivedAt, null);
 
   const activeSearchTerm = `Selector-${crypto.randomUUID()}`;
 
@@ -182,6 +226,8 @@ try {
     type: searchableActive.type,
     categoryName: searchableActive.categoryName,
     brandName: searchableActive.brandName,
+    foodState: searchableActive.foodState,
+    foodCharacteristics: searchableActive.foodCharacteristics,
   });
 
   const page = await repository.list({ search: "Integration", page: 1, pageSize: 1 });

@@ -28,7 +28,7 @@ interface ProductSeriesRow {
 }
 
 interface ProductSourceRow {
-  readonly source: "USDA" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED";
+  readonly source: "USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER" | "UNASSIGNED";
   readonly value: bigint;
 }
 
@@ -269,6 +269,7 @@ export function createPrismaAdminAnalyticsRepository(
         }),
         sources: Object.freeze({
           USDA: sourceCounts.get("USDA") ?? 0,
+          ZAKAZ: sourceCounts.get("ZAKAZ") ?? 0,
           MEALMIND_ADMIN: sourceCounts.get("MEALMIND_ADMIN") ?? 0,
           MEALMIND_USER: sourceCounts.get("MEALMIND_USER") ?? 0,
           UNASSIGNED: sourceCounts.get("UNASSIGNED") ?? 0,
@@ -538,6 +539,7 @@ async function productSources(database: DatabaseClient): Promise<readonly Produc
     SELECT
       CASE primary_sources.provider::text
         WHEN 'usda' THEN 'USDA'
+        WHEN 'zakaz' THEN 'ZAKAZ'
         WHEN 'mealmind_admin' THEN 'MEALMIND_ADMIN'
         WHEN 'mealmind_user' THEN 'MEALMIND_USER'
         ELSE 'UNASSIGNED'
