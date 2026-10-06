@@ -9,6 +9,7 @@ test("resolves the validate-raw command", () => {
   assert.equal(resolveZakazCommand("validate-raw"), "validate-raw");
   assert.equal(resolveZakazCommand("aggregate"), "aggregate");
   assert.equal(resolveZakazCommand("classify"), "classify");
+  assert.equal(resolveZakazCommand("build-candidates"), "build-candidates");
   assert.equal(resolveZakazCommand("download-locale"), "download-locale");
   assert.equal(resolveZakazCommand("match-locales"), "match-locales");
   assert.throws(() => resolveZakazCommand("unknown"), /Невідома Zakaz команда/);

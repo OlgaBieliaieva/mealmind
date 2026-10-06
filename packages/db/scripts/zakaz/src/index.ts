@@ -2,13 +2,19 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { AGGREGATE_PRODUCTS_USAGE, runAggregateProductsCommand } from "./aggregate-products.js";
+import { BUILD_CANDIDATES_USAGE, runBuildCandidatesCommand } from "./build-candidates.js";
 import { CLASSIFY_PRODUCTS_USAGE, runClassifyProductsCommand } from "./classify-products.js";
 import { DOWNLOAD_LOCALE_USAGE, runDownloadLocaleCommand } from "./download-locale.js";
 import { MATCH_LOCALES_USAGE, runMatchLocalesCommand } from "./match-locales.js";
 import { RAW_VALIDATION_USAGE, runRawValidationCommand } from "./validate-raw.js";
 
 export type ZakazCommand =
-  "validate-raw" | "aggregate" | "classify" | "download-locale" | "match-locales";
+  | "validate-raw"
+  | "aggregate"
+  | "classify"
+  | "build-candidates"
+  | "download-locale"
+  | "match-locales";
 
 export const ZAKAZ_USAGE = `MealMind Zakaz catalog pipeline
 
@@ -17,6 +23,7 @@ Usage:
   npm run zakaz -- validate-raw --locale en
   npm run zakaz -- aggregate --locale en
   npm run zakaz -- classify --locale en
+  npm run zakaz -- build-candidates
   npm run zakaz -- download-locale --source-locale en --locale uk
   npm run zakaz -- match-locales --source-locale en --localized-locale uk
 
@@ -24,6 +31,7 @@ Available commands:
   validate-raw   Перевірити структуру, pagination і consistency локальних raw JSON.
   aggregate      Об'єднати product observations у записи за store + SKU.
   classify       Визначити GTIN, package kind, eligibility і reason codes.
+  build-candidates Сформувати candidates, review, rejected, manifest і validation report.
   download-locale Завантажити локалізований raw snapshot за наявним source scope.
   match-locales   Зіставити агреговані products глобально за store + SKU.
 
@@ -36,6 +44,7 @@ export function resolveZakazCommand(argument: string): ZakazCommand {
     argument === "validate-raw" ||
     argument === "aggregate" ||
     argument === "classify" ||
+    argument === "build-candidates" ||
     argument === "download-locale" ||
     argument === "match-locales"
   ) {
@@ -82,6 +91,16 @@ export async function runZakazCli(arguments_: readonly string[]): Promise<number
       }
 
       await runClassifyProductsCommand(commandArguments);
+      return 0;
+    }
+
+    case "build-candidates": {
+      if (commandArguments.includes("--help") || commandArguments.includes("-h")) {
+        process.stdout.write(BUILD_CANDIDATES_USAGE);
+        return 0;
+      }
+
+      await runBuildCandidatesCommand(commandArguments);
       return 0;
     }
 

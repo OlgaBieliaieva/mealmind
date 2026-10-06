@@ -86,6 +86,29 @@ Matching використовує лише стабільний ключ `source
 identity conflict. Результат створюється локально у
 `data/work/products-en-uk-matched.json` і не потрапляє до Git.
 
+## Формування import candidate artifacts
+
+Після classification і matching:
+
+```bash
+npm run catalog:zakaz:build:candidates
+```
+
+Builder перевіряє, що classified і matched artifacts створені з одного EN
+snapshot, формує canonical draft із field-level provenance та розподіляє
+записи на три взаємовиключні групи:
+
+- `zakaz-candidates.json` — безпечні автоматичні candidates;
+- `zakaz-review-required.json` — локалізаційні, identity та data conflicts;
+- `zakaz-rejected.json` — записи, відхилені classification policy.
+
+Додатково створюються `zakaz-manifest.json` із checksums, policy і coverage та
+`zakaz-validation-report.json`. Duplicate normalized GTIN не залишається серед
+автоматичних candidates: уся група переводиться до manual review.
+
+Усі файли створюються в ignored директорії `data/output` і не публікуються до
+БД автоматично.
+
 ## Агрегація product observations
 
 Після успішної raw validation:

@@ -56,7 +56,8 @@
     "zakaz:aggregate": "tsx scripts/zakaz/src/index.ts aggregate",
     "zakaz:classify": "tsx scripts/zakaz/src/index.ts classify",
     "zakaz:download:uk": "tsx scripts/zakaz/src/index.ts download-locale --source-locale en --locale uk --accept-language uk-UA",
-    "zakaz:match:en-uk": "tsx scripts/zakaz/src/index.ts match-locales --source-locale en --localized-locale uk"
+    "zakaz:match:en-uk": "tsx scripts/zakaz/src/index.ts match-locales --source-locale en --localized-locale uk",
+    "zakaz:build:candidates": "tsx scripts/zakaz/src/index.ts build-candidates"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
