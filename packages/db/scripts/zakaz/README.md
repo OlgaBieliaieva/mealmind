@@ -61,6 +61,31 @@ npm run catalog:zakaz:download:uk -- --resume
 як registry стабільних store IDs, а локалізована taxonomy і product responses
 отримуються безпосередньо з Zakaz API.
 
+## Глобальне EN/UK matching
+
+Після завантаження UK snapshot потрібно незалежно агрегувати локаль і
+зіставити її з EN artifact:
+
+```bash
+npm run catalog:zakaz -- aggregate --locale uk
+npm run catalog:zakaz:match:en-uk
+```
+
+Matching використовує лише стабільний ключ `sourceStoreId + sourceSku`, тому
+не залежить від номера сторінки, категорії або порядку результатів. Обидві
+локалізовані версії зберігаються окремо разом із fingerprints і provenance.
+
+Статуси результату:
+
+- `MATCHED` — ідентичність підтверджено;
+- `MATCH_REVIEW_REQUIRED` — SKU збігся, але EAN або package-поля різняться;
+- `SOURCE_ONLY` — запис є лише в EN snapshot;
+- `LOCALIZED_ONLY` — запис є лише в UK snapshot.
+
+Різниця в локалізованих текстах, назві бренду, availability або price не є
+identity conflict. Результат створюється локально у
+`data/work/products-en-uk-matched.json` і не потрапляє до Git.
+
 ## Агрегація product observations
 
 Після успішної raw validation:
