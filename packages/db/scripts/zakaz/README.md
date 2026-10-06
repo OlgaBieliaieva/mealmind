@@ -49,4 +49,16 @@ npm run catalog:zakaz -- aggregate --locale en
 image asset не вважаються конфліктом. Результат створюється локально у
 `data/work/products-en-aggregated.json` і не потрапляє до Git.
 
+## Класифікація GTIN, package та eligibility
+
+```bash
+npm run catalog:zakaz -- classify --locale en
+```
+
+Команда нормалізує валідні GTIN до 14 цифр, класифікує fixed/variable package,
+додає стабільні reason codes та формує рішення `ELIGIBLE`, `REVIEW_REQUIRED`
+або `REJECTED`. Availability зберігається як snapshot, але не впливає на
+eligibility. Локальний результат:
+`data/work/products-en-classified.json`.
+
 За наявності структурних помилок команда завершується з exit code `1`.

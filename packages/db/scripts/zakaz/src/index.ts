@@ -2,9 +2,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { AGGREGATE_PRODUCTS_USAGE, runAggregateProductsCommand } from "./aggregate-products.js";
+import { CLASSIFY_PRODUCTS_USAGE, runClassifyProductsCommand } from "./classify-products.js";
 import { RAW_VALIDATION_USAGE, runRawValidationCommand } from "./validate-raw.js";
 
-export type ZakazCommand = "validate-raw" | "aggregate";
+export type ZakazCommand = "validate-raw" | "aggregate" | "classify";
 
 export const ZAKAZ_USAGE = `MealMind Zakaz catalog pipeline
 
@@ -12,17 +13,21 @@ Usage:
   npm run zakaz -- <command> [options]
   npm run zakaz -- validate-raw --locale en
   npm run zakaz -- aggregate --locale en
+  npm run zakaz -- classify --locale en
 
 Available commands:
   validate-raw   Перевірити структуру, pagination і consistency локальних raw JSON.
   aggregate      Об'єднати product observations у записи за store + SKU.
+  classify       Визначити GTIN, package kind, eligibility і reason codes.
 
 Options:
   --help, -h     Показати цю довідку.
 `;
 
 export function resolveZakazCommand(argument: string): ZakazCommand {
-  if (argument === "validate-raw" || argument === "aggregate") return argument;
+  if (argument === "validate-raw" || argument === "aggregate" || argument === "classify") {
+    return argument;
+  }
 
   throw new Error(
     `Невідома Zakaz команда: "${argument}". Запустіть "npm run zakaz -- --help" для довідки.`,
@@ -55,6 +60,16 @@ export async function runZakazCli(arguments_: readonly string[]): Promise<number
       }
 
       return (await runAggregateProductsCommand(commandArguments)) ? 0 : 1;
+    }
+
+    case "classify": {
+      if (commandArguments.includes("--help") || commandArguments.includes("-h")) {
+        process.stdout.write(CLASSIFY_PRODUCTS_USAGE);
+        return 0;
+      }
+
+      await runClassifyProductsCommand(commandArguments);
+      return 0;
     }
 
     default: {
