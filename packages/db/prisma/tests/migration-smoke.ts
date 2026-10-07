@@ -31,6 +31,8 @@ const EXPECTED_MIGRATIONS = [
   "20260928120000_cooking_portion_snapshots",
   "20260930120000_product_food_characteristics",
   "20261006120000_product_package_foundation",
+  "20261007120000_zakaz_import_review_candidates",
+  "20261007123000_product_import_event_actor_integrity",
 ] as const;
 
 loadEnvironment({
@@ -349,6 +351,34 @@ async function verifyAppliedMigrations(
 
     if (!productPackageDefaultIndexResult.rows[0]?.indexdef.includes("WHERE")) {
       throw new Error("Product package default uniqueness policy was not applied");
+    }
+
+    const productImportReviewResult = await client.query<{ readonly object_name: string }>(`
+      SELECT table_name AS object_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'product_import_batches',
+          'product_import_candidates',
+          'product_import_candidate_events'
+        )
+      UNION ALL
+      SELECT typname AS object_name
+      FROM pg_type
+      WHERE typname IN (
+        'product_import_batch_status',
+        'product_import_candidate_disposition',
+        'product_import_candidate_status',
+        'product_import_candidate_event_action'
+      )
+      UNION ALL
+      SELECT tgname AS object_name
+      FROM pg_trigger
+      WHERE tgname = 'product_import_candidate_events_immutability_trigger'
+    `);
+
+    if (productImportReviewResult.rows.length !== 8) {
+      throw new Error("Zakaz import review candidate migration was not applied");
     }
 
     return {

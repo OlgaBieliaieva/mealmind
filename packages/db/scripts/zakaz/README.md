@@ -109,6 +109,42 @@ snapshot, формує canonical draft із field-level provenance та розп
 Усі файли створюються в ignored директорії `data/output` і не публікуються до
 БД автоматично.
 
+## Завантаження candidates до review queue
+
+Перед записом потрібно виконати read-only перевірку manifest, checksums,
+структури всіх трьох artifacts та унікальності source identities:
+
+```bash
+npm run db:import:zakaz:candidates:dry-run
+```
+
+Для локального завантаження після застосування Prisma migrations:
+
+```bash
+npm run db:import:zakaz:candidates
+```
+
+Один checksum manifest відповідає одному `ProductImportBatch`. Повторний запуск
+з тим самим manifest не дублює candidates або audit events. Імпортуються всі
+три disposition: `CANDIDATE` і `REVIEW_REQUIRED` отримують статус `PENDING`, а
+pipeline-rejected записи — статус `REJECTED`. Кожен запис отримує системну
+append-only подію `IMPORTED`.
+
+Importer підтримує стандартні `.json` і наявні локальні `.jsonl` імена, але
+перевіряє вміст за SHA-256 із manifest. На цьому етапі він не створює `Product`,
+`ProductPackage`, бренди, категорії або медіафайли.
+
+Remote import заблокований за замовчуванням. Для staging необхідно одночасно
+встановити:
+
+```text
+ZAKAZ_IMPORT_ALLOW_REMOTE=true
+ZAKAZ_IMPORT_CONFIRM_DATABASE=<точна назва цільової БД>
+```
+
+Альтернативний manifest і розмір транзакційного batch можна передати через
+`--manifest <path>` та `--batch-size <1..500>`.
+
 ## Агрегація product observations
 
 Після успішної raw validation:
