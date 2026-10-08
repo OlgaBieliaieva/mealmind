@@ -9,6 +9,7 @@ import { AppProviders } from "./providers";
 import "./globals.css";
 import "@/shared/ui/ui.css";
 import "@/features/products/products.css";
+import "@/features/product-import-review/product-import-review.css";
 import "@/features/recipes/recipes.css";
 import "@/features/reference/reference.css";
 import "@/features/auth/auth.css";
