@@ -68,7 +68,7 @@ try {
       storeExternalId: "48215625",
       sourceSku,
       disposition: "CANDIDATE",
-      status: "APPROVED",
+      status: "PENDING",
       reasonCodes: [],
       matchStatus: "MATCHED",
       classificationDecision: "ELIGIBLE",
@@ -103,12 +103,37 @@ try {
       },
       fieldProvenance: {},
       sourceSnapshots: {},
-      reviewedByUserId: admin.id,
-      reviewedAt: new Date("2026-10-08T11:00:00Z"),
     },
   });
-  const details = await repository.findById(candidate.id);
+  const pendingDetails = await repository.findById(candidate.id);
+  assert.notEqual(pendingDetails, null);
+
+  const activeReview = await repository.mutate({
+    id: candidate.id,
+    actorUserId: admin.id,
+    expectedUpdatedAt: pendingDetails!.updatedAt,
+    fromStatus: "PENDING",
+    toStatus: "IN_REVIEW",
+    action: "REVIEW_STARTED",
+    reviewedAt: null,
+  });
+  assert.notEqual(activeReview, null);
+  assert.equal(activeReview!.status, "IN_REVIEW");
+  assert.equal(activeReview!.reviewedByUserId, admin.id);
+  assert.equal(activeReview!.reviewedAt, null);
+
+  const details = await repository.mutate({
+    id: candidate.id,
+    actorUserId: admin.id,
+    expectedUpdatedAt: activeReview!.updatedAt,
+    fromStatus: "IN_REVIEW",
+    toStatus: "APPROVED",
+    action: "APPROVED",
+    reviewedAt: new Date("2026-10-08T11:00:00Z"),
+  });
   assert.notEqual(details, null);
+  assert.equal(details!.status, "APPROVED");
+  assert.equal(details!.reviewedAt, "2026-10-08T11:00:00.000Z");
 
   const published = await publisher.publish({
     candidate: details!,
@@ -151,7 +176,10 @@ try {
     "protein",
     "total_fat",
   ]);
-  assert.equal(result.events.at(-1)?.action, "PUBLISHED");
+  assert.deepEqual(
+    result.events.map((event) => event.action),
+    ["REVIEW_STARTED", "APPROVED", "PUBLISHED"],
+  );
   console.log("Zakaz product import publication integration test passed.");
 } finally {
   // Audit events are append-only and keep RESTRICT references.

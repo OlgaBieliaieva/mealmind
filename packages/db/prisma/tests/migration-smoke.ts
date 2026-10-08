@@ -33,6 +33,7 @@ const EXPECTED_MIGRATIONS = [
   "20261006120000_product_package_foundation",
   "20261007120000_zakaz_import_review_candidates",
   "20261007123000_product_import_event_actor_integrity",
+  "20261008140000_product_import_active_review_metadata",
 ] as const;
 
 loadEnvironment({
