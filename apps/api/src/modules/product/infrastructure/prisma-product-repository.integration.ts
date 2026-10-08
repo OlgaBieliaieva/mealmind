@@ -131,7 +131,9 @@ try {
     ProductConflictError,
   );
 
-  const updatedGtin = String(Date.now() + 1).slice(-12).padStart(14, "0");
+  const updatedGtin = String(Date.now() + 1)
+    .slice(-12)
+    .padStart(14, "0");
   const updatedBranded = await repository.update(branded.id, { gtin: updatedGtin });
   assert.equal(updatedBranded?.gtin, updatedGtin);
 
@@ -150,7 +152,9 @@ try {
 
   await repository.update(branded.id, { gtin: updatedGtin });
   await repository.updateStatus(branded.id, "ARCHIVED");
-  const archivedGtin = String(Date.now() + 2).slice(-12).padStart(14, "0");
+  const archivedGtin = String(Date.now() + 2)
+    .slice(-12)
+    .padStart(14, "0");
   await repository.update(branded.id, { gtin: archivedGtin });
 
   const archivedDefaultPackage = await database.productPackage.findUniqueOrThrow({

@@ -23,23 +23,14 @@ export async function writeCandidateFixture(
   const salt = randomUUID();
   const documents = [
     artifact(generatedAt, "CANDIDATE", [record(salt, "candidate", "CANDIDATE")]),
-    artifact(
-      generatedAt,
-      "REVIEW_REQUIRED",
-      [
-        record(
-          salt,
-          options.duplicateIdentity ? "candidate" : "review",
-          "REVIEW_REQUIRED",
-          ["PACKAGE_MEASURE_MISSING"],
-        ),
-      ],
-    ),
-    artifact(
-      generatedAt,
-      "REJECTED",
-      [record(salt, "rejected", "REJECTED", ["PACKAGE_VARIABLE_WEIGHT"])],
-    ),
+    artifact(generatedAt, "REVIEW_REQUIRED", [
+      record(salt, options.duplicateIdentity ? "candidate" : "review", "REVIEW_REQUIRED", [
+        "PACKAGE_MEASURE_MISSING",
+      ]),
+    ]),
+    artifact(generatedAt, "REJECTED", [
+      record(salt, "rejected", "REJECTED", ["PACKAGE_VARIABLE_WEIGHT"]),
+    ]),
   ] as const;
   const logicalNames = [
     "zakaz-candidates.json",
@@ -95,7 +86,11 @@ export async function writeCandidateFixture(
     },
   };
   const manifestName = options.jsonlNames ? "zakaz-manifest.jsonl" : "zakaz-manifest.json";
-  await writeFile(resolve(directory, manifestName), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await writeFile(
+    resolve(directory, manifestName),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
   return resolve(directory, "zakaz-manifest.json");
 }
 
@@ -129,7 +124,11 @@ function record(
     disposition,
     reasonCodes,
     classificationDecision:
-      disposition === "CANDIDATE" ? "ELIGIBLE" : disposition === "REJECTED" ? "REJECTED" : "REVIEW_REQUIRED",
+      disposition === "CANDIDATE"
+        ? "ELIGIBLE"
+        : disposition === "REJECTED"
+          ? "REJECTED"
+          : "REVIEW_REQUIRED",
     matchStatus: "MATCHED",
     sourceFingerprint: `sha256:${sha256(`${salt}:${sourceSku}:en`)}`,
     localizedFingerprint: `sha256:${sha256(`${salt}:${sourceSku}:uk`)}`,
@@ -202,7 +201,12 @@ function output(
   fileName: string,
   disposition: CandidateDisposition,
   content: string,
-): { readonly fileName: string; readonly disposition: CandidateDisposition; readonly count: 1; readonly sha256: string } {
+): {
+  readonly fileName: string;
+  readonly disposition: CandidateDisposition;
+  readonly count: 1;
+  readonly sha256: string;
+} {
   return { fileName, disposition, count: 1, sha256: sha256(content) };
 }
 

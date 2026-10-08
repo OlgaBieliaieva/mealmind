@@ -221,7 +221,9 @@ async function persistCandidateBatch(
   manifestChecksum: string,
   records: readonly CandidateArtifactRecord[],
 ): Promise<{ readonly created: number; readonly updated: number; readonly eventsCreated: number }> {
-  const candidateRows = records.map((record) => candidateCreateData(batchId, manifestChecksum, record));
+  const candidateRows = records.map((record) =>
+    candidateCreateData(batchId, manifestChecksum, record),
+  );
   const ids = candidateRows.map((candidate) => candidate.id);
 
   return database.$transaction(
@@ -237,8 +239,12 @@ async function persistCandidateBatch(
       const created =
         newRows.length === 0
           ? 0
-          : (await transaction.productImportCandidate.createMany({ data: newRows, skipDuplicates: true }))
-              .count;
+          : (
+              await transaction.productImportCandidate.createMany({
+                data: newRows,
+                skipDuplicates: true,
+              })
+            ).count;
 
       for (const candidate of existingRows) {
         await transaction.productImportCandidate.update({
@@ -261,16 +267,16 @@ async function persistCandidateBatch(
 
       const events: Prisma.ProductImportCandidateEventCreateManyInput[] = candidateRows.map(
         (candidate) => ({
-        id: uuidV5(`event:imported:${candidate.id}`, ZAKAZ_IMPORT_UUID_NAMESPACE),
-        candidateId: candidate.id,
-        action: "IMPORTED" as const,
-        fromStatus: null,
-        toStatus: candidate.status,
-        changeSet: asJson({
-          disposition: candidate.disposition,
-          reasonCodes: candidate.reasonCodes,
-        }),
-        deduplicationKey: `import:${sha256(`${manifestChecksum}:${candidate.id}`)}`,
+          id: uuidV5(`event:imported:${candidate.id}`, ZAKAZ_IMPORT_UUID_NAMESPACE),
+          candidateId: candidate.id,
+          action: "IMPORTED" as const,
+          fromStatus: null,
+          toStatus: candidate.status,
+          changeSet: asJson({
+            disposition: candidate.disposition,
+            reasonCodes: candidate.reasonCodes,
+          }),
+          deduplicationKey: `import:${sha256(`${manifestChecksum}:${candidate.id}`)}`,
         }),
       );
       const eventsCreated = (

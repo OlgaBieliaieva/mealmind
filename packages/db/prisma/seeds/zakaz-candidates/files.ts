@@ -35,15 +35,13 @@ export async function loadZakazCandidateBundle(
   validateValidationReport(validation, manifest);
 
   const artifacts = await Promise.all(
-    [
-      manifest.outputs.candidates,
-      manifest.outputs.reviewRequired,
-      manifest.outputs.rejected,
-    ].map(async (output): Promise<ZakazCandidateArtifactInput> => {
-      const filePath = await resolveCompatibleJsonPath(resolve(directory, output.fileName));
-      await assertFileChecksum(filePath, output.sha256);
-      return { filePath, manifest: output };
-    }),
+    [manifest.outputs.candidates, manifest.outputs.reviewRequired, manifest.outputs.rejected].map(
+      async (output): Promise<ZakazCandidateArtifactInput> => {
+        const filePath = await resolveCompatibleJsonPath(resolve(directory, output.fileName));
+        await assertFileChecksum(filePath, output.sha256);
+        return { filePath, manifest: output };
+      },
+    ),
   );
 
   return {
@@ -59,18 +57,26 @@ export async function loadZakazCandidateBundle(
 export async function loadZakazCandidateArtifact(
   input: ZakazCandidateArtifactInput,
 ): Promise<CandidateArtifactDocument> {
-  const document = parseJson<CandidateArtifactDocument>(await readFile(input.filePath), input.filePath);
+  const document = parseJson<CandidateArtifactDocument>(
+    await readFile(input.filePath),
+    input.filePath,
+  );
 
   if (document.schema !== ZAKAZ_CANDIDATE_ARTIFACT_SCHEMA) {
     throw new Error(`Непідтримувана candidate artifact schema: ${String(document.schema)}`);
   }
   if (document.provider !== "ZAKAZ") {
-    throw new Error(`Candidate artifact має непідтримуваного provider: ${String(document.provider)}`);
+    throw new Error(
+      `Candidate artifact має непідтримуваного provider: ${String(document.provider)}`,
+    );
   }
   if (document.disposition !== input.manifest.disposition) {
     throw new Error(`Disposition artifact не відповідає manifest: ${input.filePath}`);
   }
-  if (document.count !== input.manifest.count || document.products.length !== input.manifest.count) {
+  if (
+    document.count !== input.manifest.count ||
+    document.products.length !== input.manifest.count
+  ) {
     throw new Error(`Кількість records artifact не відповідає manifest: ${input.filePath}`);
   }
   if (!validDate(document.generatedAt)) {
@@ -107,7 +113,12 @@ async function resolveCompatibleJsonPath(requestedPath: string): Promise<string>
   if (await exists(requestedPath)) return requestedPath;
 
   const extension = extname(requestedPath).toLowerCase();
-  const alternative = extension === ".json" ? `${requestedPath}l` : extension === ".jsonl" ? requestedPath.slice(0, -1) : null;
+  const alternative =
+    extension === ".json"
+      ? `${requestedPath}l`
+      : extension === ".jsonl"
+        ? requestedPath.slice(0, -1)
+        : null;
 
   if (alternative && (await exists(alternative))) return alternative;
   throw new Error(`Не знайдено Zakaz artifact: ${requestedPath}`);

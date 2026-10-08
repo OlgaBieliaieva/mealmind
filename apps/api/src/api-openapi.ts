@@ -1,5 +1,9 @@
 import { productOpenApiPaths, productOpenApiSchemas } from "./modules/product/product-openapi.js";
 import {
+  productImportReviewOpenApiPaths,
+  productImportReviewOpenApiSchemas,
+} from "./modules/product-import-review/product-import-review-openapi.js";
+import {
   adminAnalyticsOpenApiPaths,
   adminAnalyticsOpenApiSchemas,
 } from "./modules/admin-analytics/admin-analytics-openapi.js";
@@ -68,6 +72,7 @@ export const apiOpenApiDocument = Object.freeze({
       },
     },
     ...productOpenApiPaths,
+    ...productImportReviewOpenApiPaths,
     ...recipeOpenApiPaths,
     ...familyOpenApiPaths,
     ...foodOpenApiPaths,
@@ -82,6 +87,7 @@ export const apiOpenApiDocument = Object.freeze({
       ...referenceOpenApiDocument.components.schemas,
       ...adminAnalyticsOpenApiSchemas,
       ...productOpenApiSchemas,
+      ...productImportReviewOpenApiSchemas,
       ...recipeOpenApiSchemas,
       ...familyOpenApiSchemas,
       ...foodOpenApiSchemas,

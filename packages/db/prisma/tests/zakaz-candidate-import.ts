@@ -24,7 +24,10 @@ async function main(): Promise<void> {
   await deployMigrations(target);
 
   const directory = await mkdtemp(join(tmpdir(), "mealmind-zakaz-candidate-db-"));
-  const database = createDatabaseClient({ connectionString: target.connectionString, log: ["error"] });
+  const database = createDatabaseClient({
+    connectionString: target.connectionString,
+    log: ["error"],
+  });
 
   try {
     const bundle = await loadZakazCandidateBundle(await writeCandidateFixture(directory));
@@ -47,10 +50,10 @@ async function main(): Promise<void> {
       where: { batchId: batch.id },
       _count: { _all: true },
     });
-    assert.deepEqual(
-      Object.fromEntries(statuses.map((item) => [item.status, item._count._all])),
-      { PENDING: 2, REJECTED: 1 },
-    );
+    assert.deepEqual(Object.fromEntries(statuses.map((item) => [item.status, item._count._all])), {
+      PENDING: 2,
+      REJECTED: 1,
+    });
     assert.equal(
       await database.productImportCandidateEvent.count({
         where: { candidate: { batchId: batch.id }, action: "IMPORTED" },

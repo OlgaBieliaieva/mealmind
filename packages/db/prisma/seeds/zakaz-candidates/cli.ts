@@ -34,7 +34,10 @@ async function main(): Promise<void> {
   }
 
   const target = resolveZakazImportDatabaseTarget(process.env);
-  const database = createDatabaseClient({ connectionString: target.connectionString, log: ["error"] });
+  const database = createDatabaseClient({
+    connectionString: target.connectionString,
+    log: ["error"],
+  });
   console.info(
     `Zakaz candidate target: host=${target.hostname} database=${target.databaseName} local=${target.isLocal}`,
   );
