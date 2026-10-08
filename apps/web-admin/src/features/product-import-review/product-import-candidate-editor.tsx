@@ -2,13 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { getBrowserApiClient } from "@/shared/api/browser-api-client";
 import {
   decideProductImportReview,
   getProductImportCandidate,
+  publishProductImportCandidate,
   reopenProductImportReview,
   startProductImportReview,
   updateProductImportReviewDraft,
@@ -17,6 +18,8 @@ import {
   type ProductImportCandidateReviewDetails,
   type ProductImportReviewDecision,
 } from "@/shared/api/product-import-review";
+import { listReferenceData, type ReferenceItem } from "@/shared/api/reference-data";
+import { searchProducts } from "@/shared/api/products";
 import { showErrorToast } from "@/shared/feedback/error-toast";
 import { Button, Card, Modal, PageState, SelectField, TextInput } from "@/shared/ui";
 
@@ -26,6 +29,7 @@ import {
   IMPORT_STATUS_LABELS,
   reasonCodeLabel,
 } from "./product-import-labels";
+import { BaseProductSearch, type BaseProductOption } from "../products/base-product-search";
 
 export interface ProductImportCandidateEditorProps {
   readonly candidateId: string;
@@ -57,10 +61,7 @@ export function ProductImportCandidateEditor({ candidateId }: ProductImportCandi
   }
 
   return (
-    <LoadedCandidateEditor
-      key={query.data.data.candidate.updatedAt}
-      details={query.data.data}
-    />
+    <LoadedCandidateEditor key={query.data.data.candidate.updatedAt} details={query.data.data} />
   );
 }
 
@@ -77,6 +78,35 @@ function LoadedCandidateEditor({
   const gtinDraft = objectValue(draft.gtin);
   const nutritionDraft = objectValue(draft.nutritionFacts);
   const resolutionDraft = objectValue(draft.reviewResolution);
+  const canonicalDraft = objectValue(draft.canonical);
+  const categories = useQuery({
+    queryKey: ["admin-reference-options", "product-categories"],
+    queryFn: () =>
+      listReferenceData(apiClient, {
+        resource: "product-categories",
+        pageSize: 100,
+        includeInactive: false,
+      }),
+  });
+  const brands = useQuery({
+    queryKey: ["admin-reference-options", "brands"],
+    queryFn: () =>
+      listReferenceData(apiClient, {
+        resource: "brands",
+        pageSize: 100,
+        includeInactive: false,
+        status: "ACTIVE",
+      }),
+  });
+  const units = useQuery({
+    queryKey: ["admin-reference-options", "measurement-units"],
+    queryFn: () =>
+      listReferenceData(apiClient, {
+        resource: "measurement-units",
+        pageSize: 100,
+        includeInactive: false,
+      }),
+  });
   const [form, setForm] = useState(() => ({
     title: stringValue(draft.title),
     description: stringValue(draft.description),
@@ -101,9 +131,32 @@ function LoadedCandidateEditor({
         ? "ADD_PACKAGE_TO_EXISTING_PRODUCT"
         : "CREATE_NEW_PRODUCT",
     targetProductId: stringValue(resolutionDraft.targetProductId),
+    canonicalNameUa: stringValue(canonicalDraft.nameUa) || stringValue(draft.title),
+    canonicalNameEn:
+      stringValue(canonicalDraft.nameEn) ||
+      stringValue(draft.sourceTitle) ||
+      stringValue(draft.title),
+    categoryId: stringValue(canonicalDraft.categoryId),
+    brandId: stringValue(canonicalDraft.brandId),
+    defaultMeasurementUnitId: stringValue(canonicalDraft.defaultMeasurementUnitId),
+    baseProductId: stringValue(canonicalDraft.baseProductId),
   }));
   const [decision, setDecision] = useState<ProductImportReviewDecision | null>(null);
   const [decisionComment, setDecisionComment] = useState("");
+  const [publishOpen, setPublishOpen] = useState(false);
+  const searchGenericProducts = useCallback(
+    async (search: string): Promise<readonly BaseProductOption[]> => {
+      const response = await searchProducts(apiClient, search);
+      return response.data.items
+        .filter((item) => item.type === "GENERIC")
+        .map((item) => ({
+          value: item.id,
+          label: item.name,
+          description: item.categoryName,
+        }));
+    },
+    [apiClient],
+  );
 
   async function refresh(response?: Awaited<ReturnType<typeof getProductImportCandidate>>) {
     if (response !== undefined) {
@@ -154,6 +207,15 @@ function LoadedCandidateEditor({
     },
     onError: showErrorToast,
   });
+  const publishMutation = useMutation({
+    mutationFn: () => publishProductImportCandidate(apiClient, candidate.id, candidate.updatedAt),
+    onSuccess: async (response) => {
+      toast.success("Продукт і пакування опубліковано");
+      setPublishOpen(false);
+      await refresh(response);
+    },
+    onError: showErrorToast,
+  });
 
   function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,6 +260,14 @@ function LoadedCandidateEditor({
             ? nullable(form.targetProductId)
             : null,
       },
+      canonical: {
+        nameUa: nullable(form.canonicalNameUa),
+        nameEn: nullable(form.canonicalNameEn),
+        categoryId: nullable(form.categoryId),
+        brandId: nullable(form.brandId),
+        defaultMeasurementUnitId: nullable(form.defaultMeasurementUnitId),
+        baseProductId: nullable(form.baseProductId),
+      },
     };
     saveMutation.mutate(patch);
   }
@@ -205,6 +275,7 @@ function LoadedCandidateEditor({
   const canEdit = candidate.status === "IN_REVIEW";
   const canStart = candidate.status === "PENDING" || candidate.status === "DEFERRED";
   const canReopen = candidate.status === "APPROVED" || candidate.status === "REJECTED";
+  const canPublish = candidate.status === "APPROVED";
   const imageUrl = form.sourceImageUrl || stringValue(candidate.sourceDraft.sourceImageUrl);
 
   return (
@@ -214,10 +285,14 @@ function LoadedCandidateEditor({
           <p className="admin-page__eyebrow">Zakaz · SKU {candidate.sourceSku}</p>
           <h1 id="candidate-title">{candidate.title ?? "Кандидат без назви"}</h1>
           <div className="import-review-page__badges">
-            <span className={`import-review-badge import-review-status--${candidate.status.toLowerCase()}`}>
+            <span
+              className={`import-review-badge import-review-status--${candidate.status.toLowerCase()}`}
+            >
               {IMPORT_STATUS_LABELS[candidate.status]}
             </span>
-            <span className={`import-review-badge import-review-badge--${candidate.disposition.toLowerCase()}`}>
+            <span
+              className={`import-review-badge import-review-badge--${candidate.disposition.toLowerCase()}`}
+            >
               {IMPORT_DISPOSITION_LABELS[candidate.disposition]}
             </span>
           </div>
@@ -266,8 +341,12 @@ function LoadedCandidateEditor({
               Відкрити повторно
             </Button>
           ) : null}
+          {canPublish ? <Button onClick={() => setPublishOpen(true)}>Опублікувати</Button> : null}
           {candidate.publishedProductId ? (
-            <Link className="ui-button ui-button--secondary" href={`/products/${candidate.publishedProductId}`}>
+            <Link
+              className="ui-button ui-button--secondary"
+              href={`/products/${candidate.publishedProductId}`}
+            >
               Переглянути продукт
             </Link>
           ) : null}
@@ -280,7 +359,11 @@ function LoadedCandidateEditor({
           {imageUrl ? (
             // Zakaz source image is shown only to an authenticated administrator.
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="import-review-source__image" src={imageUrl} alt="Зображення товару з Zakaz" />
+            <img
+              className="import-review-source__image"
+              src={imageUrl}
+              alt="Зображення товару з Zakaz"
+            />
           ) : null}
           <CandidateFacts draft={candidate.sourceDraft} candidate={candidate} />
           <details className="import-review-technical">
@@ -292,7 +375,7 @@ function LoadedCandidateEditor({
           </details>
         </Card>
 
-        <form className="import-review-form" onSubmit={submitDraft}>
+        <form className="import-review-form" onSubmit={submitDraft} noValidate>
           <Card>
             <div className="import-review-section-heading">
               <div>
@@ -349,7 +432,7 @@ function LoadedCandidateEditor({
                   { value: "FIXED_MASS", label: "Фіксована вага" },
                   { value: "FIXED_VOLUME", label: "Фіксований об’єм" },
                   { value: "FIXED_COUNT", label: "Фіксована кількість" },
-                  { value: "MIXED", label: "Комбіноване пакування" },
+                  { value: "FIXED_MASS_AND_VOLUME", label: "Вага та обсяг" },
                 ]}
                 onChange={(event) => setForm({ ...form, packageKind: event.target.value })}
               />
@@ -393,27 +476,70 @@ function LoadedCandidateEditor({
               onChange={(value) => setForm({ ...form, ingredients: value })}
             />
             <div className="import-review-form__grid">
-              <TextInput label="Енергія" value={form.energy} disabled={!canEdit} onChange={(event) => setForm({ ...form, energy: event.target.value })} />
-              <TextInput label="Білки" value={form.protein} disabled={!canEdit} onChange={(event) => setForm({ ...form, protein: event.target.value })} />
-              <TextInput label="Жири" value={form.fat} disabled={!canEdit} onChange={(event) => setForm({ ...form, fat: event.target.value })} />
-              <TextInput label="Вуглеводи" value={form.carbohydrates} disabled={!canEdit} onChange={(event) => setForm({ ...form, carbohydrates: event.target.value })} />
+              <TextInput
+                label="Енергія"
+                value={form.energy}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, energy: event.target.value })}
+              />
+              <TextInput
+                label="Білки"
+                value={form.protein}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, protein: event.target.value })}
+              />
+              <TextInput
+                label="Жири"
+                value={form.fat}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, fat: event.target.value })}
+              />
+              <TextInput
+                label="Вуглеводи"
+                value={form.carbohydrates}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, carbohydrates: event.target.value })}
+              />
             </div>
           </Card>
 
           <Card>
             <h2>Пакування та source reference</h2>
             <div className="import-review-form__grid">
-              <TextInput label="Строк придатності" value={form.shelfLife} disabled={!canEdit} onChange={(event) => setForm({ ...form, shelfLife: event.target.value })} />
-              <TextInput label="Температурний діапазон" value={form.temperatureRange} disabled={!canEdit} onChange={(event) => setForm({ ...form, temperatureRange: event.target.value })} />
-              <TextInput label="Zakaz URL" type="url" value={form.webUrl} disabled={!canEdit} onChange={(event) => setForm({ ...form, webUrl: event.target.value })} />
-              <TextInput label="URL основного зображення" type="url" value={form.sourceImageUrl} disabled={!canEdit} onChange={(event) => setForm({ ...form, sourceImageUrl: event.target.value })} />
+              <TextInput
+                label="Строк придатності"
+                value={form.shelfLife}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, shelfLife: event.target.value })}
+              />
+              <TextInput
+                label="Температурний діапазон"
+                value={form.temperatureRange}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, temperatureRange: event.target.value })}
+              />
+              <TextInput
+                label="Zakaz URL"
+                type="url"
+                value={form.webUrl}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, webUrl: event.target.value })}
+              />
+              <TextInput
+                label="URL основного зображення"
+                type="url"
+                value={form.sourceImageUrl}
+                disabled={!canEdit}
+                onChange={(event) => setForm({ ...form, sourceImageUrl: event.target.value })}
+              />
             </div>
           </Card>
 
           <Card>
             <h2>Майбутня публікація</h2>
             <p className="import-review-form__hint">
-              Вибір зберігається у review draft. Фактичне створення продукту відбудеться окремою транзакцією.
+              Canonical значення зберігаються у review draft. Після схвалення окрема дія атомарно
+              створить продукт і пакування.
             </p>
             <SelectField
               label="Рішення щодо продукту"
@@ -442,7 +568,76 @@ function LoadedCandidateEditor({
                 ]}
                 onChange={(event) => setForm({ ...form, targetProductId: event.target.value })}
               />
-            ) : null}
+            ) : (
+              <>
+                <div className="import-review-form__grid">
+                  <TextInput
+                    label="Канонічна назва українською"
+                    value={form.canonicalNameUa}
+                    disabled={!canEdit}
+                    onChange={(event) => setForm({ ...form, canonicalNameUa: event.target.value })}
+                  />
+                  <TextInput
+                    label="Канонічна назва англійською"
+                    value={form.canonicalNameEn}
+                    disabled={!canEdit}
+                    required
+                    onChange={(event) => setForm({ ...form, canonicalNameEn: event.target.value })}
+                  />
+                  <SelectField
+                    label="Категорія MealMind"
+                    value={form.categoryId}
+                    disabled={!canEdit || categories.isPending}
+                    required
+                    options={[
+                      { value: "", label: "Оберіть категорію" },
+                      ...referenceOptions(categories.data?.data.items ?? [], true),
+                    ]}
+                    onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+                  />
+                  <SelectField
+                    label="Бренд MealMind"
+                    value={form.brandId}
+                    disabled={!canEdit || brands.isPending}
+                    required
+                    options={[
+                      { value: "", label: "Оберіть бренд" },
+                      ...referenceOptions(brands.data?.data.items ?? []),
+                    ]}
+                    onChange={(event) => setForm({ ...form, brandId: event.target.value })}
+                  />
+                  <SelectField
+                    label="Базова одиниця"
+                    value={form.defaultMeasurementUnitId}
+                    disabled={!canEdit || units.isPending}
+                    required
+                    options={[
+                      { value: "", label: "Оберіть одиницю" },
+                      ...referenceOptions(units.data?.data.items ?? []),
+                    ]}
+                    onChange={(event) =>
+                      setForm({ ...form, defaultMeasurementUnitId: event.target.value })
+                    }
+                  />
+                </div>
+                <BaseProductSearch
+                  value={form.baseProductId}
+                  initialOptions={
+                    form.baseProductId
+                      ? [{ value: form.baseProductId, label: "Обраний generic-продукт" }]
+                      : []
+                  }
+                  disabled={!canEdit}
+                  onSearch={searchGenericProducts}
+                  onChange={(baseProductId) => setForm({ ...form, baseProductId })}
+                />
+                {categories.isError || brands.isError || units.isError ? (
+                  <p className="ui-field__error" role="alert">
+                    Не вдалося завантажити один із canonical довідників.
+                  </p>
+                ) : null}
+              </>
+            )}
             <CatalogMatches matches={details.catalogMatches} />
           </Card>
 
@@ -474,7 +669,11 @@ function LoadedCandidateEditor({
         }}
         footer={
           <>
-            <Button variant="secondary" disabled={decisionMutation.isPending} onClick={() => setDecision(null)}>
+            <Button
+              variant="secondary"
+              disabled={decisionMutation.isPending}
+              onClick={() => setDecision(null)}
+            >
               Скасувати
             </Button>
             <Button
@@ -497,6 +696,37 @@ function LoadedCandidateEditor({
           required={decision === "REJECT"}
           onChange={setDecisionComment}
         />
+      </Modal>
+      <Modal
+        open={publishOpen}
+        title="Опублікувати продукт"
+        description="Буде створено або доповнено активний перевірений продукт, пакування, склад, label nutrients і source references. Цю дію не можна скасувати через review queue."
+        onClose={() => {
+          if (!publishMutation.isPending) setPublishOpen(false);
+        }}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              disabled={publishMutation.isPending}
+              onClick={() => setPublishOpen(false)}
+            >
+              Скасувати
+            </Button>
+            <Button
+              isLoading={publishMutation.isPending}
+              loadingLabel="Публікуємо…"
+              onClick={() => publishMutation.mutate()}
+            >
+              Опублікувати
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Після успішної транзакції кандидат отримає статус «Опубліковано» і посилання на створений
+          продукт.
+        </p>
       </Modal>
     </section>
   );
@@ -558,7 +788,8 @@ function CatalogMatches({
               <div>
                 <strong>{match.name}</strong>
                 <span>
-                  {match.brandName ?? "Без бренду"} · {match.categoryName} · GTIN {match.gtin ?? "—"}
+                  {match.brandName ?? "Без бренду"} · {match.categoryName} · GTIN{" "}
+                  {match.gtin ?? "—"}
                 </span>
               </div>
               <div>
@@ -651,7 +882,9 @@ function stringValue(value: JsonValue | undefined): string {
 }
 
 function stringArray(value: JsonValue | undefined): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function inputNumber(value: JsonValue | undefined): string {
@@ -670,6 +903,32 @@ function nullableNumber(value: string): number | null {
 function nullableInteger(value: string): number | null {
   const parsed = Number(value);
   return value.trim() && Number.isInteger(parsed) ? parsed : null;
+}
+
+function referenceOptions(
+  items: readonly ReferenceItem[],
+  nested = false,
+  depth = 0,
+): { readonly value: string; readonly label: string }[] {
+  return items.flatMap((item) => {
+    const own = {
+      value: item.id,
+      label: (nested ? "— ".repeat(depth) : "") + referenceLabel(item),
+    };
+    const children =
+      nested && Array.isArray(item.children)
+        ? referenceOptions(item.children as readonly ReferenceItem[], true, depth + 1)
+        : [];
+    return [own, ...children];
+  });
+}
+
+function referenceLabel(item: ReferenceItem): string {
+  for (const field of ["nameUa", "name", "nameEn", "symbol", "code"] as const) {
+    const value = item[field];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return item.id;
 }
 
 function unitValue(value: JsonValue | undefined, unit: string): string {

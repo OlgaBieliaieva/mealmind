@@ -216,6 +216,7 @@ function mapCandidateDetails(row: CandidateRow): ProductImportCandidateDetails {
   return Object.freeze({
     ...mapCandidateSummary(row),
     classificationDecision: row.classificationDecision,
+    sourceFingerprint: row.sourceFingerprint,
     sourceCategoryIds: asJsonValue(row.sourceCategoryIds),
     sourceDraft: asJsonObject(row.sourceDraft),
     reviewDraft: asJsonObject(row.reviewDraft),

@@ -1175,7 +1175,9 @@
           "403": { "description": "Потрібна роль ADMIN" },
           "404": { "description": "Кандидата не знайдено" },
           "409": { "description": "Конфлікт revision, статусу або власника review" },
-          "422": { "description": "Для відхилення не вказано обов’язковий коментар" },
+          "422": {
+            "description": "Для відхилення не вказано коментар або схвалювана чернетка не готова до публікації"
+          },
           "429": { "description": "Перевищено rate limit" }
         }
       }
@@ -1215,6 +1217,46 @@
           "403": { "description": "Потрібна роль ADMIN" },
           "404": { "description": "Кандидата не знайдено" },
           "409": { "description": "Перехід статусу неможливий або revision застарів" },
+          "429": { "description": "Перевищено rate limit" }
+        }
+      }
+    },
+    "/api/v1/admin/product-import/candidates/{id}/publish": {
+      "post": {
+        "summary": "Опублікувати перевірений кандидат продукту",
+        "description": "Атомарно створює або доповнює Product, ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["expectedUpdatedAt"],
+                "properties": {
+                  "expectedUpdatedAt": { "type": "string", "format": "date-time" },
+                  "comment": { "type": ["string", "null"], "maxLength": 4000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Кандидат опубліковано" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "description": "Потрібна роль ADMIN" },
+          "404": { "description": "Кандидата не знайдено" },
+          "409": { "description": "Конфлікт revision, GTIN або source identity" },
+          "422": { "description": "Review draft не містить обов’язкових canonical даних" },
           "429": { "description": "Перевищено rate limit" }
         }
       }

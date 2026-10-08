@@ -72,6 +72,10 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
   const productImportReviewModule = createProductImportReviewModule(
     database,
     authenticationService,
+    {
+      url: config.supabase.url,
+      secretKey: config.supabase.secretKey,
+    },
   );
   const recipeModule = createRecipeModule(database, authenticationService, {
     url: config.supabase.url,

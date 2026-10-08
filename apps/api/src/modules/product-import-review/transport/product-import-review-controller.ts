@@ -8,6 +8,7 @@ import {
   getProductImportCandidateSchema,
   listProductImportCandidatesSchema,
   reopenProductImportReviewSchema,
+  publishProductImportCandidateSchema,
   startProductImportReviewSchema,
   updateProductImportReviewDraftSchema,
 } from "./product-import-review-schema.js";
@@ -19,6 +20,7 @@ export interface ProductImportReviewController {
   readonly updateDraft: RequestHandler;
   readonly decide: RequestHandler;
   readonly reopen: RequestHandler;
+  readonly publish: RequestHandler;
 }
 
 export function createProductImportReviewController(
@@ -85,5 +87,19 @@ export function createProductImportReviewController(
         ),
       });
     }),
+
+    publish: validateRequest(
+      publishProductImportCandidateSchema,
+      async (input, request, response) => {
+        response.set("cache-control", "private, no-store");
+        response.status(200).json({
+          data: await service.publish(
+            input.params.id,
+            input.body,
+            getAuthenticatedUser(request).userId,
+          ),
+        });
+      },
+    ),
   });
 }

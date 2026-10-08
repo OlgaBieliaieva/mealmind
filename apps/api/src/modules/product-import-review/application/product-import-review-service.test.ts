@@ -5,6 +5,7 @@ import type {
   ProductImportCandidateDetails,
   ProductImportReviewRepository,
 } from "../domain/product-import-review-repository.js";
+import type { ProductImportPublisher } from "../domain/product-import-publisher.js";
 import {
   ProductImportReviewConflictError,
   ProductImportReviewInvariantError,
@@ -18,7 +19,7 @@ describe("product import review service", () => {
   it("starts review and records the administrator as its owner", async () => {
     const candidate = candidateFixture();
     const repository = repositoryFixture(candidate);
-    const service = createProductImportReviewService(repository);
+    const service = createProductImportReviewService(repository, publisherFixture());
 
     await service.start(candidate.id, { expectedUpdatedAt: revision }, actorId);
 
@@ -39,7 +40,7 @@ describe("product import review service", () => {
       reviewDraft: { title: "Source title", brandName: "Brand", description: null },
     });
     const repository = repositoryFixture(candidate);
-    const service = createProductImportReviewService(repository);
+    const service = createProductImportReviewService(repository, publisherFixture());
 
     await service.updateDraft(
       candidate.id,
@@ -61,7 +62,10 @@ describe("product import review service", () => {
 
   it("does not allow another administrator to overwrite an active review", async () => {
     const candidate = candidateFixture({ status: "IN_REVIEW", reviewedByUserId: actorId });
-    const service = createProductImportReviewService(repositoryFixture(candidate));
+    const service = createProductImportReviewService(
+      repositoryFixture(candidate),
+      publisherFixture(),
+    );
 
     await expect(
       service.updateDraft(
@@ -74,22 +78,84 @@ describe("product import review service", () => {
 
   it("requires an audit comment when a candidate is rejected", async () => {
     const candidate = candidateFixture({ status: "IN_REVIEW", reviewedByUserId: actorId });
-    const service = createProductImportReviewService(repositoryFixture(candidate));
+    const service = createProductImportReviewService(
+      repositoryFixture(candidate),
+      publisherFixture(),
+    );
 
     await expect(
       service.decide(candidate.id, { expectedUpdatedAt: revision, decision: "REJECT" }, actorId),
     ).rejects.toBeInstanceOf(ProductImportReviewInvariantError);
   });
 
+  it("does not approve an incomplete canonical publication draft", async () => {
+    const candidate = candidateFixture({
+      status: "IN_REVIEW",
+      reviewedByUserId: actorId,
+      reviewDraft: { title: "Milk", package: { kind: "FIXED_MASS", weightG: 950 } },
+    });
+    const service = createProductImportReviewService(
+      repositoryFixture(candidate),
+      publisherFixture(),
+    );
+
+    await expect(
+      service.decide(candidate.id, { expectedUpdatedAt: revision, decision: "APPROVE" }, actorId),
+    ).rejects.toBeInstanceOf(ProductImportReviewInvariantError);
+  });
+
   it("prevents reopening a published candidate", async () => {
     const candidate = candidateFixture({ status: "PUBLISHED", reviewedByUserId: actorId });
-    const service = createProductImportReviewService(repositoryFixture(candidate));
+    const service = createProductImportReviewService(
+      repositoryFixture(candidate),
+      publisherFixture(),
+    );
 
     await expect(
       service.reopen(candidate.id, { expectedUpdatedAt: revision }, actorId),
     ).rejects.toBeInstanceOf(ProductImportReviewConflictError);
   });
+
+  it("publishes only an approved candidate through the transactional publisher", async () => {
+    const candidate = candidateFixture({
+      status: "APPROVED",
+      reviewDraft: {
+        title: "Milk",
+        sourceTitle: "Milk",
+        package: { kind: "FIXED_MASS", weightG: 950 },
+        reviewResolution: { mode: "CREATE_NEW_PRODUCT", targetProductId: null },
+        canonical: {
+          nameEn: "Milk",
+          categoryId: "11111111-1111-4111-8111-111111111111",
+          brandId: "22222222-2222-4222-8222-222222222222",
+          defaultMeasurementUnitId: "55555555-5555-4555-8555-555555555555",
+        },
+      },
+    });
+    const repository = repositoryFixture(candidate);
+    repository.findById = vi
+      .fn()
+      .mockResolvedValueOnce(candidate)
+      .mockResolvedValueOnce({ ...candidate, status: "PUBLISHED" });
+    const publisher = publisherFixture();
+    const service = createProductImportReviewService(repository, publisher);
+
+    await service.publish(candidate.id, { expectedUpdatedAt: revision }, actorId);
+
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        candidate,
+        expectedUpdatedAt: revision,
+        actorUserId: actorId,
+        publication: expect.objectContaining({ mode: "CREATE_NEW_PRODUCT", nameEn: "Milk" }),
+      }),
+    );
+  });
 });
+
+function publisherFixture(): ProductImportPublisher {
+  return { publish: vi.fn(async () => true) };
+}
 
 function repositoryFixture(
   candidate: ProductImportCandidateDetails,
@@ -131,6 +197,7 @@ function candidateFixture(
     createdAt: revision,
     updatedAt: revision,
     classificationDecision: "ELIGIBLE",
+    sourceFingerprint: null,
     sourceCategoryIds: { source: ["milk-metro"], localized: ["milk-metro"] },
     sourceDraft: emptyDraft,
     reviewDraft: emptyDraft,

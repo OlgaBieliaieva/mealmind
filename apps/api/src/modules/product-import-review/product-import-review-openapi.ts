@@ -130,7 +130,10 @@ export const productImportReviewOpenApiPaths = Object.freeze({
         "200": { description: "Рішення зафіксовано" },
         "404": { description: "Кандидата не знайдено" },
         "409": { description: "Конфлікт revision, статусу або власника review" },
-        "422": { description: "Для відхилення не вказано обов’язковий коментар" },
+        "422": {
+          description:
+            "Для відхилення не вказано коментар або схвалювана чернетка не готова до публікації",
+        },
         ...securityResponses,
       },
     },
@@ -147,6 +150,23 @@ export const productImportReviewOpenApiPaths = Object.freeze({
         "200": { description: "Перевірку повторно відкрито" },
         "404": { description: "Кандидата не знайдено" },
         "409": { description: "Перехід статусу неможливий або revision застарів" },
+        ...securityResponses,
+      },
+    },
+  },
+  "/api/v1/admin/product-import/candidates/{id}/publish": {
+    post: {
+      summary: "Опублікувати перевірений кандидат продукту",
+      description:
+        "Атомарно створює або доповнює Product, ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
+      security: [{ bearerAuth: [] }],
+      parameters: [candidateIdParameter],
+      requestBody: mutationRequest(),
+      responses: {
+        "200": { description: "Кандидат опубліковано" },
+        "404": { description: "Кандидата не знайдено" },
+        "409": { description: "Конфлікт revision, GTIN або source identity" },
+        "422": { description: "Review draft не містить обов’язкових canonical даних" },
         ...securityResponses,
       },
     },

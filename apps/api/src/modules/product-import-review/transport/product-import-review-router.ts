@@ -22,6 +22,7 @@ export function createProductImportReviewRouter(
   router.patch("/admin/product-import/candidates/:id/review", ...guards, controller.updateDraft);
   router.post("/admin/product-import/candidates/:id/decision", ...guards, controller.decide);
   router.post("/admin/product-import/candidates/:id/reopen", ...guards, controller.reopen);
+  router.post("/admin/product-import/candidates/:id/publish", ...guards, controller.publish);
 
   return router;
 }

@@ -2,20 +2,10 @@ import type { ApiClient } from "./api-client";
 
 export type ProductImportCandidateDisposition = "CANDIDATE" | "REVIEW_REQUIRED" | "REJECTED";
 export type ProductImportCandidateStatus =
-  | "PENDING"
-  | "IN_REVIEW"
-  | "APPROVED"
-  | "REJECTED"
-  | "DEFERRED"
-  | "PUBLISHED";
+  "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "DEFERRED" | "PUBLISHED";
 export type ProductImportReviewDecision = "APPROVE" | "REJECT" | "DEFER";
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
+  string | number | boolean | null | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 export type JsonObject = { readonly [key: string]: JsonValue };
 
 export interface ProductImportCandidateSummary {
@@ -52,6 +42,7 @@ export interface ProductImportCandidateEvent {
 
 export interface ProductImportCandidateDetails extends ProductImportCandidateSummary {
   readonly classificationDecision: string | null;
+  readonly sourceFingerprint: string | null;
   readonly sourceCategoryIds: JsonValue;
   readonly sourceDraft: JsonObject;
   readonly reviewDraft: JsonObject;
@@ -177,6 +168,16 @@ export function reopenProductImportReview(
   return apiClient.post<ProductImportCandidateResponse>(`${candidatePath(id)}/reopen`, {
     expectedUpdatedAt,
     ...(comment ? { comment } : {}),
+  });
+}
+
+export function publishProductImportCandidate(
+  apiClient: ApiClient,
+  id: string,
+  expectedUpdatedAt: string,
+) {
+  return apiClient.post<ProductImportCandidateResponse>(candidatePath(id) + "/publish", {
+    expectedUpdatedAt,
   });
 }
 

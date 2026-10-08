@@ -78,3 +78,9 @@ export const reopenProductImportReviewSchema = z.object({
   query: z.object({}).strict(),
   body: mutationBody,
 });
+
+export const publishProductImportCandidateSchema = z.object({
+  params,
+  query: z.object({}).strict(),
+  body: mutationBody,
+});

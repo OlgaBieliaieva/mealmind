@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { validateRenderedUi } from "@/test/ui-quality";
 
@@ -13,6 +13,12 @@ vi.mock("@/shared/api/browser-api-client", () => ({
 }));
 
 describe("ProductImportCandidateEditor", () => {
+  beforeEach(() => {
+    mocks.get.mockReset();
+    mocks.patch.mockReset();
+    mocks.post.mockReset();
+  });
+
   it("shows source data separately and saves an editable review draft", async () => {
     const response = candidateResponse();
     mocks.get.mockResolvedValue(response);
@@ -50,6 +56,45 @@ describe("ProductImportCandidateEditor", () => {
       }),
     );
     await validateRenderedUi(container);
+  });
+
+  it("asks for confirmation and publishes an approved candidate", async () => {
+    const response = candidateResponse();
+    const approved = {
+      ...response,
+      data: {
+        ...response.data,
+        candidate: { ...response.data.candidate, status: "APPROVED" as const },
+      },
+    };
+    mocks.get.mockResolvedValue(approved);
+    mocks.post.mockResolvedValue({
+      ...approved,
+      data: {
+        ...approved.data,
+        candidate: {
+          ...approved.data.candidate,
+          status: "PUBLISHED",
+          publishedProductId: "66666666-6666-4666-8666-666666666666",
+        },
+      },
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductImportCandidateEditor candidateId="33333333-3333-4333-8333-333333333333" />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Опублікувати" }));
+    const dialog = screen.getByRole("dialog", { name: "Опублікувати продукт" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Опублікувати" }));
+
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledOnce());
+    expect(mocks.post).toHaveBeenCalledWith(
+      "/api/v1/admin/product-import/candidates/33333333-3333-4333-8333-333333333333/publish",
+      { expectedUpdatedAt: "2026-10-08T09:00:00.000Z" },
+    );
   });
 });
 

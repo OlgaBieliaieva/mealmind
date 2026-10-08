@@ -69,6 +69,21 @@ describe("product import review router", () => {
     expect(response.status).toBe(400);
     expect(service.decide).not.toHaveBeenCalled();
   });
+
+  it("publishes with the authenticated administrator and expected revision", async () => {
+    const service = serviceFixture();
+    const response = await request(createTestApp(service, "ADMIN"))
+      .post(`/api/v1/admin/product-import/candidates/${candidateId}/publish`)
+      .set("authorization", "Bearer token")
+      .send({ expectedUpdatedAt: "2026-10-07T09:00:00.000Z" });
+
+    expect(response.status).toBe(200);
+    expect(service.publish).toHaveBeenCalledWith(
+      candidateId,
+      { expectedUpdatedAt: "2026-10-07T09:00:00.000Z" },
+      "24b79ffc-e6af-440c-ae38-8cd37c22be1c",
+    );
+  });
 });
 
 function authenticationService(role: "USER" | "ADMIN"): AuthenticationService {
@@ -108,5 +123,6 @@ function serviceFixture(): ProductImportReviewService {
     updateDraft: vi.fn(async () => result),
     decide: vi.fn(async () => result),
     reopen: vi.fn(async () => result),
+    publish: vi.fn(async () => result),
   };
 }

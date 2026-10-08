@@ -84,6 +84,7 @@ export interface ProductImportCandidateEvent {
 
 export interface ProductImportCandidateDetails extends ProductImportCandidateSummary {
   readonly classificationDecision: string | null;
+  readonly sourceFingerprint: string | null;
   readonly sourceCategoryIds: JsonValue;
   readonly sourceDraft: JsonObject;
   readonly reviewDraft: JsonObject;

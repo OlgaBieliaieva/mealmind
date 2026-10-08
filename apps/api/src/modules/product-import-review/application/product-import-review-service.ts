@@ -3,6 +3,8 @@ import {
   ProductImportReviewConflictError,
   ProductImportReviewInvariantError,
 } from "./product-import-review-errors.js";
+import { parseProductImportPublicationDraft } from "./product-import-publication-draft.js";
+import type { ProductImportPublisher } from "../domain/product-import-publisher.js";
 import type {
   JsonObject,
   ProductImportCandidateDetails,
@@ -55,10 +57,16 @@ export interface ProductImportReviewService {
     input: ReviewMutationInput,
     actorUserId: string,
   ): Promise<ProductImportCandidateReviewDetails>;
+  publish(
+    id: string,
+    input: ReviewMutationInput,
+    actorUserId: string,
+  ): Promise<ProductImportCandidateReviewDetails>;
 }
 
 export function createProductImportReviewService(
   repository: ProductImportReviewRepository,
+  publisher: ProductImportPublisher,
   now: () => Date = () => new Date(),
 ): ProductImportReviewService {
   async function getCandidate(id: string): Promise<ProductImportCandidateDetails> {
@@ -148,6 +156,9 @@ export function createProductImportReviewService(
       if (input.decision === "REJECT" && !input.comment?.trim()) {
         throw new ProductImportReviewInvariantError("A rejection comment is required");
       }
+      if (input.decision === "APPROVE") {
+        parseProductImportPublicationDraft(candidate);
+      }
       const target = decisionTarget(input.decision);
 
       return mutate(candidate, {
@@ -184,6 +195,27 @@ export function createProductImportReviewService(
         comment: input.comment,
         reviewedAt: null,
       });
+    },
+
+    async publish(id, input, actorUserId) {
+      const candidate = await getCandidate(id);
+      assertRevision(candidate, input.expectedUpdatedAt);
+      if (candidate.status !== "APPROVED") {
+        throw invalidTransition(candidate.status, "PUBLISHED");
+      }
+      const publication = parseProductImportPublicationDraft(candidate);
+      const published = await publisher.publish({
+        candidate,
+        publication,
+        expectedUpdatedAt: input.expectedUpdatedAt,
+        actorUserId,
+      });
+      if (!published) {
+        throw new ProductImportReviewConflictError(
+          "Candidate changed after it was loaded; refresh before publishing",
+        );
+      }
+      return details(await getCandidate(id));
     },
   };
 
