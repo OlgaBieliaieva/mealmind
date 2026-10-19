@@ -29,6 +29,7 @@ import {
   IMPORT_STATUS_LABELS,
   reasonCodeLabel,
 } from "./product-import-labels";
+import { ZakazSourceImage } from "./zakaz-source-image";
 import { BaseProductSearch, type BaseProductOption } from "../products/base-product-search";
 
 export interface ProductImportCandidateEditorProps {
@@ -360,15 +361,11 @@ function LoadedCandidateEditor({
       <div className="import-review-comparison">
         <Card className="import-review-source">
           <h2>Дані джерела</h2>
-          {imageUrl ? (
-            // Zakaz source image is shown only to an authenticated administrator.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              className="import-review-source__image"
-              src={imageUrl}
-              alt="Зображення товару з Zakaz"
-            />
-          ) : null}
+          <ZakazSourceImage
+            className="import-review-source__image"
+            sourceUrl={imageUrl}
+            alt="Зображення товару з Zakaz"
+          />
           <CandidateFacts draft={candidate.sourceDraft} candidate={candidate} />
           <details className="import-review-technical">
             <summary>Повні source snapshots і provenance</summary>

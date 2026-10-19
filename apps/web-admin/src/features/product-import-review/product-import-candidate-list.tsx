@@ -19,6 +19,7 @@ import {
   IMPORT_STATUS_LABELS,
   reasonCodeLabel,
 } from "./product-import-labels";
+import { ZakazSourceImage } from "./zakaz-source-image";
 
 const PAGE_SIZE = 25;
 
@@ -181,15 +182,20 @@ export function ProductImportCandidateList() {
                   <tr key={candidate.id}>
                     <td>
                       <div className="import-review-candidate">
-                        {candidate.sourceImageUrl ? (
-                          // Zakaz source image is shown only to an authenticated administrator.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={candidate.sourceImageUrl} alt="" width="56" height="56" />
-                        ) : (
-                          <span className="import-review-candidate__placeholder" aria-hidden="true">
-                            Z
-                          </span>
-                        )}
+                        <ZakazSourceImage
+                          sourceUrl={candidate.sourceImageUrl}
+                          alt=""
+                          width={56}
+                          height={56}
+                          fallback={
+                            <span
+                              className="import-review-candidate__placeholder"
+                              aria-hidden="true"
+                            >
+                              Z
+                            </span>
+                          }
+                        />
                         <div>
                           <Link href={`/product-import/${candidate.id}`}>
                             {candidate.title ?? `SKU ${candidate.sourceSku}`}
