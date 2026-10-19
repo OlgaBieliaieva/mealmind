@@ -384,6 +384,23 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
   if (existing.type === "BRANDED" && input.brandId === "") {
     throw new ProductInvariantError("Brand cannot be removed from a branded product");
   }
+
+  if (input.packages !== undefined) {
+    if (existing.type !== "BRANDED") {
+      throw new ProductInvariantError("Пакування можна додавати лише до брендованого продукту");
+    }
+    validatePackages(input.packages);
+  }
+}
+
+function validatePackages(packages: NonNullable<ProductUpdate["packages"]>): void {
+  const ids = packages.flatMap((item) => (item.id === undefined ? [] : [item.id]));
+  const gtins = packages.flatMap((item) => (item.gtin === null ? [] : [item.gtin]));
+  if (new Set(ids).size !== ids.length) throw new ProductInvariantError("Пакування дублюються");
+  if (new Set(gtins).size !== gtins.length) throw new ProductInvariantError("GTIN дублюються");
+  if (packages.filter((item) => item.isDefault && item.status !== "ARCHIVED").length > 1) {
+    throw new ProductInvariantError("Лише одне актуальне пакування може бути основним");
+  }
 }
 
 function toLabelNutrients(
@@ -478,6 +495,7 @@ const MATERIAL_PRODUCT_FIELDS = [
   "ediblePortionPercent",
   "nutrients",
   "portions",
+  "packages",
 ] as const satisfies readonly (keyof ProductUpdate)[];
 
 async function resolveVerificationUpdate(
@@ -547,8 +565,45 @@ async function applyProductUpdate(
             ...portion,
           })),
         }),
+    ...(input.packages === undefined
+      ? {}
+      : {
+          packages: mergeProspectivePackages(existing.packages, input.packages),
+        }),
     nutrients,
   };
+}
+
+function mergeProspectivePackages(
+  existing: ProductDetails["packages"],
+  updates: NonNullable<ProductUpdate["packages"]>,
+): ProductDetails["packages"] {
+  const updateById = new Map(
+    updates.flatMap((item) => (item.id === undefined ? [] : [[item.id, item] as const])),
+  );
+  const existingIds = new Set(existing.map((item) => item.id));
+  const replaced = existing.map((item) => {
+    const update = updateById.get(item.id);
+    return update === undefined
+      ? item
+      : {
+          ...item,
+          ...update,
+          id: item.id,
+          archivedAt: update.status === "ARCHIVED" ? new Date().toISOString() : null,
+        };
+  });
+  const created = updates
+    .filter((item) => item.id === undefined || !existingIds.has(item.id))
+    .map((item, index): ProductDetails["packages"][number] => {
+      const id = item.id ?? `prospective-package-${index}`;
+      return {
+        ...item,
+        id,
+        archivedAt: item.status === "ARCHIVED" ? new Date().toISOString() : null,
+      };
+    });
+  return [...replaced, ...created];
 }
 
 async function enrichNutrients(

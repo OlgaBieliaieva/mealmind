@@ -158,11 +158,18 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
             include: productInclude,
           });
 
-          if (data.gtin !== undefined) {
+          if (data.gtin !== undefined && data.packages === undefined) {
             await syncLegacyDefaultPackage(transaction, updated, data.gtin);
           }
 
-          return updated;
+          if (data.packages !== undefined) {
+            await updateProductPackages(transaction, id, data.packages);
+          }
+
+          return transaction.product.findUniqueOrThrow({
+            where: { id },
+            include: productInclude,
+          });
         });
         return mapProductDetails(row);
       } catch (error) {
@@ -638,12 +645,67 @@ function mapProductDetails(row: ProductRow): ProductDetails {
           weightG: item.weightG?.toString() ?? null,
           volumeMl: item.volumeMl?.toString() ?? null,
           itemCount: item.itemCount,
+          labelUa: item.labelUa,
+          labelEn: item.labelEn,
           isDefault: item.isDefault,
           status: item.status,
+          archivedAt: item.archivedAt?.toISOString() ?? null,
         }),
       ),
     ),
     media: Object.freeze(row.media.map(mapMedia)),
+  });
+}
+
+async function updateProductPackages(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  packages: NonNullable<ProductUpdate["packages"]>,
+): Promise<void> {
+  for (const item of packages) {
+    if (item.id !== undefined) {
+      const exists = await transaction.productPackage.findFirst({
+        where: { id: item.id, productId },
+        select: { id: true },
+      });
+      if (exists === null) throw new ProductInvariantError("Пакування не належить цьому продукту");
+    }
+
+    if (item.isDefault && item.status !== "ARCHIVED") {
+      await transaction.productPackage.updateMany({
+        where: { productId, isDefault: true, status: { not: "ARCHIVED" } },
+        data: { isDefault: false },
+      });
+    }
+
+    const data = {
+      gtin: item.gtin,
+      kind: item.kind,
+      weightG: item.weightG,
+      volumeMl: item.volumeMl,
+      itemCount: item.itemCount,
+      labelUa: item.labelUa,
+      labelEn: item.labelEn,
+      isDefault: item.status === "ARCHIVED" ? false : item.isDefault,
+      status: item.status,
+      archivedAt: item.status === "ARCHIVED" ? new Date() : null,
+    } as const;
+
+    if (item.id === undefined) {
+      await transaction.productPackage.create({ data: { ...data, productId } });
+    } else {
+      await transaction.productPackage.update({ where: { id: item.id }, data });
+    }
+  }
+
+  const currentDefault = await transaction.productPackage.findFirst({
+    where: { productId, isDefault: true, status: { not: "ARCHIVED" } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { gtin: true },
+  });
+  await transaction.product.update({
+    where: { id: productId },
+    data: { gtin: currentDefault?.gtin ?? null },
   });
 }
 

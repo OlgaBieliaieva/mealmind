@@ -85,8 +85,10 @@ export function ProductForm({
   });
   const nutrientFields = useFieldArray({ control, name: "nutrients" });
   const portionFields = useFieldArray({ control, name: "portions" });
+  const packageFields = useFieldArray({ control, name: "packages", keyName: "fieldKey" });
   const productType = useWatch({ control, name: "type" });
   const labelNutrients = useWatch({ control, name: "nutrients" });
+  const packageValues = useWatch({ control, name: "packages" });
   const [basePreview, setBasePreview] = useState<ProductDetails | null>(null);
   const [baseStatus, setBaseStatus] = useState<"idle" | "loading" | "error">("idle");
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -310,18 +312,20 @@ export function ProductForm({
                     Створити новий бренд
                   </Button>
                 </div>
-                <div className="product-form__field-with-action">
-                  <TextInput
-                    label="GTIN"
-                    inputMode="numeric"
-                    description="Необов’язково: 8, 12, 13 або 14 цифр."
-                    error={errors.gtin?.message}
-                    {...register("gtin")}
-                  />
-                  <Button variant="secondary" onClick={() => setScannerOpen(true)}>
-                    Сканувати штрихкод
-                  </Button>
-                </div>
+                {mode === "create" ? (
+                  <div className="product-form__field-with-action">
+                    <TextInput
+                      label="GTIN основного пакування"
+                      inputMode="numeric"
+                      description="Необов’язково: 8, 12, 13 або 14 цифр."
+                      error={errors.gtin?.message}
+                      {...register("gtin")}
+                    />
+                    <Button variant="secondary" onClick={() => setScannerOpen(true)}>
+                      Сканувати штрихкод
+                    </Button>
+                  </div>
+                ) : null}
                 <Controller
                   control={control}
                   name="baseProductId"
@@ -354,7 +358,7 @@ export function ProductForm({
                   <h3 id="inherited-nutrients-title">Успадковані нутрієнти</h3>
                   <p>
                     Значення базового продукту, яких немає серед введених даних етикетки, будуть
-                    збережені як оцінені (ESTIMATED).
+                    динамічно використані як оцінені (ESTIMATED) без створення копій.
                   </p>
                   {inheritedNutrients.length === 0 ? (
                     <p>Усі нутрієнти базового продукту перевизначені даними етикетки.</p>
@@ -388,6 +392,114 @@ export function ProductForm({
             )}
           </div>
         </fieldset>
+
+        {mode === "edit" && productType === "BRANDED" ? (
+          <fieldset className="product-form__section">
+            <legend>Пакування</legend>
+            <p className="product-form__hint">
+              GTIN та розмір належать конкретному пакуванню. Архівуйте застарілу позицію замість
+              видалення, щоб зберегти історію та джерела імпорту.
+            </p>
+            <div className="product-form__rows">
+              {packageFields.fields.map((field, index) => (
+                <div className="product-form__repeat-row" key={field.fieldKey}>
+                  <input type="hidden" {...register(`packages.${index}.id`)} />
+                  <TextInput
+                    label="GTIN"
+                    inputMode="numeric"
+                    error={errors.packages?.[index]?.gtin?.message}
+                    {...register(`packages.${index}.gtin`)}
+                  />
+                  <SelectField
+                    label="Тип пакування"
+                    options={PACKAGE_KIND_OPTIONS}
+                    error={errors.packages?.[index]?.kind?.message}
+                    {...register(`packages.${index}.kind`)}
+                  />
+                  <TextInput
+                    label="Вага, г"
+                    inputMode="decimal"
+                    error={errors.packages?.[index]?.weightG?.message}
+                    {...register(`packages.${index}.weightG`)}
+                  />
+                  <TextInput
+                    label="Об’єм, мл"
+                    inputMode="decimal"
+                    error={errors.packages?.[index]?.volumeMl?.message}
+                    {...register(`packages.${index}.volumeMl`)}
+                  />
+                  <TextInput
+                    label="Кількість одиниць"
+                    inputMode="numeric"
+                    error={errors.packages?.[index]?.itemCount?.message}
+                    {...register(`packages.${index}.itemCount`)}
+                  />
+                  <TextInput
+                    label="Назва українською"
+                    {...register(`packages.${index}.labelUa`)}
+                  />
+                  <TextInput
+                    label="Назва англійською"
+                    {...register(`packages.${index}.labelEn`)}
+                  />
+                  <SelectField
+                    label="Статус"
+                    options={PACKAGE_STATUS_OPTIONS}
+                    {...register(`packages.${index}.status`)}
+                  />
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.isDefault`}
+                    render={({ field: defaultField }) => (
+                      <label className="product-form__checkbox">
+                        <input
+                          type="checkbox"
+                          checked={defaultField.value}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              packageFields.fields.forEach((_, packageIndex) =>
+                                setValue(`packages.${packageIndex}.isDefault`, packageIndex === index, {
+                                  shouldDirty: true,
+                                }),
+                              );
+                            } else {
+                              defaultField.onChange(false);
+                            }
+                          }}
+                        />
+                        Основне пакування
+                      </label>
+                    )}
+                  />
+                  {packageValues?.[index]?.id === "" ? (
+                    <Button variant="ghost" onClick={() => packageFields.remove(index)}>
+                      Видалити нове пакування
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                packageFields.append({
+                  id: "",
+                  gtin: "",
+                  kind: "UNSPECIFIED",
+                  weightG: "",
+                  volumeMl: "",
+                  itemCount: "",
+                  labelUa: "",
+                  labelEn: "",
+                  isDefault: packageFields.fields.length === 0,
+                  status: "DRAFT",
+                })
+              }
+            >
+              Додати пакування
+            </Button>
+          </fieldset>
+        ) : null}
 
         <fieldset className="product-form__section">
           <legend>Поживність на 100 г</legend>
@@ -525,6 +637,20 @@ const CHARACTERISTIC_GROUPS = [
   { kind: "PRESERVATION_STATE", label: "Стан продукту" },
   { kind: "COOKING_METHOD", label: "Спосіб приготування" },
   { kind: "PROCESSING_METHOD", label: "Спосіб обробки" },
+] as const;
+
+const PACKAGE_KIND_OPTIONS = [
+  { value: "UNSPECIFIED", label: "Не визначено" },
+  { value: "FIXED_MASS", label: "Фіксована вага" },
+  { value: "FIXED_VOLUME", label: "Фіксований об’єм" },
+  { value: "FIXED_MASS_AND_VOLUME", label: "Вага й об’єм" },
+  { value: "FIXED_COUNT", label: "Фіксована кількість" },
+] as const;
+
+const PACKAGE_STATUS_OPTIONS = [
+  { value: "DRAFT", label: "Чернетка" },
+  { value: "ACTIVE", label: "Активне" },
+  { value: "ARCHIVED", label: "Архівне" },
 ] as const;
 
 function nutrientValueLabel(

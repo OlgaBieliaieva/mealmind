@@ -145,6 +145,27 @@ try {
   assert.equal(createdDefaultPackage.kind, "UNSPECIFIED");
   assert.equal(createdDefaultPackage.status, "DRAFT");
 
+  const updatedPackageProduct = await repository.update(branded.id, {
+    packages: [
+      {
+        id: createdDefaultPackage.id,
+        gtin,
+        kind: "FIXED_MASS",
+        weightG: "250",
+        volumeMl: null,
+        itemCount: null,
+        labelUa: "Пакування 250 г",
+        labelEn: "250 g package",
+        isDefault: true,
+        status: "ACTIVE",
+      },
+    ],
+  });
+  assert.equal(updatedPackageProduct?.packages[0]?.kind, "FIXED_MASS");
+  assert.equal(updatedPackageProduct?.packages[0]?.weightG, "250");
+  assert.equal(updatedPackageProduct?.packages[0]?.labelUa, "Пакування 250 г");
+  assert.equal(updatedPackageProduct?.gtin, gtin);
+
   await assert.rejects(
     repository.create({
       type: "BRANDED",

@@ -28,6 +28,11 @@
 - update змінює nutrients/portions лише коли поле явно присутнє; порожній масив означає свідоме очищення;
 - update змінює characteristics лише коли `characteristicIds` явно присутнє; порожній масив
   свідомо очищає всі призначення;
+- у branded product адміністратор може додавати й редагувати кілька пакувань; GTIN, тип,
+  вага/об’єм/кількість, локалізована назва, default і lifecycle належать `ProductPackage`;
+- застаріле пакування архівується, а не видаляється; зміна пакування повертає перевірений
+  продукт у `UNVERIFIED`, а legacy `Product.gtin` тимчасово синхронізується з актуальним
+  основним пакуванням до окремої migration його видалення;
 - дозволені переходи status: `DRAFT → ACTIVE|ARCHIVED`, `ACTIVE → ARCHIVED`, `ARCHIVED → DRAFT`.
 
 Актуальна Prisma-схема не містить product-level cooking/retention factor. У продукті зберігаються

@@ -67,6 +67,43 @@ const portion = z.object({
   sortOrder: z.number().int().min(-32_768).max(32_767).default(0),
 });
 
+const productPackage = z
+  .object({
+    id: uuid.optional(),
+    gtin: gtin.nullable(),
+    kind: z.enum([
+      "UNSPECIFIED",
+      "FIXED_MASS",
+      "FIXED_VOLUME",
+      "FIXED_MASS_AND_VOLUME",
+      "FIXED_COUNT",
+    ]),
+    weightG: decimal(0.0001, 100_000_000, 4).nullable(),
+    volumeMl: decimal(0.0001, 100_000_000, 4).nullable(),
+    itemCount: z.number().int().min(1).max(1_000_000).nullable(),
+    labelUa: z.string().trim().max(200).transform((value) => (value === "" ? null : value)).nullable(),
+    labelEn: z.string().trim().max(200).transform((value) => (value === "" ? null : value)).nullable(),
+    isDefault: z.boolean(),
+    status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+  })
+  .superRefine((value, context) => {
+    if (
+      (value.kind === "FIXED_MASS" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+      value.weightG === null
+    ) {
+      addIssue(context, "weightG", "Weight is required for this package kind");
+    }
+    if (
+      (value.kind === "FIXED_VOLUME" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+      value.volumeMl === null
+    ) {
+      addIssue(context, "volumeMl", "Volume is required for this package kind");
+    }
+    if (value.kind === "FIXED_COUNT" && value.itemCount === null) {
+      addIssue(context, "itemCount", "Item count is required for this package kind");
+    }
+  });
+
 const productFields = {
   nameEn: z.string().trim().min(1).max(240),
   nameUa: nullableText(240),
@@ -128,6 +165,7 @@ const updateProductBody = z.object({
   verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
   nutrients: productFields.nutrients,
   portions: productFields.portions,
+  packages: z.array(productPackage).max(100).optional(),
 });
 
 export const listProductsSchema = z.object({

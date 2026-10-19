@@ -412,6 +412,65 @@ describe("product service", () => {
     });
   });
 
+  it("returns a verified branded product to unverified when its package changes", async () => {
+    const packageId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        type: "BRANDED",
+        brandId,
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: "2026-10-19T10:00:00.000Z",
+        packages: [
+          {
+            id: packageId,
+            gtin: "00482123456789",
+            kind: "FIXED_MASS",
+            weightG: "100",
+            volumeMl: null,
+            itemCount: null,
+            labelUa: null,
+            labelEn: null,
+            isDefault: true,
+            status: "ACTIVE",
+            archivedAt: null,
+          },
+        ],
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.update(
+      productId,
+      {
+        packages: [
+          {
+            id: packageId,
+            gtin: "00482123456789",
+            kind: "FIXED_MASS",
+            weightG: "120",
+            volumeMl: null,
+            itemCount: null,
+            labelUa: "120 г",
+            labelEn: null,
+            isDefault: true,
+            status: "ACTIVE",
+          },
+        ],
+      },
+      actorUserId,
+    );
+
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({
+        verificationStatus: "UNVERIFIED",
+        verifiedByUserId: null,
+        verifiedAt: null,
+      }),
+    );
+  });
+
   it("does not allow an active product to return directly to draft", async () => {
     vi.mocked(productRepository.findById).mockResolvedValue(product({ status: "ACTIVE" }));
     const service = createProductService(productRepository, mediaStorage);

@@ -123,6 +123,20 @@ export interface ProductUpdate {
   readonly verifiedAt?: Date | null | undefined;
   readonly nutrients?: readonly ProductNutrientWrite[] | undefined;
   readonly portions?: readonly ProductPortionWrite[] | undefined;
+  readonly packages?: readonly ProductPackageWrite[] | undefined;
+}
+
+export interface ProductPackageWrite {
+  readonly id?: string | undefined;
+  readonly gtin: string | null;
+  readonly kind: ProductPackageRecord["kind"];
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: ProductPackageRecord["status"];
 }
 
 export interface ProductPackageRecord {
@@ -137,8 +151,11 @@ export interface ProductPackageRecord {
   readonly weightG: string | null;
   readonly volumeMl: string | null;
   readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
   readonly isDefault: boolean;
   readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  readonly archivedAt: string | null;
 }
 
 export interface ProductMediaRecord {

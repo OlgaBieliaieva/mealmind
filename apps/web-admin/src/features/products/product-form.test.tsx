@@ -34,7 +34,7 @@ describe("ProductForm", () => {
     });
 
     expect(screen.getByRole("combobox", { name: "Бренд" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "GTIN" })).not.toBeRequired();
+    expect(screen.getByRole("textbox", { name: "GTIN основного пакування" })).not.toBeRequired();
     expect(screen.getByRole("combobox", { name: "Базовий generic-продукт" })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Сканувати штрихкод" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Створити новий бренд" })).toBeInTheDocument();
@@ -187,6 +187,53 @@ describe("ProductForm", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Значення, мг" })).toHaveValue("10");
+  });
+
+  it("keeps the canonical package id when an administrator edits its size", async () => {
+    const packageId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const onSubmit = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          type: "BRANDED",
+          nameEn: "Chocolate bar",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          brandId,
+          packages: [
+            {
+              id: packageId,
+              gtin: "4821234567890",
+              kind: "FIXED_MASS",
+              weightG: "50",
+              volumeMl: "",
+              itemCount: "",
+              labelUa: "Батончик 50 г",
+              labelEn: "",
+              isDefault: true,
+              status: "ACTIVE",
+            },
+          ],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Вага, г" }), {
+      target: { value: "55" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          packages: [expect.objectContaining({ id: packageId, weightG: "55" })],
+        }),
+      ),
+    );
   });
 
   it("announces validation errors and does not submit an incomplete form", async () => {

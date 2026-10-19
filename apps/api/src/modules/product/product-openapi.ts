@@ -326,6 +326,41 @@ export const productOpenApiSchemas = Object.freeze({
       },
     },
   },
+  ProductPackageWrite: {
+    type: "object",
+    required: [
+      "gtin",
+      "kind",
+      "weightG",
+      "volumeMl",
+      "itemCount",
+      "labelUa",
+      "labelEn",
+      "isDefault",
+      "status",
+    ],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      gtin: { type: ["string", "null"], pattern: "^(?:[0-9]{8}|[0-9]{12,14})$" },
+      kind: {
+        type: "string",
+        enum: [
+          "UNSPECIFIED",
+          "FIXED_MASS",
+          "FIXED_VOLUME",
+          "FIXED_MASS_AND_VOLUME",
+          "FIXED_COUNT",
+        ],
+      },
+      weightG: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      volumeMl: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      itemCount: { type: ["integer", "null"], minimum: 1 },
+      labelUa: { type: ["string", "null"], maxLength: 200 },
+      labelEn: { type: ["string", "null"], maxLength: 200 },
+      isDefault: { type: "boolean" },
+      status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] },
+    },
+  },
   ProductCreate: {
     type: "object",
     required: ["type", "nameEn"],
@@ -361,9 +396,21 @@ export const productOpenApiSchemas = Object.freeze({
     },
   },
   ProductUpdate: {
-    allOf: [{ $ref: "#/components/schemas/ProductCreate" }],
+    allOf: [
+      { $ref: "#/components/schemas/ProductCreate" },
+      {
+        type: "object",
+        properties: {
+          packages: {
+            type: "array",
+            maxItems: 100,
+            items: { $ref: "#/components/schemas/ProductPackageWrite" },
+          },
+        },
+      },
+    ],
     description:
-      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору.",
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, а архівація виконується статусом ARCHIVED.",
   },
   ProductFoodCharacteristic: {
     type: "object",

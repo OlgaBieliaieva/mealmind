@@ -55,6 +55,22 @@ export interface ProductPackage {
   readonly weightG: string | null;
   readonly volumeMl: string | null;
   readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: ProductStatus;
+  readonly archivedAt: string | null;
+}
+
+export interface ProductPackageWrite {
+  readonly id?: string;
+  readonly gtin: string | null;
+  readonly kind: ProductPackage["kind"];
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
   readonly isDefault: boolean;
   readonly status: ProductStatus;
 }
@@ -158,7 +174,9 @@ export interface ProductWrite {
   readonly portions?: readonly ProductPortionWrite[];
 }
 
-export type ProductUpdate = Omit<Partial<ProductWrite>, "type" | "baseProductId">;
+export type ProductUpdate = Omit<Partial<ProductWrite>, "type" | "baseProductId"> & {
+  readonly packages?: readonly ProductPackageWrite[];
+};
 
 export interface ProductListParameters {
   readonly search?: string;

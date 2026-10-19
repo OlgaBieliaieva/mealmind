@@ -49,6 +49,50 @@ export const productFormSchema = z
         isDefault: z.boolean(),
       }),
     ),
+    packages: z.array(
+      z
+        .object({
+          id: z.string(),
+          gtin: z.string().trim(),
+          kind: z.enum([
+            "UNSPECIFIED",
+            "FIXED_MASS",
+            "FIXED_VOLUME",
+            "FIXED_MASS_AND_VOLUME",
+            "FIXED_COUNT",
+          ]),
+          weightG: decimalText(100_000_000),
+          volumeMl: decimalText(100_000_000),
+          itemCount: z.string().trim().refine(
+            (value) => value === "" || (/^\d+$/.test(value) && Number(value) > 0),
+            "Вкажіть цілу кількість",
+          ),
+          labelUa: z.string().trim().max(200),
+          labelEn: z.string().trim().max(200),
+          isDefault: z.boolean(),
+          status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+        })
+        .superRefine((value, context) => {
+          if (
+            (value.kind === "FIXED_MASS" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+            value.weightG === ""
+          ) {
+            issue(context, "weightG", "Вкажіть вагу пакування");
+          }
+          if (
+            (value.kind === "FIXED_VOLUME" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+            value.volumeMl === ""
+          ) {
+            issue(context, "volumeMl", "Вкажіть об’єм пакування");
+          }
+          if (value.kind === "FIXED_COUNT" && value.itemCount === "") {
+            issue(context, "itemCount", "Вкажіть кількість одиниць");
+          }
+          if (value.gtin !== "" && !/^\d{8}$|^\d{12,14}$/.test(value.gtin)) {
+            issue(context, "gtin", "GTIN має містити 8, 12, 13 або 14 цифр");
+          }
+        }),
+    ),
   })
   .superRefine((value, context) => {
     if (value.type === "BRANDED") {
@@ -77,6 +121,7 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   notes: "",
   nutrients: [],
   portions: [],
+  packages: [],
 };
 
 export function mapProductFormToCreate(values: ProductFormValues): ProductWrite {
@@ -96,7 +141,22 @@ export function mapProductFormToCreate(values: ProductFormValues): ProductWrite 
 export function mapProductFormToUpdate(values: ProductFormValues): ProductUpdate {
   const common = mapCommon(values);
   return values.type === "BRANDED"
-    ? { ...common, brandId: values.brandId, gtin: values.gtin === "" ? null : values.gtin }
+    ? {
+        ...common,
+        brandId: values.brandId,
+        packages: values.packages.map((item) => ({
+          ...(item.id === "" ? {} : { id: item.id }),
+          gtin: item.gtin === "" ? null : item.gtin,
+          kind: item.kind,
+          weightG: item.weightG === "" ? null : item.weightG,
+          volumeMl: item.volumeMl === "" ? null : item.volumeMl,
+          itemCount: item.itemCount === "" ? null : Number(item.itemCount),
+          labelUa: item.labelUa === "" ? null : item.labelUa,
+          labelEn: item.labelEn === "" ? null : item.labelEn,
+          isDefault: item.isDefault,
+          status: item.status,
+        })),
+      }
     : common;
 }
 
@@ -129,6 +189,18 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
       weightType: portion.weightType as ProductFormValues["portions"][number]["weightType"],
       measurementUnitId: portion.measurementUnitId ?? "",
       isDefault: portion.isDefault,
+    })),
+    packages: product.packages.map((item) => ({
+      id: item.id,
+      gtin: item.gtin ?? "",
+      kind: item.kind,
+      weightG: item.weightG ?? "",
+      volumeMl: item.volumeMl ?? "",
+      itemCount: item.itemCount?.toString() ?? "",
+      labelUa: item.labelUa ?? "",
+      labelEn: item.labelEn ?? "",
+      isDefault: item.isDefault,
+      status: item.status,
     })),
   };
 }
