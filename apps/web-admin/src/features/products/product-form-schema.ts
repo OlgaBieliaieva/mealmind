@@ -115,7 +115,7 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
     verificationStatus: product.verificationStatus,
     ediblePortionPercent: product.ediblePortionPercent ?? "",
     notes: product.notes ?? "",
-    nutrients: product.nutrients.map((nutrient) => ({
+    nutrients: product.ownNutrients.map((nutrient) => ({
       nutrientId: nutrient.nutrientId,
       valuePer100g: nutrient.valuePer100g,
       valueType: nutrient.valueType as ProductFormValues["nutrients"][number]["valueType"],

@@ -132,7 +132,9 @@ export interface ProductDetails extends Omit<ProductSummary, "primaryMedia"> {
     readonly nutrientCode: string;
     readonly nutrientName: string;
     readonly unit: string;
+    readonly origin: "PRODUCT" | "BASE_PRODUCT";
   })[];
+  readonly ownNutrients: ProductDetails["nutrients"];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
   readonly packages: readonly ProductPackage[];
   readonly media: readonly ProductMedia[];

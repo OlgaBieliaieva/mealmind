@@ -60,6 +60,18 @@ function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
         unit: "G",
         valuePer100g: "0.3",
         valueType: "ANALYTICAL",
+        origin: "PRODUCT",
+      },
+    ],
+    ownNutrients: [
+      {
+        nutrientId,
+        nutrientCode: "protein",
+        nutrientName: "Білки",
+        unit: "G",
+        valuePer100g: "0.3",
+        valueType: "ANALYTICAL",
+        origin: "PRODUCT",
       },
     ],
     portions: [],
@@ -218,7 +230,7 @@ describe("product service", () => {
     expect(productRepository.create).not.toHaveBeenCalled();
   });
 
-  it("creates a branded variant with an explicit snapshot inherited from a generic base", async () => {
+  it("does not persist inherited nutrients in a branded variant", async () => {
     vi.mocked(productRepository.findById).mockResolvedValue(
       product({ id: baseProductId, status: "ACTIVE" }),
     );
@@ -240,13 +252,7 @@ describe("product service", () => {
         defaultMeasurementUnitId: unitId,
         foodState: "RAW",
         ediblePortionPercent: "95",
-        nutrients: [
-          expect.objectContaining({
-            nutrientId,
-            valuePer100g: "0.3",
-            valueType: "ESTIMATED",
-          }),
-        ],
+        nutrients: [],
         source: expect.objectContaining({
           provider: "MEALMIND_ADMIN",
           dataset: "ADMIN_CATALOG",
@@ -255,7 +261,7 @@ describe("product service", () => {
     );
   });
 
-  it("lets label nutrients override estimated base values", async () => {
+  it("persists only label nutrients that override the effective base profile", async () => {
     vi.mocked(productRepository.findById).mockResolvedValue(
       product({
         id: baseProductId,
@@ -268,6 +274,7 @@ describe("product service", () => {
             unit: "G",
             valuePer100g: "0.3",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
           {
             nutrientId: secondNutrientId,
@@ -276,6 +283,7 @@ describe("product service", () => {
             unit: "G",
             valuePer100g: "0.2",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
         ],
       }),
@@ -293,10 +301,7 @@ describe("product service", () => {
 
     expect(productRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        nutrients: [
-          { nutrientId, valuePer100g: "1.4", valueType: "LABEL" },
-          { nutrientId: secondNutrientId, valuePer100g: "0.2", valueType: "ESTIMATED" },
-        ],
+        nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "LABEL" }],
       }),
     );
   });
@@ -341,6 +346,7 @@ describe("product service", () => {
             unit: "KCAL",
             valuePer100g: "52",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
           {
             nutrientId: "protein-id",
@@ -349,6 +355,7 @@ describe("product service", () => {
             unit: "G",
             valuePer100g: "0.3",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
           {
             nutrientId: "fat-id",
@@ -357,6 +364,7 @@ describe("product service", () => {
             unit: "G",
             valuePer100g: "0.2",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
           {
             nutrientId: "carbohydrate-id",
@@ -365,6 +373,7 @@ describe("product service", () => {
             unit: "G",
             valuePer100g: "14",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
         ],
       }),

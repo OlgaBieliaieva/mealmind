@@ -67,6 +67,13 @@ export interface ProductNutrientWrite {
   readonly valueType: NutrientValueType;
 }
 
+export interface ProductNutrientRecord extends ProductNutrientWrite {
+  readonly nutrientCode: string;
+  readonly nutrientName: string;
+  readonly unit: string;
+  readonly origin: "PRODUCT" | "BASE_PRODUCT";
+}
+
 export interface ProductPortionWrite {
   readonly amount: string;
   readonly gramWeight: string;
@@ -190,11 +197,8 @@ export interface ProductDetails {
   readonly archivedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly nutrients: readonly (ProductNutrientWrite & {
-    readonly nutrientCode: string;
-    readonly nutrientName: string;
-    readonly unit: string;
-  })[];
+  readonly nutrients: readonly ProductNutrientRecord[];
+  readonly ownNutrients: readonly ProductNutrientRecord[];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
   readonly packages: readonly ProductPackageRecord[];
   readonly media: readonly ProductMediaRecord[];

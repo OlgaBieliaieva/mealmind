@@ -116,7 +116,7 @@ export const productOpenApiPaths = Object.freeze({
     post: {
       summary: "Створити generic або branded продукт",
       description:
-        "GTIN і generic base для branded продукту optional. Якщо base вибрано, label-нутрієнти перекривають його значення, а відсутні копіюються як ESTIMATED snapshot. Без base category та unit обов’язкові.",
+        "GTIN і generic base для branded продукту optional. Якщо base вибрано, власні label-нутрієнти перекривають його значення, а відсутні динамічно успадковуються як ESTIMATED з origin=BASE_PRODUCT без створення snapshot. Без base category та unit обов’язкові.",
       security: [{ bearerAuth: [] }],
       requestBody: jsonBody("#/components/schemas/ProductCreate"),
       responses: {
@@ -136,7 +136,7 @@ export const productOpenApiPaths = Object.freeze({
     patch: {
       summary: "Оновити дозволені поля продукту",
       description:
-        "Пропущені nutrients або portions зберігаються без змін; переданий порожній масив явно очищає relation.",
+        "Пропущені nutrients або portions зберігаються без змін; переданий порожній масив явно очищає relation. Для branded продукту nutrients містить лише власні значення, а effective profile формується під час читання з generic base.",
       security: [{ bearerAuth: [] }],
       parameters: [idParameter()],
       requestBody: jsonBody("#/components/schemas/ProductUpdate"),

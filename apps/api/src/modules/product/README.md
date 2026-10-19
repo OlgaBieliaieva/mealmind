@@ -17,7 +17,12 @@
 - переданий `characteristicIds` є повним ручним набором характеристик продукту;
 - authenticated `GET /api/v1/products/search` повертає `foodState` і характеристики,
   щоб усі клієнтські селекти використовували той самий subtitle, що й каталог;
-- nutrient values із пакування зберігаються як LABEL і перекривають base за nutrientId, а відсутні значення base копіюються як ESTIMATED;
+- branded product зберігає лише власні nutrient values із пакування або лабораторного джерела;
+  власні значення перекривають generic base за `nutrientId`, а відсутні значення динамічно
+  успадковуються під час читання як `ESTIMATED` з `origin=BASE_PRODUCT`;
+- `nutrients` у detail contract є effective profile, а `ownNutrients` містить лише канонічні
+  значення самого продукту й використовується формою редагування; зміна generic base одразу
+  впливає на залежні branded products без копіювання або масового оновлення snapshots;
 - створені адміністратором продукти мають primary source MEALMIND_ADMIN / ADMIN_CATALOG; MEALMIND_USER / USER_CATALOG зарезервовано для майбутнього user-generated catalog;
 - тип і base product після створення не змінюються;
 - update змінює nutrients/portions лише коли поле явно присутнє; порожній масив означає свідоме очищення;

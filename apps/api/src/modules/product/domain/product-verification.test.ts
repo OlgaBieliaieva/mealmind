@@ -13,6 +13,7 @@ function product(
     unit: nutrientCode === "energy_kcal" ? "KCAL" : "G",
     valuePer100g: "1",
     valueType: "ANALYTICAL",
+    origin: "PRODUCT",
   });
 
   return {

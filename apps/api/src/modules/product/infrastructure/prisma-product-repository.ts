@@ -20,7 +20,16 @@ const productInclude = {
   category: { select: { nameUa: true, nameEn: true } },
   brand: { select: { name: true } },
   defaultMeasurementUnit: { select: { symbol: true } },
-  baseProduct: { select: { nameUa: true, nameEn: true } },
+  baseProduct: {
+    select: {
+      nameUa: true,
+      nameEn: true,
+      nutrients: {
+        include: { nutrient: { select: { code: true, nameUa: true, nameEn: true, unit: true } } },
+        orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
+      },
+    },
+  },
   sourceReferences: {
     where: { isPrimary: true },
     orderBy: [{ createdAt: "asc" }],
@@ -555,6 +564,11 @@ function portionCreateData(
 
 function mapProductDetails(row: ProductRow): ProductDetails {
   const source = row.sourceReferences[0] ?? null;
+  const ownNutrients = row.nutrients.map((item) => mapNutrient(item, "PRODUCT"));
+  const ownNutrientIds = new Set(ownNutrients.map((item) => item.nutrientId));
+  const inheritedNutrients = (row.baseProduct?.nutrients ?? [])
+    .filter((item) => !ownNutrientIds.has(item.nutrientId))
+    .map((item) => mapNutrient(item, "BASE_PRODUCT"));
 
   return Object.freeze({
     id: row.id,
@@ -596,18 +610,8 @@ function mapProductDetails(row: ProductRow): ProductDetails {
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    nutrients: Object.freeze(
-      row.nutrients.map((item) =>
-        Object.freeze({
-          nutrientId: item.nutrientId,
-          nutrientCode: item.nutrient.code,
-          nutrientName: item.nutrient.nameUa ?? item.nutrient.nameEn,
-          unit: item.nutrient.unit,
-          valuePer100g: item.valuePer100g.toString(),
-          valueType: item.valueType,
-        }),
-      ),
-    ),
+    nutrients: Object.freeze([...ownNutrients, ...inheritedNutrients]),
+    ownNutrients: Object.freeze(ownNutrients),
     portions: Object.freeze(
       row.portions.map((portion) =>
         Object.freeze({
@@ -640,6 +644,21 @@ function mapProductDetails(row: ProductRow): ProductDetails {
       ),
     ),
     media: Object.freeze(row.media.map(mapMedia)),
+  });
+}
+
+function mapNutrient(
+  item: ProductRow["nutrients"][number],
+  origin: "PRODUCT" | "BASE_PRODUCT",
+) {
+  return Object.freeze({
+    nutrientId: item.nutrientId,
+    nutrientCode: item.nutrient.code,
+    nutrientName: item.nutrient.nameUa ?? item.nutrient.nameEn,
+    unit: item.nutrient.unit,
+    valuePer100g: item.valuePer100g.toString(),
+    valueType: origin === "BASE_PRODUCT" ? ("ESTIMATED" as const) : item.valueType,
+    origin,
   });
 }
 

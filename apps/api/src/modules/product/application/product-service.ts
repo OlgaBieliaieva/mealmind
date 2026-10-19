@@ -345,7 +345,7 @@ async function resolveCreateInput(
       input.characteristicIds ??
       base.foodCharacteristics.map((characteristic) => characteristic.id),
     ediblePortionPercent: input.ediblePortionPercent ?? base.ediblePortionPercent,
-    nutrients: mergeBrandedNutrients(base.nutrients, input.nutrients ?? []),
+    nutrients: toLabelNutrients(input.nutrients ?? []),
     portions:
       input.portions ??
       base.portions.map((portion) => ({
@@ -390,28 +390,6 @@ function toLabelNutrients(
   nutrients: readonly ProductWrite["nutrients"][number][],
 ): ProductWrite["nutrients"] {
   return nutrients.map((nutrient) => ({ ...nutrient, valueType: "LABEL" }));
-}
-
-function mergeBrandedNutrients(
-  baseNutrients: ProductDetails["nutrients"],
-  labelNutrients: readonly ProductWrite["nutrients"][number][],
-): ProductWrite["nutrients"] {
-  const merged = new Map<string, ProductWrite["nutrients"][number]>(
-    baseNutrients.map((nutrient) => [
-      nutrient.nutrientId,
-      {
-        nutrientId: nutrient.nutrientId,
-        valuePer100g: nutrient.valuePer100g,
-        valueType: "ESTIMATED" as const,
-      },
-    ]),
-  );
-
-  for (const nutrient of toLabelNutrients(labelNutrients)) {
-    merged.set(nutrient.nutrientId, nutrient);
-  }
-
-  return [...merged.values()];
 }
 
 function assertStatusTransition(current: ProductStatus, next: ProductStatus): void {
@@ -550,7 +528,10 @@ async function applyProductUpdate(
   const nutrients =
     input.nutrients === undefined
       ? existing.nutrients
-      : await enrichNutrients(repository, input.nutrients, existing.nutrients);
+      : mergeEffectiveNutrients(
+          await enrichNutrients(repository, input.nutrients, existing.ownNutrients),
+          existing.nutrients.filter((item) => item.origin === "BASE_PRODUCT"),
+        );
 
   return {
     ...existing,
@@ -583,7 +564,16 @@ async function enrichNutrients(
     nutrientCode: codes.get(item.nutrientId) ?? existingById.get(item.nutrientId)?.nutrientCode ?? "",
     nutrientName: existingById.get(item.nutrientId)?.nutrientName ?? item.nutrientId,
     unit: existingById.get(item.nutrientId)?.unit ?? "",
+    origin: "PRODUCT" as const,
   }));
+}
+
+function mergeEffectiveNutrients(
+  own: ProductDetails["ownNutrients"],
+  inherited: ProductDetails["nutrients"],
+): ProductDetails["nutrients"] {
+  const ownIds = new Set(own.map((item) => item.nutrientId));
+  return [...own, ...inherited.filter((item) => !ownIds.has(item.nutrientId))];
 }
 
 async function presentMedia(
