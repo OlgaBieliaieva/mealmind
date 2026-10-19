@@ -57,6 +57,16 @@ export function createPrismaProductImportPublisher(
             preparedMedia,
             now(),
           );
+          if (input.publication.mode === "ADD_PACKAGE_TO_EXISTING_PRODUCT") {
+            await transaction.product.update({
+              where: { id: productId },
+              data: {
+                verificationStatus: "UNVERIFIED",
+                verifiedByUserId: null,
+                verifiedAt: null,
+              },
+            });
+          }
 
           const changed = await transaction.productImportCandidate.updateMany({
             where: {

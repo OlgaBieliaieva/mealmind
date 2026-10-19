@@ -201,6 +201,9 @@ export const productOpenApiSchemas = Object.freeze({
       "foodCharacteristics",
       "status",
       "verificationStatus",
+      "verifiedByUserId",
+      "verifiedAt",
+      "verificationReadiness",
       "updatedAt",
       "primaryMedia",
     ],
@@ -242,6 +245,9 @@ export const productOpenApiSchemas = Object.freeze({
         type: "string",
         enum: ["UNVERIFIED", "VERIFIED", "REJECTED"],
       },
+      verifiedByUserId: { type: ["string", "null"], format: "uuid" },
+      verifiedAt: { type: ["string", "null"], format: "date-time" },
+      verificationReadiness: { $ref: "#/components/schemas/ProductVerificationReadiness" },
       updatedAt: { type: "string", format: "date-time" },
       primaryMedia: { type: ["object", "null"], additionalProperties: true },
     },
@@ -283,6 +289,40 @@ export const productOpenApiSchemas = Object.freeze({
         type: "string",
         enum: ["ANALYTICAL", "DERIVED", "ESTIMATED", "CALCULATED", "LABEL", "UNKNOWN"],
         default: "UNKNOWN",
+      },
+    },
+  },
+  ProductVerificationReadiness: {
+    type: "object",
+    required: ["status", "blockingIssues", "warnings"],
+    properties: {
+      status: { type: "string", enum: ["READY", "BLOCKED"] },
+      blockingIssues: {
+        type: "array",
+        uniqueItems: true,
+        items: {
+          type: "string",
+          enum: [
+            "MISSING_UA_NAME",
+            "UNSPECIFIED_FOOD_STATE",
+            "MISSING_ENERGY",
+            "MISSING_PROTEIN",
+            "MISSING_TOTAL_FAT",
+            "MISSING_CARBOHYDRATE",
+            "MISSING_BRAND",
+            "MISSING_ACTIVE_PACKAGE",
+            "MISSING_PACKAGE_GTIN",
+            "MISSING_PACKAGE_QUANTITY",
+          ],
+        },
+      },
+      warnings: {
+        type: "array",
+        uniqueItems: true,
+        items: {
+          type: "string",
+          enum: ["MISSING_PRIMARY_IMAGE", "MISSING_DEFAULT_PORTION"],
+        },
       },
     },
   },
@@ -397,5 +437,6 @@ function adminErrorResponses() {
     "401": { $ref: "#/components/responses/AuthenticationRequired" },
     "403": { $ref: "#/components/responses/AdminRequired" },
     "404": { description: "Продукт або фото не знайдено" },
+    "422": { description: "Обов’язкові вимоги доменної верифікації не виконано" },
   };
 }

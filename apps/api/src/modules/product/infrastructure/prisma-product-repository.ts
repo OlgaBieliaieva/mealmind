@@ -14,6 +14,7 @@ import type {
   ProductUpdate,
   ProductWrite,
 } from "../domain/product-repository.js";
+import { evaluateProductVerification } from "../domain/product-verification.js";
 
 const productInclude = {
   category: { select: { nameUa: true, nameEn: true } },
@@ -27,10 +28,11 @@ const productInclude = {
     select: { provider: true, dataset: true },
   },
   nutrients: {
-    include: { nutrient: { select: { nameUa: true, nameEn: true, unit: true } } },
+    include: { nutrient: { select: { code: true, nameUa: true, nameEn: true, unit: true } } },
     orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
   },
   portions: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+  packages: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }, { id: "asc" }] },
   foodCharacteristics: {
     include: { characteristic: true },
     orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
@@ -114,6 +116,15 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
     async findById(id) {
       const row = await database.product.findUnique({ where: { id }, include: productInclude });
       return row === null ? null : mapProductDetails(row);
+    },
+
+    async findNutrientCodes(ids) {
+      if (ids.length === 0) return new Map();
+      const rows = await database.nutrient.findMany({
+        where: { id: { in: [...new Set(ids)] } },
+        select: { id: true, code: true },
+      });
+      return new Map(rows.map((row) => [row.id, row.code]));
     },
 
     async create(data) {
@@ -431,6 +442,12 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
     ...(data.verificationStatus === undefined
       ? {}
       : { verificationStatus: data.verificationStatus }),
+    ...(data.verifiedByUserId === undefined
+      ? {}
+      : data.verifiedByUserId === null
+        ? { verifiedByUser: { disconnect: true } }
+        : { verifiedByUser: { connect: { id: data.verifiedByUserId } } }),
+    ...(data.verifiedAt === undefined ? {} : { verifiedAt: data.verifiedAt }),
     ...(data.nutrients === undefined
       ? {}
       : {
@@ -573,6 +590,8 @@ function mapProductDetails(row: ProductRow): ProductDetails {
     ediblePortionPercent: row.ediblePortionPercent?.toString() ?? null,
     status: row.status,
     verificationStatus: row.verificationStatus,
+    verifiedByUserId: row.verifiedByUserId,
+    verifiedAt: row.verifiedAt?.toISOString() ?? null,
     notes: row.notes,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -581,6 +600,7 @@ function mapProductDetails(row: ProductRow): ProductDetails {
       row.nutrients.map((item) =>
         Object.freeze({
           nutrientId: item.nutrientId,
+          nutrientCode: item.nutrient.code,
           nutrientName: item.nutrient.nameUa ?? item.nutrient.nameEn,
           unit: item.nutrient.unit,
           valuePer100g: item.valuePer100g.toString(),
@@ -602,6 +622,20 @@ function mapProductDetails(row: ProductRow): ProductDetails {
           isDefault: portion.isDefault,
           isActive: portion.isActive,
           sortOrder: portion.sortOrder,
+        }),
+      ),
+    ),
+    packages: Object.freeze(
+      row.packages.map((item) =>
+        Object.freeze({
+          id: item.id,
+          gtin: item.gtin,
+          kind: item.kind,
+          weightG: item.weightG?.toString() ?? null,
+          volumeMl: item.volumeMl?.toString() ?? null,
+          itemCount: item.itemCount,
+          isDefault: item.isDefault,
+          status: item.status,
         }),
       ),
     ),
@@ -629,6 +663,9 @@ function mapProductSummary(row: ProductRow): ProductSummary {
     foodCharacteristics: details.foodCharacteristics,
     status: details.status,
     verificationStatus: details.verificationStatus,
+    verifiedByUserId: details.verifiedByUserId,
+    verifiedAt: details.verifiedAt,
+    verificationReadiness: evaluateProductVerification(details),
     updatedAt: details.updatedAt,
     primaryMedia,
   });

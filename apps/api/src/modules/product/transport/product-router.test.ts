@@ -36,12 +36,20 @@ function product(overrides: Partial<ProductDetailsView> = {}): ProductDetailsVie
     ediblePortionPercent: "95",
     status: "DRAFT",
     verificationStatus: "UNVERIFIED",
+    verifiedByUserId: null,
+    verifiedAt: null,
+    verificationReadiness: {
+      status: "BLOCKED",
+      blockingIssues: ["MISSING_ENERGY", "MISSING_PROTEIN", "MISSING_TOTAL_FAT", "MISSING_CARBOHYDRATE"],
+      warnings: ["MISSING_PRIMARY_IMAGE", "MISSING_DEFAULT_PORTION"],
+    },
     notes: null,
     archivedAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     nutrients: [],
     portions: [],
+    packages: [],
     media: [],
     ...overrides,
   };
@@ -303,7 +311,7 @@ describe("product router", () => {
     expect(service.update).toHaveBeenCalledWith(productId, {
       nameUa: "Червоне яблуко",
       verificationStatus: "REJECTED",
-    });
+    }, "64b79ffc-e6af-440c-ae38-8cd37c22be1c");
     expect(archived.body.data.status).toBe("ARCHIVED");
   });
 

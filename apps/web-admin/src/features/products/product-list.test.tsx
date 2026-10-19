@@ -37,6 +37,13 @@ function productSummary(overrides: Partial<ProductSummary> = {}): ProductSummary
     ],
     status: "ACTIVE",
     verificationStatus: "UNVERIFIED",
+    verifiedByUserId: null,
+    verifiedAt: null,
+    verificationReadiness: {
+      status: "READY",
+      blockingIssues: [],
+      warnings: [],
+    },
     updatedAt: "2026-08-05T00:00:00.000Z",
     primaryMedia: null,
     ...overrides,

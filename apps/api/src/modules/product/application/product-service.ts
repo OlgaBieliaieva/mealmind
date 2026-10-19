@@ -18,10 +18,15 @@ import type {
   ProductWrite,
 } from "../domain/product-repository.js";
 import {
+  evaluateProductVerification,
+  type ProductVerificationReadiness,
+} from "../domain/product-verification.js";
+import {
   ProductInvariantError,
   ProductMediaNotFoundError,
   ProductMediaProcessingError,
   ProductNotFoundError,
+  ProductVerificationBlockedError,
 } from "./product-errors.js";
 
 export const PRODUCT_MEDIA_MAX_BYTES = 5 * 1024 * 1024;
@@ -62,6 +67,7 @@ export interface ProductMediaView extends ProductMediaRecord {
 
 export interface ProductDetailsView extends Omit<ProductDetails, "media"> {
   readonly media: readonly ProductMediaView[];
+  readonly verificationReadiness: ProductVerificationReadiness;
 }
 
 export interface ProductSummaryView extends Omit<ProductSummary, "primaryMedia"> {
@@ -83,8 +89,8 @@ export interface ProductService {
   list(query: ProductListQuery): Promise<ProductPageView>;
   search(query: ProductSearchQuery): Promise<ProductSearchPage>;
   get(id: string): Promise<ProductDetailsView>;
-  create(input: CreateProductInput): Promise<ProductDetailsView>;
-  update(id: string, input: ProductUpdate): Promise<ProductDetailsView>;
+  create(input: CreateProductInput, actorUserId: string): Promise<ProductDetailsView>;
+  update(id: string, input: ProductUpdate, actorUserId: string): Promise<ProductDetailsView>;
   changeStatus(id: string, status: ProductStatus): Promise<ProductDetailsView>;
   reserveMedia(
     productId: string,
@@ -132,6 +138,9 @@ export function createProductService(
     },
 
     async create(input) {
+      if (input.verificationStatus === "VERIFIED") {
+        throw new ProductInvariantError("Новий продукт спочатку потрібно зберегти й перевірити");
+      }
       const resolved = await resolveCreateInput(repository, input);
       validateProductWrite(resolved);
       return presentProduct(
@@ -147,10 +156,11 @@ export function createProductService(
       );
     },
 
-    async update(id, input) {
+    async update(id, input, actorUserId) {
       const existing = await requireProduct(repository, id);
       validateProductUpdate(existing, input);
-      const updated = await repository.update(id, input);
+      const normalized = await resolveVerificationUpdate(repository, existing, input, actorUserId);
+      const updated = await repository.update(id, normalized);
 
       if (updated === null) throw new ProductNotFoundError();
       return presentProduct(storage, updated);
@@ -471,10 +481,109 @@ async function presentProduct(
 ): Promise<ProductDetailsView> {
   return Object.freeze({
     ...product,
+    verificationReadiness: evaluateProductVerification(product),
     media: Object.freeze(
       await Promise.all(product.media.map((media) => presentMedia(storage, media))),
     ),
   });
+}
+
+const MATERIAL_PRODUCT_FIELDS = [
+  "nameEn",
+  "nameUa",
+  "gtin",
+  "categoryId",
+  "brandId",
+  "defaultMeasurementUnitId",
+  "foodState",
+  "characteristicIds",
+  "ediblePortionPercent",
+  "nutrients",
+  "portions",
+] as const satisfies readonly (keyof ProductUpdate)[];
+
+async function resolveVerificationUpdate(
+  repository: ProductRepository,
+  existing: ProductDetails,
+  input: ProductUpdate,
+  actorUserId: string,
+): Promise<ProductUpdate> {
+  if (input.verificationStatus === "VERIFIED") {
+    const prospective = await applyProductUpdate(repository, existing, input);
+    const readiness = evaluateProductVerification(prospective);
+    if (readiness.status === "BLOCKED") {
+      throw new ProductVerificationBlockedError(readiness.blockingIssues);
+    }
+
+    return {
+      ...input,
+      verificationStatus: "VERIFIED",
+      verifiedByUserId: actorUserId,
+      verifiedAt: new Date(),
+    };
+  }
+
+  const changesMaterialData = MATERIAL_PRODUCT_FIELDS.some((field) => input[field] !== undefined);
+  const mustReopen = existing.verificationStatus === "VERIFIED" && changesMaterialData;
+  const clearsVerification =
+    mustReopen ||
+    input.verificationStatus === "UNVERIFIED" ||
+    input.verificationStatus === "REJECTED";
+
+  if (!clearsVerification) return input;
+
+  return {
+    ...input,
+    ...(mustReopen && input.verificationStatus === undefined
+      ? { verificationStatus: "UNVERIFIED" as const }
+      : {}),
+    verifiedByUserId: null,
+    verifiedAt: null,
+  };
+}
+
+async function applyProductUpdate(
+  repository: ProductRepository,
+  existing: ProductDetails,
+  input: ProductUpdate,
+): Promise<ProductDetails> {
+  const nutrients =
+    input.nutrients === undefined
+      ? existing.nutrients
+      : await enrichNutrients(repository, input.nutrients, existing.nutrients);
+
+  return {
+    ...existing,
+    ...(input.nameEn === undefined ? {} : { nameEn: input.nameEn }),
+    ...(input.nameUa === undefined ? {} : { nameUa: input.nameUa }),
+    ...(input.brandId === undefined ? {} : { brandId: input.brandId }),
+    ...(input.foodState === undefined ? {} : { foodState: input.foodState }),
+    ...(input.portions === undefined
+      ? {}
+      : {
+          portions: input.portions.map((portion, index) => ({
+            id: `prospective-${index}`,
+            ...portion,
+          })),
+        }),
+    nutrients,
+  };
+}
+
+async function enrichNutrients(
+  repository: ProductRepository,
+  input: NonNullable<ProductUpdate["nutrients"]>,
+  existing: ProductDetails["nutrients"],
+): Promise<ProductDetails["nutrients"]> {
+  const existingById = new Map(existing.map((item) => [item.nutrientId, item]));
+  const codes = await repository.findNutrientCodes(input.map((item) => item.nutrientId));
+
+  return input.map((item) => ({
+    ...item,
+    nutrientCode: codes.get(item.nutrientId) ?? existingById.get(item.nutrientId)?.nutrientCode ?? "",
+    nutrientName: existingById.get(item.nutrientId)?.nutrientName ?? item.nutrientId,
+    unit: existingById.get(item.nutrientId)?.unit ?? "",
+  }));
 }
 
 async function presentMedia(

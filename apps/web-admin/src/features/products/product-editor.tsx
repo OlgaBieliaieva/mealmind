@@ -33,6 +33,7 @@ import {
 } from "./product-form-schema";
 import { ProductPhotoUploader } from "./product-photo-uploader";
 import { ProductStatusActions } from "./product-status-actions";
+import { ProductVerificationChecklist } from "./product-verification-checklist";
 
 export interface ProductEditorProps {
   readonly productId?: string;
@@ -190,11 +191,17 @@ export function ProductEditor({ productId }: ProductEditorProps) {
       </header>
 
       {current === undefined ? null : (
-        <ProductStatusActions
-          status={current.status}
-          isPending={statusMutation.isPending}
-          onChange={(status) => statusMutation.mutate(status)}
-        />
+        <>
+          <ProductVerificationChecklist
+            readiness={current.verificationReadiness}
+            verifiedAt={current.verifiedAt}
+          />
+          <ProductStatusActions
+            status={current.status}
+            isPending={statusMutation.isPending}
+            onChange={(status) => statusMutation.mutate(status)}
+          />
+        </>
       )}
 
       <ProductForm

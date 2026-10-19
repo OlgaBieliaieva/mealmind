@@ -1,3 +1,5 @@
+import type { ProductVerificationReadiness } from "./product-verification.js";
+
 export const PRODUCT_TYPES = ["GENERIC", "BRANDED"] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
@@ -110,8 +112,26 @@ export interface ProductUpdate {
   readonly ediblePortionPercent?: string | null | undefined;
   readonly notes?: string | null | undefined;
   readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
+  readonly verifiedByUserId?: string | null | undefined;
+  readonly verifiedAt?: Date | null | undefined;
   readonly nutrients?: readonly ProductNutrientWrite[] | undefined;
   readonly portions?: readonly ProductPortionWrite[] | undefined;
+}
+
+export interface ProductPackageRecord {
+  readonly id: string;
+  readonly gtin: string | null;
+  readonly kind:
+    | "UNSPECIFIED"
+    | "FIXED_MASS"
+    | "FIXED_VOLUME"
+    | "FIXED_MASS_AND_VOLUME"
+    | "FIXED_COUNT";
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly isDefault: boolean;
+  readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED";
 }
 
 export interface ProductMediaRecord {
@@ -164,15 +184,19 @@ export interface ProductDetails {
   readonly ediblePortionPercent: string | null;
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
   readonly notes: string | null;
   readonly archivedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly nutrients: readonly (ProductNutrientWrite & {
+    readonly nutrientCode: string;
     readonly nutrientName: string;
     readonly unit: string;
   })[];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
+  readonly packages: readonly ProductPackageRecord[];
   readonly media: readonly ProductMediaRecord[];
 }
 
@@ -192,6 +216,9 @@ export interface ProductSummary {
   readonly foodCharacteristics: readonly ProductFoodCharacteristicRecord[];
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
+  readonly verificationReadiness: ProductVerificationReadiness;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMediaRecord | null;
 }
@@ -264,6 +291,7 @@ export interface ProductRepository {
   list(query: ProductListQuery): Promise<ProductPage>;
   searchActive(query: ProductSearchQuery): Promise<ProductSearchPage>;
   findById(id: string): Promise<ProductDetails | null>;
+  findNutrientCodes(ids: readonly string[]): Promise<ReadonlyMap<string, string>>;
   create(data: ProductWrite): Promise<ProductDetails>;
   update(id: string, data: ProductUpdate): Promise<ProductDetails | null>;
   updateStatus(id: string, status: ProductStatus): Promise<ProductDetails | null>;

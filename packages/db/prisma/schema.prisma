@@ -770,6 +770,7 @@ model User {
   removedMealEntries         MealEntry[]                     @relation("MealEntryRemover")
   reviewedImportCandidates   ProductImportCandidate[]        @relation("ProductImportCandidateReviewer")
   importCandidateEvents      ProductImportCandidateEvent[]   @relation("ProductImportCandidateEventActor")
+  verifiedProducts           Product[]                       @relation("ProductVerifier")
 
   @@index([applicationRole])
   @@index([deletedAt])
@@ -1107,12 +1108,15 @@ model Product {
   ediblePortionPercent     Decimal?                  @map("edible_portion_percent") @db.Decimal(5, 2)
   status                   ProductStatus             @default(DRAFT)
   verificationStatus       ProductVerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verifiedByUserId         String?                   @map("verified_by_user_id") @db.Uuid
+  verifiedAt               DateTime?                 @map("verified_at") @db.Timestamptz(3)
   notes                    String?                   @db.Text
   archivedAt               DateTime?                 @map("archived_at") @db.Timestamptz(3)
   createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category                  ProductCategory                       @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  verifiedByUser            User?                                 @relation("ProductVerifier", fields: [verifiedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   brand                     Brand?                                @relation(fields: [brandId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   defaultMeasurementUnit    MeasurementUnit                       @relation(fields: [defaultMeasurementUnitId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   baseProduct               Product?                              @relation("BrandedProductBase", fields: [baseProductId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -1141,6 +1145,7 @@ model Product {
   @@index([baseProductId])
   @@index([type, status])
   @@index([verificationStatus, status])
+  @@index([verifiedByUserId])
   @@index([foodState, status])
   @@index([nameEn])
   @@index([nameUa])

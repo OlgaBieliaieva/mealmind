@@ -3,6 +3,23 @@ import type { ApiClient } from "./api-client";
 export type ProductType = "GENERIC" | "BRANDED";
 export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductVerificationStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED";
+export type ProductVerificationBlockingIssue =
+  | "MISSING_UA_NAME"
+  | "UNSPECIFIED_FOOD_STATE"
+  | "MISSING_ENERGY"
+  | "MISSING_PROTEIN"
+  | "MISSING_TOTAL_FAT"
+  | "MISSING_CARBOHYDRATE"
+  | "MISSING_BRAND"
+  | "MISSING_ACTIVE_PACKAGE"
+  | "MISSING_PACKAGE_GTIN"
+  | "MISSING_PACKAGE_QUANTITY";
+export type ProductVerificationWarning = "MISSING_PRIMARY_IMAGE" | "MISSING_DEFAULT_PORTION";
+export interface ProductVerificationReadiness {
+  readonly status: "READY" | "BLOCKED";
+  readonly blockingIssues: readonly ProductVerificationBlockingIssue[];
+  readonly warnings: readonly ProductVerificationWarning[];
+}
 export type ProductSourceProvider = "USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER";
 export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
 export type ProductFoodCharacteristicKind =
@@ -24,6 +41,22 @@ export interface ProductNutrientWrite {
   readonly nutrientId: string;
   readonly valuePer100g: string;
   readonly valueType: string;
+}
+
+export interface ProductPackage {
+  readonly id: string;
+  readonly gtin: string | null;
+  readonly kind:
+    | "UNSPECIFIED"
+    | "FIXED_MASS"
+    | "FIXED_VOLUME"
+    | "FIXED_MASS_AND_VOLUME"
+    | "FIXED_COUNT";
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly isDefault: boolean;
+  readonly status: ProductStatus;
 }
 
 export interface ProductPortionWrite {
@@ -77,6 +110,9 @@ export interface ProductSummary {
   readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
   readonly status: ProductStatus;
   readonly verificationStatus: ProductVerificationStatus;
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
+  readonly verificationReadiness: ProductVerificationReadiness;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMedia | null;
 }
@@ -93,10 +129,12 @@ export interface ProductDetails extends Omit<ProductSummary, "primaryMedia"> {
   readonly notes: string | null;
   readonly archivedAt: string | null;
   readonly nutrients: readonly (ProductNutrientWrite & {
+    readonly nutrientCode: string;
     readonly nutrientName: string;
     readonly unit: string;
   })[];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
+  readonly packages: readonly ProductPackage[];
   readonly media: readonly ProductMedia[];
 }
 

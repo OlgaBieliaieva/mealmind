@@ -18,6 +18,16 @@ export class ProductInvariantError extends AppError {
   }
 }
 
+export class ProductVerificationBlockedError extends AppError {
+  constructor(readonly blockingIssues: readonly string[]) {
+    super({
+      code: "PRODUCT_VERIFICATION_BLOCKED",
+      statusCode: 422,
+      message: "Продукт має незаповнені обов’язкові дані для верифікації",
+    });
+  }
+}
+
 export class ProductMediaNotFoundError extends AppError {
   constructor() {
     super({ code: "PRODUCT_MEDIA_NOT_FOUND", statusCode: 404, message: "Product photo not found" });

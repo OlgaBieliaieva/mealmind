@@ -51,14 +51,18 @@ export function createProductController(service: ProductService): ProductControl
       response.status(200).json({ data: await service.get(input.params.id) });
     }),
 
-    create: validateRequest(createProductSchema, async (input, _request, response) => {
+    create: validateRequest(createProductSchema, async (input, request, response) => {
+      const actor = getAuthenticatedUser(request);
       response.set("cache-control", "no-store");
-      response.status(201).json({ data: await service.create(input.body) });
+      response.status(201).json({ data: await service.create(input.body, actor.userId) });
     }),
 
-    update: validateRequest(updateProductSchema, async (input, _request, response) => {
+    update: validateRequest(updateProductSchema, async (input, request, response) => {
+      const actor = getAuthenticatedUser(request);
       response.set("cache-control", "no-store");
-      response.status(200).json({ data: await service.update(input.params.id, input.body) });
+      response
+        .status(200)
+        .json({ data: await service.update(input.params.id, input.body, actor.userId) });
     }),
 
     changeStatus: validateRequest(changeProductStatusSchema, async (input, _request, response) => {

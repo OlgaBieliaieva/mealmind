@@ -223,10 +223,9 @@ export function ProductForm({
             />
             <SelectField
               label="Статус перевірки"
-              options={Object.entries(PRODUCT_VERIFICATION_STATUS_LABELS).map(([value, label]) => ({
-                value,
-                label,
-              }))}
+              options={Object.entries(PRODUCT_VERIFICATION_STATUS_LABELS)
+                .filter(([value]) => mode === "edit" || value !== "VERIFIED")
+                .map(([value, label]) => ({ value, label }))}
               error={errors.verificationStatus?.message}
               {...register("verificationStatus")}
             />
