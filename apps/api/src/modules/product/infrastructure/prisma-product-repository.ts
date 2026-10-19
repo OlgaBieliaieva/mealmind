@@ -131,10 +131,18 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
 
     async update(id, data) {
       try {
-        const row = await database.product.update({
-          where: { id },
-          data: productUpdateData(data),
-          include: productInclude,
+        const row = await database.$transaction(async (transaction) => {
+          const updated = await transaction.product.update({
+            where: { id },
+            data: productUpdateData(data),
+            include: productInclude,
+          });
+
+          if (data.gtin !== undefined) {
+            await syncLegacyDefaultPackage(transaction, updated, data.gtin);
+          }
+
+          return updated;
         });
         return mapProductDetails(row);
       } catch (error) {
@@ -145,10 +153,25 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
 
     async updateStatus(id, status) {
       try {
-        const row = await database.product.update({
-          where: { id },
-          data: { status, archivedAt: status === "ARCHIVED" ? new Date() : null },
-          include: productInclude,
+        const changedAt = new Date();
+        const row = await database.$transaction(async (transaction) => {
+          const updated = await transaction.product.update({
+            where: { id },
+            data: { status, archivedAt: status === "ARCHIVED" ? changedAt : null },
+            include: productInclude,
+          });
+
+          if (updated.gtin !== null) {
+            await transaction.productPackage.updateMany({
+              where: { productId: id, gtin: updated.gtin, isDefault: true },
+              data: {
+                status,
+                archivedAt: status === "ARCHIVED" ? changedAt : null,
+              },
+            });
+          }
+
+          return updated;
         });
         return mapProductDetails(row);
       } catch (error) {
@@ -352,6 +375,19 @@ function productCreateData(id: string, data: ProductWrite): Prisma.ProductCreate
     archivedAt: data.status === "ARCHIVED" ? new Date() : null,
     nutrients: { create: data.nutrients.map(nutrientCreateData) },
     portions: { create: data.portions.map(portionCreateData) },
+    ...(data.gtin === undefined || data.gtin === null
+      ? {}
+      : {
+          packages: {
+            create: {
+              gtin: data.gtin,
+              kind: "UNSPECIFIED",
+              isDefault: true,
+              status: data.status,
+              archivedAt: data.status === "ARCHIVED" ? new Date() : null,
+            },
+          },
+        }),
     sourceReferences: {
       create: {
         provider: data.source.provider,
@@ -412,6 +448,65 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
           },
         }),
   };
+}
+
+async function syncLegacyDefaultPackage(
+  transaction: Prisma.TransactionClient,
+  product: { readonly id: string; readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED" },
+  gtin: string | null,
+): Promise<void> {
+  const currentDefault = await transaction.productPackage.findFirst({
+    where: {
+      productId: product.id,
+      isDefault: true,
+      status: { not: "ARCHIVED" },
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+
+  if (currentDefault !== null) {
+    await transaction.productPackage.update({
+      where: { id: currentDefault.id },
+      data: { gtin },
+    });
+    return;
+  }
+
+  const archivedDefault = await transaction.productPackage.findFirst({
+    where: {
+      productId: product.id,
+      isDefault: true,
+      status: "ARCHIVED",
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+
+  if (archivedDefault !== null) {
+    await transaction.productPackage.update({
+      where: { id: archivedDefault.id },
+      data: {
+        gtin,
+        status: product.status,
+        archivedAt: product.status === "ARCHIVED" ? new Date() : null,
+      },
+    });
+    return;
+  }
+
+  if (gtin === null) return;
+
+  await transaction.productPackage.create({
+    data: {
+      productId: product.id,
+      gtin,
+      kind: "UNSPECIFIED",
+      isDefault: true,
+      status: product.status,
+      archivedAt: product.status === "ARCHIVED" ? new Date() : null,
+    },
+  });
 }
 
 function nutrientCreateData(

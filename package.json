@@ -15,9 +15,11 @@
     "deepmerge-ts": "8.0.1",
     "fast-uri": "3.1.8",
     "ip-address": "10.7.2",
+    "proxy-addr": "2.0.8",
+    "sharp": "0.35.5",
+    "source-map-js": "1.2.2",
     "next": {
-      "postcss": "8.5.25",
-      "sharp": "0.35.4"
+      "postcss": "8.5.25"
     },
     "prisma": {
       "mysql2": "3.23.1"
@@ -50,10 +52,20 @@
     "db:test:migrations": "npm run db:test:migrations -w @mealmind/db",
     "db:test:seed": "npm run db:test:seed -w @mealmind/db",
     "db:test:usda-catalog": "npm run db:test:usda-catalog -w @mealmind/db",
+    "db:test:zakaz-candidates": "npm run db:test:zakaz-candidates -w @mealmind/db",
     "db:import:usda": "npm run db:import:usda -w @mealmind/db",
     "db:import:usda:dry-run": "npm run db:import:usda:dry-run -w @mealmind/db",
+    "db:import:zakaz:candidates": "npm run db:import:zakaz:candidates -w @mealmind/db --",
+    "db:import:zakaz:candidates:dry-run": "npm run db:import:zakaz:candidates:dry-run -w @mealmind/db --",
     "db:cleanup:usda:local": "npm run db:cleanup:usda:local -w @mealmind/db",
     "db:test": "npm run db:test -w @mealmind/db",
+    "catalog:zakaz": "npm run zakaz -w @mealmind/db --",
+    "catalog:zakaz:validate:raw": "npm run zakaz:validate:raw -w @mealmind/db --",
+    "catalog:zakaz:aggregate": "npm run zakaz:aggregate -w @mealmind/db --",
+    "catalog:zakaz:classify": "npm run zakaz:classify -w @mealmind/db --",
+    "catalog:zakaz:download:uk": "npm run zakaz:download:uk -w @mealmind/db --",
+    "catalog:zakaz:match:en-uk": "npm run zakaz:match:en-uk -w @mealmind/db --",
+    "catalog:zakaz:build:candidates": "npm run zakaz:build:candidates -w @mealmind/db --",
     "api:test:products:db": "npm run test:products:db -w @mealmind/api",
     "api:test:accounts:db": "npm run test:accounts:db -w @mealmind/api",
     "api:test:families:db": "npm run test:families:db -w @mealmind/api",
@@ -64,6 +76,7 @@
     "api:test:consumption:db": "npm run test:consumption:db -w @mealmind/api",
     "api:test:cooking:db": "npm run test:cooking:db -w @mealmind/api",
     "api:test:admin-analytics:db": "npm run test:admin-analytics:db -w @mealmind/api",
+    "api:test:product-import-review:db": "npm run test:product-import-review:db -w @mealmind/api",
     "api:openapi:export": "npm run openapi:export -w @mealmind/api",
     "api:openapi:check": "npm run openapi:check -w @mealmind/api",
     "api:openapi:watch": "npm run openapi:watch -w @mealmind/api",
@@ -87,7 +100,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
-    "sharp@0.35.4": true,
+    "sharp@0.35.5": true,
     "unrs-resolver@1.12.2": true,
     "prisma@7.9.1": true,
     "@prisma/engines@7.9.1": true

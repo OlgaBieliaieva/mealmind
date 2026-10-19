@@ -58,7 +58,7 @@ function service(): AdminAnalyticsService {
         foodStates: { UNSPECIFIED: 0, RAW: 0, COOKED: 0, PROCESSED: 0, READY_TO_EAT: 0 },
         statuses: { DRAFT: 0, ACTIVE: 0, ARCHIVED: 0 },
         verification: { UNVERIFIED: 0, VERIFIED: 0, REJECTED: 0 },
-        sources: { USDA: 0, MEALMIND_ADMIN: 0, MEALMIND_USER: 0, UNASSIGNED: 0 },
+        sources: { USDA: 0, ZAKAZ: 0, MEALMIND_ADMIN: 0, MEALMIND_USER: 0, UNASSIGNED: 0 },
       },
       rankings: { categories: [], brands: [], favorites: [] },
       series: [],

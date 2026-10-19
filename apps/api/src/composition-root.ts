@@ -17,6 +17,7 @@ import { createFamilyModule } from "./modules/family/family-module.js";
 import { createFoodModule } from "./modules/food/food-module.js";
 import { createMealPlanModule } from "./modules/meal-plan/meal-plan-module.js";
 import { createProductModule } from "./modules/product/product-module.js";
+import { createProductImportReviewModule } from "./modules/product-import-review/product-import-review-module.js";
 import { createReferenceModule } from "./modules/reference/reference-module.js";
 import { createRecipeModule } from "./modules/recipe/recipe-module.js";
 import { createShoppingListModule } from "./modules/shopping-list/shopping-list-module.js";
@@ -68,6 +69,14 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
   });
+  const productImportReviewModule = createProductImportReviewModule(
+    database,
+    authenticationService,
+    {
+      url: config.supabase.url,
+      secretKey: config.supabase.secretKey,
+    },
+  );
   const recipeModule = createRecipeModule(database, authenticationService, {
     url: config.supabase.url,
     secretKey: config.supabase.secretKey,
@@ -105,6 +114,7 @@ export function createApiRuntime(config: ApiConfig): ApiRuntime {
     accountRouter: accountModule.router,
     referenceRouter: referenceModule.router,
     productRouter: productModule.router,
+    productImportReviewRouter: productImportReviewModule.router,
     recipeRouter: recipeModule.router,
     foodRouter: foodModule.router,
     mealPlanRouter: mealPlanModule.router,

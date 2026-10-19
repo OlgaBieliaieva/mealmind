@@ -68,7 +68,7 @@ export const productOpenApiPaths = Object.freeze({
         }),
         query("sourceProvider", {
           type: "string",
-          enum: ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER", "UNASSIGNED"],
+          enum: ["USDA", "ZAKAZ", "MEALMIND_ADMIN", "MEALMIND_USER", "UNASSIGNED"],
         }),
         query("createdFrom", { type: "string", format: "date-time" }),
         query("includeArchived", { type: "boolean", default: true }),
@@ -216,11 +216,18 @@ export const productOpenApiSchemas = Object.freeze({
       brandName: { type: ["string", "null"] },
       sourceProvider: {
         type: ["string", "null"],
-        enum: ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER", null],
+        enum: ["USDA", "ZAKAZ", "MEALMIND_ADMIN", "MEALMIND_USER", null],
       },
       sourceDataset: {
         type: ["string", "null"],
-        enum: ["FOUNDATION_FOOD", "SR_LEGACY", "ADMIN_CATALOG", "USER_CATALOG", null],
+        enum: [
+          "FOUNDATION_FOOD",
+          "SR_LEGACY",
+          "ZAKAZ_RETAIL_CATALOG",
+          "ADMIN_CATALOG",
+          "USER_CATALOG",
+          null,
+        ],
       },
       foodState: {
         type: "string",

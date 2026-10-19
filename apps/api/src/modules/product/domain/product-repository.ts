@@ -36,12 +36,18 @@ export const NUTRIENT_VALUE_TYPES = [
 ] as const;
 export type NutrientValueType = (typeof NUTRIENT_VALUE_TYPES)[number];
 
-export const PRODUCT_SOURCE_PROVIDERS = ["USDA", "MEALMIND_ADMIN", "MEALMIND_USER"] as const;
+export const PRODUCT_SOURCE_PROVIDERS = [
+  "USDA",
+  "ZAKAZ",
+  "MEALMIND_ADMIN",
+  "MEALMIND_USER",
+] as const;
 export type ProductSourceProvider = (typeof PRODUCT_SOURCE_PROVIDERS)[number];
 
 export const PRODUCT_SOURCE_DATASETS = [
   "FOUNDATION_FOOD",
   "SR_LEGACY",
+  "ZAKAZ_RETAIL_CATALOG",
   "ADMIN_CATALOG",
   "USER_CATALOG",
 ] as const;
