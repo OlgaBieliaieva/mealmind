@@ -104,6 +104,43 @@ describe("product import review service", () => {
     ).rejects.toBeInstanceOf(ProductImportReviewInvariantError);
   });
 
+  it("validates and saves the current draft patch atomically with approval", async () => {
+    const candidate = candidateFixture({
+      status: "IN_REVIEW",
+      reviewedByUserId: actorId,
+      reviewDraft: {
+        title: "Milk",
+        sourceTitle: "Milk",
+        package: { kind: "FIXED_MASS", weightG: 950 },
+      },
+    });
+    const repository = repositoryFixture(candidate);
+    const service = createProductImportReviewService(repository, publisherFixture());
+    const patch = {
+      reviewResolution: { mode: "CREATE_NEW_PRODUCT", targetProductId: null },
+      canonical: {
+        nameEn: "Milk",
+        categoryId: "11111111-1111-4111-8111-111111111111",
+        brandId: "22222222-2222-4222-8222-222222222222",
+        defaultMeasurementUnitId: "55555555-5555-4555-8555-555555555555",
+      },
+    } as const;
+
+    await service.decide(
+      candidate.id,
+      { expectedUpdatedAt: revision, decision: "APPROVE", patch },
+      actorId,
+    );
+
+    expect(repository.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "APPROVED",
+        reviewDraft: expect.objectContaining({ canonical: patch.canonical }),
+        changeSet: { decision: "APPROVE", patch },
+      }),
+    );
+  });
+
   it("prevents reopening a published candidate", async () => {
     const candidate = candidateFixture({ status: "PUBLISHED", reviewedByUserId: actorId });
     const service = createProductImportReviewService(
@@ -190,6 +227,10 @@ function candidateFixture(
     normalizedGtin: "04820086633727",
     title: "Milk",
     brandName: "Brand",
+    packageKind: null,
+    packageWeightG: null,
+    packageVolumeMl: null,
+    packageItemCount: null,
     sourceImageUrl: null,
     reviewedByUserId: null,
     reviewedByEmail: null,

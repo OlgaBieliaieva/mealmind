@@ -11,14 +11,17 @@ const candidateIdParameter = {
   schema: { type: "string", format: "uuid" },
 } as const;
 
-const mutationRequest = (extraProperties: Readonly<Record<string, unknown>> = {}) => ({
+const mutationRequest = (
+  extraProperties: Readonly<Record<string, unknown>> = {},
+  requiredExtraProperties: readonly string[] = Object.keys(extraProperties),
+) => ({
   required: true,
   content: {
     "application/json": {
       schema: {
         type: "object",
         additionalProperties: false,
-        required: ["expectedUpdatedAt", ...Object.keys(extraProperties)],
+        required: ["expectedUpdatedAt", ...requiredExtraProperties],
         properties: {
           expectedUpdatedAt: { type: "string", format: "date-time" },
           comment: { type: ["string", "null"], maxLength: 4000 },
@@ -38,6 +41,21 @@ export const productImportReviewOpenApiPaths = Object.freeze({
       security: [{ bearerAuth: [] }],
       parameters: [
         { name: "search", in: "query", schema: { type: "string" } },
+        { name: "brandName", in: "query", schema: { type: "string" } },
+        {
+          name: "packageKind",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: [
+              "UNSPECIFIED",
+              "FIXED_MASS",
+              "FIXED_VOLUME",
+              "FIXED_COUNT",
+              "FIXED_MASS_AND_VOLUME",
+            ],
+          },
+        },
         { name: "batchId", in: "query", schema: { type: "string", format: "uuid" } },
         {
           name: "disposition",
@@ -123,9 +141,18 @@ export const productImportReviewOpenApiPaths = Object.freeze({
         "Переводить IN_REVIEW у APPROVED, REJECTED або DEFERRED. APPROVED ще не створює Product; публікація є окремою транзакційною операцією.",
       security: [{ bearerAuth: [] }],
       parameters: [candidateIdParameter],
-      requestBody: mutationRequest({
-        decision: { type: "string", enum: ["APPROVE", "REJECT", "DEFER"] },
-      }),
+      requestBody: mutationRequest(
+        {
+          decision: { type: "string", enum: ["APPROVE", "REJECT", "DEFER"] },
+          patch: {
+            type: "object",
+            minProperties: 1,
+            maxProperties: 50,
+            additionalProperties: true,
+          },
+        },
+        ["decision"],
+      ),
       responses: {
         "200": { description: "Рішення зафіксовано" },
         "404": { description: "Кандидата не знайдено" },
@@ -158,7 +185,7 @@ export const productImportReviewOpenApiPaths = Object.freeze({
     post: {
       summary: "Опублікувати перевірений кандидат продукту",
       description:
-        "Атомарно створює або доповнює Product, ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
+        "Атомарно створює UNVERIFIED Product або доповнює наявний Product, створює ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
       security: [{ bearerAuth: [] }],
       parameters: [candidateIdParameter],
       requestBody: mutationRequest(),

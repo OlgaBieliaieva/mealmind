@@ -163,12 +163,30 @@ function candidateWhere(
   query: ProductImportCandidateListQuery,
 ): Prisma.ProductImportCandidateWhereInput {
   const search = query.search?.trim();
+  const brandName = query.brandName?.trim();
+  const reviewDraftFilters: Prisma.ProductImportCandidateWhereInput[] = [
+    ...(brandName === undefined
+      ? []
+      : [
+          {
+            reviewDraft: {
+              path: ["brandName"],
+              string_contains: brandName,
+              mode: "insensitive" as const,
+            },
+          },
+        ]),
+    ...(query.packageKind === undefined
+      ? []
+      : [{ reviewDraft: { path: ["package", "kind"], equals: query.packageKind } }]),
+  ];
   return {
     ...(query.batchId === undefined ? {} : { batchId: query.batchId }),
     ...(query.disposition === undefined ? {} : { disposition: query.disposition }),
     ...(query.status === undefined ? {} : { status: query.status }),
     ...(query.matchStatus === undefined ? {} : { matchStatus: query.matchStatus }),
     ...(query.reviewedByUserId === undefined ? {} : { reviewedByUserId: query.reviewedByUserId }),
+    ...(reviewDraftFilters.length === 0 ? {} : { AND: reviewDraftFilters }),
     ...(query.reasonCode === undefined
       ? {}
       : { reasonCodes: { array_contains: [query.reasonCode] } }),
@@ -191,6 +209,7 @@ function mapCandidateSummary(
   }>,
 ): ProductImportCandidateSummary {
   const draft = asJsonObject(row.reviewDraft);
+  const packageDraft = asJsonObject(draft.package ?? null);
   return Object.freeze({
     id: row.id,
     batchId: row.batchId,
@@ -203,6 +222,10 @@ function mapCandidateSummary(
     normalizedGtin: row.normalizedGtin,
     title: stringValue(draft.title),
     brandName: stringValue(draft.brandName),
+    packageKind: packageKindValue(packageDraft.kind),
+    packageWeightG: numberValue(packageDraft.weightG),
+    packageVolumeMl: numberValue(packageDraft.volumeMl),
+    packageItemCount: numberValue(packageDraft.itemCount),
     sourceImageUrl: stringValue(draft.sourceImageUrl),
     reviewedByUserId: row.reviewedByUserId,
     reviewedByEmail: row.reviewedByUser?.email ?? null,
@@ -289,7 +312,7 @@ function asJsonValue(value: Prisma.JsonValue): JsonValue {
   return value as JsonValue;
 }
 
-function asJsonObject(value: Prisma.JsonValue): JsonObject {
+function asJsonObject(value: Prisma.JsonValue | JsonValue): JsonObject {
   if (value === null || Array.isArray(value) || typeof value !== "object") return Object.freeze({});
   return value as JsonObject;
 }
@@ -302,6 +325,22 @@ function asStringArray(value: Prisma.JsonValue): string[] {
 
 function stringValue(value: JsonValue | undefined): string | null {
   return typeof value === "string" ? value : null;
+}
+
+function numberValue(value: JsonValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function packageKindValue(
+  value: JsonValue | undefined,
+): ProductImportCandidateSummary["packageKind"] {
+  return value === "UNSPECIFIED" ||
+    value === "FIXED_MASS" ||
+    value === "FIXED_VOLUME" ||
+    value === "FIXED_COUNT" ||
+    value === "FIXED_MASS_AND_VOLUME"
+    ? value
+    : null;
 }
 
 function iso(value: Date | null): string | null {

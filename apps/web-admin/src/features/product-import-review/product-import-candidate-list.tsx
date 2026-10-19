@@ -10,6 +10,7 @@ import {
   listProductImportCandidates,
   type ProductImportCandidateDisposition,
   type ProductImportCandidateStatus,
+  type ProductImportPackageKind,
 } from "@/shared/api/product-import-review";
 import { Button, Card, PageState, SelectField, TextInput } from "@/shared/ui";
 
@@ -26,6 +27,10 @@ export function ProductImportCandidateList() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [brandName, setBrandName] = useState(searchParams.get("brandName") ?? "");
+  const [packageKind, setPackageKind] = useState<ProductImportPackageKind | "">(
+    asPackageKind(searchParams.get("packageKind")) ?? "",
+  );
   const [status, setStatus] = useState<ProductImportCandidateStatus | "">(
     asStatus(searchParams.get("status")) ?? "PENDING",
   );
@@ -34,10 +39,15 @@ export function ProductImportCandidateList() {
   );
   const [page, setPage] = useState(1);
   const query = useQuery({
-    queryKey: ["admin-product-import-candidates", { search, status, disposition, page }],
+    queryKey: [
+      "admin-product-import-candidates",
+      { search, brandName, packageKind, status, disposition, page },
+    ],
     queryFn: () =>
       listProductImportCandidates(apiClient, {
         ...(search.trim() ? { search: search.trim() } : {}),
+        ...(brandName.trim() ? { brandName: brandName.trim() } : {}),
+        ...(packageKind ? { packageKind } : {}),
         ...(status ? { status } : {}),
         ...(disposition ? { disposition } : {}),
         page,
@@ -71,11 +81,11 @@ export function ProductImportCandidateList() {
             setPage(1);
             const next = new URLSearchParams();
             if (search.trim()) next.set("search", search.trim());
+            if (brandName.trim()) next.set("brandName", brandName.trim());
+            if (packageKind) next.set("packageKind", packageKind);
             if (status) next.set("status", status);
             if (disposition) next.set("disposition", disposition);
-            router.replace(
-              `/product-import${next.size === 0 ? "" : `?${next.toString()}`}`,
-            );
+            router.replace(`/product-import${next.size === 0 ? "" : `?${next.toString()}`}`);
           }}
         >
           <TextInput
@@ -83,6 +93,27 @@ export function ProductImportCandidateList() {
             value={search}
             placeholder="Назва, бренд, SKU або GTIN"
             onChange={(event) => setSearch(event.target.value)}
+          />
+          <TextInput
+            label="Бренд"
+            value={brandName}
+            placeholder="Наприклад, Мівіна"
+            onChange={(event) => setBrandName(event.target.value)}
+          />
+          <SelectField
+            label="Тип пакування"
+            value={packageKind}
+            options={[
+              { value: "", label: "Усі типи" },
+              { value: "FIXED_MASS", label: "Фіксована вага" },
+              { value: "FIXED_VOLUME", label: "Фіксований об’єм" },
+              { value: "FIXED_COUNT", label: "Фіксована кількість" },
+              { value: "FIXED_MASS_AND_VOLUME", label: "Вага та об’єм" },
+              { value: "UNSPECIFIED", label: "Не визначено" },
+            ]}
+            onChange={(event) =>
+              setPackageKind(event.target.value as ProductImportPackageKind | "")
+            }
           />
           <SelectField
             label="Статус перевірки"
@@ -139,6 +170,7 @@ export function ProductImportCandidateList() {
                 <tr>
                   <th scope="col">Кандидат</th>
                   <th scope="col">Ідентифікатори</th>
+                  <th scope="col">Пакування</th>
                   <th scope="col">Pipeline</th>
                   <th scope="col">Перевірка</th>
                   <th scope="col">Оновлено</th>
@@ -174,6 +206,7 @@ export function ProductImportCandidateList() {
                         </small>
                       </span>
                     </td>
+                    <td>{formatPackage(candidate)}</td>
                     <td>
                       <span
                         className={`import-review-badge import-review-badge--${candidate.disposition.toLowerCase()}`}
@@ -192,7 +225,9 @@ export function ProductImportCandidateList() {
                       >
                         {IMPORT_STATUS_LABELS[candidate.status]}
                       </span>
-                      {candidate.reviewedByEmail ? <small>{candidate.reviewedByEmail}</small> : null}
+                      {candidate.reviewedByEmail ? (
+                        <small>{candidate.reviewedByEmail}</small>
+                      ) : null}
                     </td>
                     <td>{formatDate(candidate.updatedAt)}</td>
                   </tr>
@@ -241,6 +276,33 @@ function asDisposition(value: string | null): ProductImportCandidateDisposition 
   return value === "CANDIDATE" || value === "REVIEW_REQUIRED" || value === "REJECTED"
     ? value
     : undefined;
+}
+
+function asPackageKind(value: string | null): ProductImportPackageKind | undefined {
+  return value === "UNSPECIFIED" ||
+    value === "FIXED_MASS" ||
+    value === "FIXED_VOLUME" ||
+    value === "FIXED_COUNT" ||
+    value === "FIXED_MASS_AND_VOLUME"
+    ? value
+    : undefined;
+}
+
+function formatPackage(candidate: {
+  readonly packageWeightG: number | null;
+  readonly packageVolumeMl: number | null;
+  readonly packageItemCount: number | null;
+}): string {
+  const values = [
+    candidate.packageWeightG === null ? null : `${formatNumber(candidate.packageWeightG)} г`,
+    candidate.packageVolumeMl === null ? null : `${formatNumber(candidate.packageVolumeMl)} мл`,
+    candidate.packageItemCount === null ? null : `${formatNumber(candidate.packageItemCount)} шт.`,
+  ].filter((value): value is string => value !== null);
+  return values.length === 0 ? "Не визначено" : values.join(" · ");
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 4 }).format(value);
 }
 
 function formatDate(value: string): string {

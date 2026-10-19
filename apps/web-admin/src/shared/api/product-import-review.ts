@@ -4,6 +4,8 @@ export type ProductImportCandidateDisposition = "CANDIDATE" | "REVIEW_REQUIRED" 
 export type ProductImportCandidateStatus =
   "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "DEFERRED" | "PUBLISHED";
 export type ProductImportReviewDecision = "APPROVE" | "REJECT" | "DEFER";
+export type ProductImportPackageKind =
+  "UNSPECIFIED" | "FIXED_MASS" | "FIXED_VOLUME" | "FIXED_COUNT" | "FIXED_MASS_AND_VOLUME";
 export type JsonValue =
   string | number | boolean | null | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 export type JsonObject = { readonly [key: string]: JsonValue };
@@ -20,6 +22,10 @@ export interface ProductImportCandidateSummary {
   readonly normalizedGtin: string | null;
   readonly title: string | null;
   readonly brandName: string | null;
+  readonly packageKind: ProductImportPackageKind | null;
+  readonly packageWeightG: number | null;
+  readonly packageVolumeMl: number | null;
+  readonly packageItemCount: number | null;
   readonly sourceImageUrl: string | null;
   readonly reviewedByUserId: string | null;
   readonly reviewedByEmail: string | null;
@@ -77,6 +83,8 @@ export interface ProductImportCandidateReviewDetails {
 
 export interface ProductImportCandidateListParameters {
   readonly search?: string;
+  readonly brandName?: string;
+  readonly packageKind?: ProductImportPackageKind;
   readonly batchId?: string;
   readonly disposition?: ProductImportCandidateDisposition;
   readonly status?: ProductImportCandidateStatus;
@@ -151,11 +159,13 @@ export function decideProductImportReview(
   expectedUpdatedAt: string,
   decision: ProductImportReviewDecision,
   comment?: string,
+  patch?: JsonObject,
 ) {
   return apiClient.post<ProductImportCandidateResponse>(`${candidatePath(id)}/decision`, {
     expectedUpdatedAt,
     decision,
     ...(comment ? { comment } : {}),
+    ...(patch ? { patch } : {}),
   });
 }
 

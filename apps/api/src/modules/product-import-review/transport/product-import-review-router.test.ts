@@ -28,13 +28,22 @@ describe("product import review router", () => {
     const service = serviceFixture();
     const response = await request(createTestApp(service, "ADMIN"))
       .get("/api/v1/admin/product-import/candidates")
-      .query({ status: "PENDING", disposition: "CANDIDATE", page: "2", pageSize: "50" })
+      .query({
+        status: "PENDING",
+        disposition: "CANDIDATE",
+        brandName: "Мівіна",
+        packageKind: "FIXED_MASS",
+        page: "2",
+        pageSize: "50",
+      })
       .set("authorization", "Bearer token");
 
     expect(response.status).toBe(200);
     expect(service.list).toHaveBeenCalledWith({
       status: "PENDING",
       disposition: "CANDIDATE",
+      brandName: "Мівіна",
+      packageKind: "FIXED_MASS",
       page: 2,
       pageSize: 50,
     });

@@ -16,6 +16,15 @@ export const PRODUCT_IMPORT_CANDIDATE_STATUSES = [
 ] as const;
 export type ProductImportCandidateStatus = (typeof PRODUCT_IMPORT_CANDIDATE_STATUSES)[number];
 
+export const PRODUCT_IMPORT_PACKAGE_KINDS = [
+  "UNSPECIFIED",
+  "FIXED_MASS",
+  "FIXED_VOLUME",
+  "FIXED_COUNT",
+  "FIXED_MASS_AND_VOLUME",
+] as const;
+export type ProductImportPackageKind = (typeof PRODUCT_IMPORT_PACKAGE_KINDS)[number];
+
 export const PRODUCT_IMPORT_REVIEW_DECISIONS = ["APPROVE", "REJECT", "DEFER"] as const;
 export type ProductImportReviewDecision = (typeof PRODUCT_IMPORT_REVIEW_DECISIONS)[number];
 
@@ -25,6 +34,8 @@ export type JsonObject = { readonly [key: string]: JsonValue };
 
 export interface ProductImportCandidateListQuery {
   readonly search?: string | undefined;
+  readonly brandName?: string | undefined;
+  readonly packageKind?: ProductImportPackageKind | undefined;
   readonly batchId?: string | undefined;
   readonly disposition?: ProductImportCandidateDisposition | undefined;
   readonly status?: ProductImportCandidateStatus | undefined;
@@ -47,6 +58,10 @@ export interface ProductImportCandidateSummary {
   readonly normalizedGtin: string | null;
   readonly title: string | null;
   readonly brandName: string | null;
+  readonly packageKind: ProductImportPackageKind | null;
+  readonly packageWeightG: number | null;
+  readonly packageVolumeMl: number | null;
+  readonly packageItemCount: number | null;
   readonly sourceImageUrl: string | null;
   readonly reviewedByUserId: string | null;
   readonly reviewedByEmail: string | null;

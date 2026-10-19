@@ -993,6 +993,21 @@
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "brandName", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "packageKind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "UNSPECIFIED",
+                "FIXED_MASS",
+                "FIXED_VOLUME",
+                "FIXED_COUNT",
+                "FIXED_MASS_AND_VOLUME"
+              ]
+            }
+          },
           { "name": "batchId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
           {
             "name": "disposition",
@@ -1163,7 +1178,13 @@
                 "properties": {
                   "expectedUpdatedAt": { "type": "string", "format": "date-time" },
                   "comment": { "type": ["string", "null"], "maxLength": 4000 },
-                  "decision": { "type": "string", "enum": ["APPROVE", "REJECT", "DEFER"] }
+                  "decision": { "type": "string", "enum": ["APPROVE", "REJECT", "DEFER"] },
+                  "patch": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "maxProperties": 50,
+                    "additionalProperties": true
+                  }
                 }
               }
             }
@@ -1224,7 +1245,7 @@
     "/api/v1/admin/product-import/candidates/{id}/publish": {
       "post": {
         "summary": "Опублікувати перевірений кандидат продукту",
-        "description": "Атомарно створює або доповнює Product, ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
+        "description": "Атомарно створює UNVERIFIED Product або доповнює наявний Product, створює ProductPackage, label nutrients, package metadata і source references; лише після успіху переводить APPROVED у PUBLISHED.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {

@@ -1,8 +1,9 @@
 # Admin Review API імпорту продуктів
 
-Модуль обслуговує staging-чергу `ProductImportCandidate` і не створює
-канонічні `Product` або `ProductPackage`. Усі маршрути розташовані під
-`/api/v1/admin/product-import/candidates` та вимагають роль `ADMIN`.
+Модуль обслуговує staging-чергу `ProductImportCandidate`, ручну перевірку та
+контрольовану публікацію канонічних `Product` і `ProductPackage`. Усі маршрути
+розташовані під `/api/v1/admin/product-import/candidates` та вимагають роль
+`ADMIN`.
 
 ## Життєвий цикл
 
@@ -30,7 +31,8 @@ Detail endpoint також повертає збіги з чинним ката�
 `POST /api/v1/admin/product-import/candidates/:id/publish` доступний лише для
 `APPROVED` і використовує `expectedUpdatedAt`. Операція:
 
-- створює новий `BRANDED Product` або додає пакування до обраного продукту;
+- створює новий `BRANDED + ACTIVE + UNVERIFIED Product` або додає пакування до
+  обраного продукту без зміни його поточного статусу верифікації;
 - зберігає `ProductPackage`, product/package source references, склад,
   нормалізовані й raw значення строку придатності та температури;
 - створює package portion, якщо джерело містить вагу в грамах;
@@ -38,6 +40,11 @@ Detail endpoint також повертає збіги з чинним ката�
 - завантажує HTTPS image лише з домену Zakaz, обмежує його до 1350×1350,
   створює thumbnail і прив’язує медіа до пакування;
 - після успіху переводить кандидата в `PUBLISHED` і додає audit event.
+
+`APPROVED` підтверджує коректність review draft і source-backed даних конкретного
+пакування, але не означає повну доменну верифікацію продукту. Новий продукт
+залишається `UNVERIFIED`, доки адміністратор не доповнить його характеристиками
+в каталозі та явно не змінить статус верифікації.
 
 DB-зміни виконуються однією транзакцією. Image objects готуються перед нею; при
 помилці транзакції виконується компенсувальне видалення зі storage. Конфлікти

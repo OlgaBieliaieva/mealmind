@@ -88,12 +88,48 @@ describe("ProductImportCandidateEditor", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Опублікувати" }));
     const dialog = screen.getByRole("dialog", { name: "Опублікувати продукт" });
+    expect(within(dialog).getByText(/статусом «Не перевірено»/)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Опублікувати" }));
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledOnce());
     expect(mocks.post).toHaveBeenCalledWith(
       "/api/v1/admin/product-import/candidates/33333333-3333-4333-8333-333333333333/publish",
       { expectedUpdatedAt: "2026-10-08T09:00:00.000Z" },
+    );
+  });
+
+  it("sends the current form draft atomically when approving", async () => {
+    const response = candidateResponse();
+    mocks.get.mockResolvedValue(response);
+    mocks.post.mockResolvedValue({
+      ...response,
+      data: {
+        ...response.data,
+        candidate: { ...response.data.candidate, status: "APPROVED" },
+      },
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductImportCandidateEditor candidateId="33333333-3333-4333-8333-333333333333" />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Схвалити" }));
+    const dialog = screen.getByRole("dialog", { name: "Схвалити кандидата" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Підтвердити" }));
+
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledOnce());
+    expect(mocks.post.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        expectedUpdatedAt: "2026-10-08T09:00:00.000Z",
+        decision: "APPROVE",
+        patch: expect.objectContaining({
+          canonical: expect.objectContaining({
+            categoryId: "11111111-1111-4111-8111-111111111111",
+          }),
+        }),
+      }),
     );
   });
 });
@@ -123,6 +159,15 @@ function candidateResponse() {
     temperatureRange: "5...25",
     webUrl: "https://example.test/product",
     sourceImageUrl: null,
+    reviewResolution: { mode: "CREATE_NEW_PRODUCT", targetProductId: null },
+    canonical: {
+      nameUa: "Вермішель Мівіна",
+      nameEn: "Mivina noodles",
+      categoryId: "11111111-1111-4111-8111-111111111111",
+      brandId: "22222222-2222-4222-8222-222222222222",
+      defaultMeasurementUnitId: "55555555-5555-4555-8555-555555555555",
+      baseProductId: null,
+    },
   };
   return {
     data: {

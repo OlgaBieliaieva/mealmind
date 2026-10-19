@@ -18,10 +18,12 @@ import {
 export function createPrismaProductImportPublisher(
   database: DatabaseClient,
   storage: ProductMediaStorage,
+  prepareMedia: typeof prepareZakazProductMedia = prepareZakazProductMedia,
+  now: () => Date = () => new Date(),
 ): ProductImportPublisher {
   return Object.freeze({
     async publish(input: PublishProductImportCandidateInput) {
-      const preparedMedia = await prepareZakazProductMedia(
+      const preparedMedia = await prepareMedia(
         input.candidate.id,
         input.publication.sourceImageUrl,
         storage,
@@ -53,6 +55,7 @@ export function createPrismaProductImportPublisher(
             productPackage.id,
             packageSource.id,
             preparedMedia,
+            now(),
           );
 
           const changed = await transaction.productImportCandidate.updateMany({
@@ -119,6 +122,7 @@ async function persistMedia(
   productPackageId: string,
   packageSourceReferenceId: string,
   media: PreparedZakazProductMedia | null,
+  verifiedAt: Date,
 ): Promise<void> {
   if (media === null) return;
   const hasPrimary =
@@ -144,7 +148,8 @@ async function persistMedia(
       altTextEn: input.publication.nameEn,
       isPrimary: !hasPrimary,
       uploadedByUserId: input.actorUserId,
-      verifiedAt: new Date(),
+      createdAt: verifiedAt,
+      verifiedAt,
     },
   });
 }
@@ -184,7 +189,7 @@ async function resolveProduct(
       baseProductId: publication.baseProductId,
       foodState: "UNSPECIFIED",
       status: "ACTIVE",
-      verificationStatus: "VERIFIED",
+      verificationStatus: "UNVERIFIED",
       notes: publication.description,
     },
     select: { id: true },

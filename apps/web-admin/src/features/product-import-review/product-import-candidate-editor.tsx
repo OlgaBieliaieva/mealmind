@@ -190,6 +190,7 @@ function LoadedCandidateEditor({
         candidate.updatedAt,
         value,
         decisionComment.trim() || undefined,
+        currentDraftPatch(),
       ),
     onSuccess: async (response) => {
       toast.success("Рішення перевірки зафіксовано");
@@ -219,8 +220,12 @@ function LoadedCandidateEditor({
 
   function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    saveMutation.mutate(currentDraftPatch());
+  }
+
+  function currentDraftPatch(): JsonObject {
     const normalizedGtin = form.gtin.trim();
-    const patch: JsonObject = {
+    return {
       title: nullable(form.title),
       description: nullable(form.description),
       brandName: nullable(form.brandName),
@@ -269,7 +274,6 @@ function LoadedCandidateEditor({
         baseProductId: nullable(form.baseProductId),
       },
     };
-    saveMutation.mutate(patch);
   }
 
   const canEdit = candidate.status === "IN_REVIEW";
@@ -700,7 +704,11 @@ function LoadedCandidateEditor({
       <Modal
         open={publishOpen}
         title="Опублікувати продукт"
-        description="Буде створено або доповнено активний перевірений продукт, пакування, склад, label nutrients і source references. Цю дію не можна скасувати через review queue."
+        description={
+          form.resolutionMode === "CREATE_NEW_PRODUCT"
+            ? "Буде створено активний продукт зі статусом «Не перевірено», а також пакування, склад, label nutrients і source references. Після публікації доповніть та верифікуйте продукт у каталозі."
+            : "Пакування, склад, label nutrients і source references буде додано до наявного продукту. Його поточний статус верифікації не зміниться."
+        }
         onClose={() => {
           if (!publishMutation.isPending) setPublishOpen(false);
         }}

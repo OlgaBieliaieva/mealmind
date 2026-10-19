@@ -32,6 +32,7 @@ export interface UpdateReviewDraftInput extends ReviewMutationInput {
 
 export interface DecideReviewInput extends ReviewMutationInput {
   readonly decision: ProductImportReviewDecision;
+  readonly patch?: JsonObject | undefined;
 }
 
 export interface ProductImportReviewService {
@@ -156,8 +157,12 @@ export function createProductImportReviewService(
       if (input.decision === "REJECT" && !input.comment?.trim()) {
         throw new ProductImportReviewInvariantError("A rejection comment is required");
       }
+      const reviewDraft =
+        input.patch === undefined
+          ? candidate.reviewDraft
+          : Object.freeze({ ...candidate.reviewDraft, ...input.patch });
       if (input.decision === "APPROVE") {
-        parseProductImportPublicationDraft(candidate);
+        parseProductImportPublicationDraft({ ...candidate, reviewDraft });
       }
       const target = decisionTarget(input.decision);
 
@@ -168,7 +173,11 @@ export function createProductImportReviewService(
         fromStatus: "IN_REVIEW",
         toStatus: target.status,
         action: target.action,
-        changeSet: Object.freeze({ decision: input.decision }),
+        ...(input.patch === undefined ? {} : { reviewDraft }),
+        changeSet: Object.freeze({
+          decision: input.decision,
+          ...(input.patch === undefined ? {} : { patch: input.patch }),
+        }),
         comment: input.comment,
         reviewedAt: now(),
       });

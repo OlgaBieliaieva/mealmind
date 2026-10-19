@@ -9,6 +9,7 @@ import type { ProductMediaStorage } from "../../product/domain/product-media-sto
 import { parseProductImportPublicationDraft } from "../application/product-import-publication-draft.js";
 import { createPrismaProductImportReviewRepository } from "./prisma-product-import-review-repository.js";
 import { createPrismaProductImportPublisher } from "./prisma-product-import-publisher.js";
+import type { PreparedZakazProductMedia } from "./zakaz-product-media-preparer.js";
 
 try {
   loadEnvFile(resolve(process.cwd(), "../../.env"));
@@ -21,8 +22,15 @@ const database = createDatabaseClient({
   log: ["error"],
 });
 const repository = createPrismaProductImportReviewRepository(database);
-const publisher = createPrismaProductImportPublisher(database, noopStorage());
 const sourceSku = "integration-" + randomUUID();
+const sourceBrandName = "Zakaz " + sourceSku;
+const mediaTimestamp = new Date("2000-01-01T00:00:00.000Z");
+const publisher = createPrismaProductImportPublisher(
+  database,
+  noopStorage(),
+  prepareMediaFixture,
+  () => mediaTimestamp,
+);
 
 try {
   const [category, unit] = await Promise.all([
@@ -79,6 +87,7 @@ try {
       reviewDraft: {
         title: "Інтеграційне молоко",
         sourceTitle: "Integration milk",
+        brandName: sourceBrandName,
         description: "Перевірено адміністратором",
         package: { kind: "FIXED_MASS", weightG: 950 },
         ingredients: ["Milk"],
@@ -91,7 +100,7 @@ try {
         shelfLife: "180 діб",
         temperatureRange: "1...25",
         availability: { inStock: false },
-        sourceImageUrl: null,
+        sourceImageUrl: "https://img3.zakaz.ua/integration-product.jpg",
         reviewResolution: { mode: "CREATE_NEW_PRODUCT", targetProductId: null },
         canonical: {
           nameUa: "Інтеграційне молоко",
@@ -105,6 +114,16 @@ try {
       sourceSnapshots: {},
     },
   });
+  const filteredPage = await repository.list({
+    brandName: sourceBrandName,
+    packageKind: "FIXED_MASS",
+    page: 1,
+    pageSize: 25,
+  });
+  assert.equal(filteredPage.total, 1);
+  assert.equal(filteredPage.items[0]?.id, candidate.id);
+  assert.equal(filteredPage.items[0]?.packageWeightG, 950);
+
   const pendingDetails = await repository.findById(candidate.id);
   assert.notEqual(pendingDetails, null);
 
@@ -157,6 +176,7 @@ try {
             },
           },
           nutrients: { include: { nutrient: true } },
+          media: true,
         },
       },
       events: true,
@@ -164,12 +184,23 @@ try {
   });
   assert.equal(result.status, "PUBLISHED");
   assert.equal(result.publishedProduct?.status, "ACTIVE");
-  assert.equal(result.publishedProduct?.verificationStatus, "VERIFIED");
+  assert.equal(result.publishedProduct?.verificationStatus, "UNVERIFIED");
   assert.equal(result.publishedProduct?.packages.length, 1);
   assert.equal(result.publishedProduct?.packages[0]?.sourceReferences[0]?.inStock, false);
   assert.equal(result.publishedProduct?.packages[0]?.ingredientTexts[0]?.statement, "Milk");
   assert.equal(result.publishedProduct?.packages[0]?.shelfLifeRules[0]?.durationUnit, "DAYS");
   assert.equal(result.publishedProduct?.packages[0]?.portions[0]?.gramWeight.toString(), "950");
+  assert.equal(result.publishedProduct?.media.length, 1);
+  assert.equal(result.publishedProduct?.media[0]?.status, "ACTIVE");
+  assert.equal(result.publishedProduct?.media[0]?.sourceUrl, details!.sourceImageUrl);
+  assert.equal(
+    result.publishedProduct?.media[0]?.createdAt.toISOString(),
+    mediaTimestamp.toISOString(),
+  );
+  assert.equal(
+    result.publishedProduct?.media[0]?.verifiedAt?.toISOString(),
+    mediaTimestamp.toISOString(),
+  );
   assert.deepEqual(result.publishedProduct?.nutrients.map((item) => item.nutrient.code).sort(), [
     "carbohydrate",
     "energy_kcal",
@@ -200,6 +231,23 @@ function noopStorage(): ProductMediaStorage {
     },
     async write() {},
     async remove() {},
+  };
+}
+
+async function prepareMediaFixture(
+  candidateId: string,
+  sourceUrl: string | null,
+): Promise<PreparedZakazProductMedia | null> {
+  if (sourceUrl === null) return null;
+  return {
+    id: randomUUID(),
+    objectPath: `products/zakaz-imports/${candidateId}/integration/original.webp`,
+    thumbnailPath: `products/zakaz-imports/${candidateId}/integration/thumbnail.webp`,
+    byteSize: 1_024,
+    widthPx: 1_000,
+    heightPx: 1_000,
+    checksumSha256: "a".repeat(64),
+    sourceUrl,
   };
 }
 

@@ -19,7 +19,7 @@ vi.mock("@/shared/api/browser-api-client", () => ({
 
 describe("ProductImportCandidateList", () => {
   it("renders a paginated review queue with source identity and statuses", async () => {
-    mocks.searchParams = "";
+    mocks.searchParams = "brandName=Мівіна&packageKind=FIXED_MASS";
     mocks.get.mockResolvedValue({
       data: {
         items: [
@@ -35,6 +35,10 @@ describe("ProductImportCandidateList", () => {
             normalizedGtin: "07613287130266",
             title: "Вермішель",
             brandName: "Мівіна",
+            packageKind: "FIXED_MASS",
+            packageWeightG: 90,
+            packageVolumeMl: null,
+            packageItemCount: null,
             sourceImageUrl: null,
             reviewedByUserId: null,
             reviewedByEmail: null,
@@ -54,17 +58,15 @@ describe("ProductImportCandidateList", () => {
     );
 
     const link = await screen.findByRole("link", { name: "Вермішель" });
-    expect(link).toHaveAttribute(
-      "href",
-      "/product-import/33333333-3333-4333-8333-333333333333",
-    );
+    expect(link).toHaveAttribute("href", "/product-import/33333333-3333-4333-8333-333333333333");
     const table = screen.getByRole("table");
     expect(table).toHaveAccessibleName("Знайдено кандидатів: 1");
     expect(within(table).getByText("Потребує уваги")).toBeInTheDocument();
+    expect(within(table).getByText("90 г")).toBeInTheDocument();
     expect(within(table).getByText("Не визначено обсяг пакування")).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.get).toHaveBeenCalledWith(
-        "/api/v1/admin/product-import/candidates?status=PENDING&page=1&pageSize=25",
+        "/api/v1/admin/product-import/candidates?brandName=%D0%9C%D1%96%D0%B2%D1%96%D0%BD%D0%B0&packageKind=FIXED_MASS&status=PENDING&page=1&pageSize=25",
       ),
     );
     await validateRenderedUi(container);
