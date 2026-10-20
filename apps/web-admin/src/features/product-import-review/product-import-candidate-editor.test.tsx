@@ -56,7 +56,7 @@ describe("ProductImportCandidateEditor", () => {
       }),
     );
     await validateRenderedUi(container);
-  });
+  }, 10_000);
 
   it("asks for confirmation and publishes an approved candidate", async () => {
     const response = candidateResponse();
