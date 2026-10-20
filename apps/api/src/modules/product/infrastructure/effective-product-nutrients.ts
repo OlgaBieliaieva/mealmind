@@ -6,13 +6,7 @@ export interface EffectiveProductNutrient {
   readonly productId: string;
   readonly nutrientId: string;
   readonly valuePer100g: Prisma.Decimal;
-  readonly valueType:
-    | "ANALYTICAL"
-    | "DERIVED"
-    | "ESTIMATED"
-    | "CALCULATED"
-    | "LABEL"
-    | "UNKNOWN";
+  readonly valueType: "ANALYTICAL" | "DERIVED" | "ESTIMATED" | "CALCULATED" | "LABEL" | "UNKNOWN";
   readonly origin: "PRODUCT" | "BASE_PRODUCT";
   readonly nutrient: {
     readonly id: string;
@@ -50,7 +44,12 @@ export async function findEffectiveProductNutrients(
     select: { id: true, baseProductId: true },
   });
   const sourceProductIds = [
-    ...new Set(products.flatMap((product) => [product.id, ...(product.baseProductId ? [product.baseProductId] : [])])),
+    ...new Set(
+      products.flatMap((product) => [
+        product.id,
+        ...(product.baseProductId ? [product.baseProductId] : []),
+      ]),
+    ),
   ];
   const stored = await database.productNutrient.findMany({
     where: {

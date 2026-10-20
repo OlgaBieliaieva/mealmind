@@ -191,11 +191,7 @@ export interface ProductPackageRecord {
   readonly id: string;
   readonly gtin: string | null;
   readonly kind:
-    | "UNSPECIFIED"
-    | "FIXED_MASS"
-    | "FIXED_VOLUME"
-    | "FIXED_MASS_AND_VOLUME"
-    | "FIXED_COUNT";
+    "UNSPECIFIED" | "FIXED_MASS" | "FIXED_VOLUME" | "FIXED_MASS_AND_VOLUME" | "FIXED_COUNT";
   readonly weightG: string | null;
   readonly volumeMl: string | null;
   readonly itemCount: number | null;

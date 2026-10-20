@@ -64,6 +64,12 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         : mapProductToForm(productQuery.data.data),
     [productQuery.data],
   );
+  const initialInheritedNutrients = useMemo(
+    () =>
+      productQuery.data?.data.nutrients.filter((nutrient) => nutrient.origin === "BASE_PRODUCT") ??
+      [],
+    [productQuery.data],
+  );
   const searchGenericProducts = useCallback(
     async (search: string) => {
       const response = await listProducts(apiClient, {
@@ -213,6 +219,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
       <ProductForm
         mode={isEdit ? "edit" : "create"}
         initialValues={initialValues}
+        initialInheritedNutrients={initialInheritedNutrients}
         categories={categories.options}
         measurementUnits={units.options}
         brands={brands.options}

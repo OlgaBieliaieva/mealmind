@@ -238,7 +238,7 @@ async function ensureProductSourceReference(
       dataset: "ZAKAZ_RETAIL_CATALOG",
       externalId,
       sourceRelease: input.candidate.batch.generatedAt,
-      isPrimary: true,
+      isPrimary: input.publication.mode === "CREATE_NEW_PRODUCT",
     },
   });
 }

@@ -586,9 +586,7 @@ function portionCreateData(
   data: ProductWrite["portions"][number],
 ): Prisma.ProductPortionUncheckedCreateWithoutProductInput {
   return {
-    ...(data.productPackageId === undefined
-      ? {}
-      : { productPackageId: data.productPackageId }),
+    ...(data.productPackageId === undefined ? {} : { productPackageId: data.productPackageId }),
     amount: data.amount,
     gramWeight: data.gramWeight,
     labelEn: data.labelEn,
@@ -691,7 +689,8 @@ function mapProductDetails(row: ProductRow): ProductDetails {
                 locale: statement.locale,
                 statement: statement.statement,
                 isPrimary: statement.isPrimary,
-                source: statement.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
+                source:
+                  statement.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
               }),
             ),
           ),
@@ -753,8 +752,11 @@ async function updateVerifiedAttributes(
   const now = new Date();
   if (data.dietaryTags !== undefined) {
     const ids = [...new Set(data.dietaryTags.map((item) => item.dietaryTagId))];
-    const active = await transaction.dietaryTag.count({ where: { id: { in: ids }, isActive: true } });
-    if (active !== ids.length) throw new ProductInvariantError("Один або кілька dietary tags недоступні");
+    const active = await transaction.dietaryTag.count({
+      where: { id: { in: ids }, isActive: true },
+    });
+    if (active !== ids.length)
+      throw new ProductInvariantError("Один або кілька dietary tags недоступні");
     await transaction.productDietaryTag.deleteMany({
       where: { productId, method: "MANUAL_REVIEW", dietaryTagId: { notIn: ids } },
     });
@@ -790,7 +792,8 @@ async function updateVerifiedAttributes(
   if (data.allergens !== undefined) {
     const ids = [...new Set(data.allergens.map((item) => item.allergenId))];
     const active = await transaction.allergen.count({ where: { id: { in: ids }, isActive: true } });
-    if (active !== ids.length) throw new ProductInvariantError("Один або кілька алергенів недоступні");
+    if (active !== ids.length)
+      throw new ProductInvariantError("Один або кілька алергенів недоступні");
     await transaction.productAllergen.deleteMany({
       where: { productId, method: "MANUAL_REVIEW", allergenId: { notIn: ids } },
     });
@@ -935,10 +938,7 @@ async function updateProductPackages(
   });
 }
 
-function mapNutrient(
-  item: ProductRow["nutrients"][number],
-  origin: "PRODUCT" | "BASE_PRODUCT",
-) {
+function mapNutrient(item: ProductRow["nutrients"][number], origin: "PRODUCT" | "BASE_PRODUCT") {
   return Object.freeze({
     nutrientId: item.nutrientId,
     nutrientCode: item.nutrient.code,

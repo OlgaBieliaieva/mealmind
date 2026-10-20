@@ -109,10 +109,13 @@ export const productFormSchema = z
           ]),
           weightG: decimalText(100_000_000),
           volumeMl: decimalText(100_000_000),
-          itemCount: z.string().trim().refine(
-            (value) => value === "" || (/^\d+$/.test(value) && Number(value) > 0),
-            "Вкажіть цілу кількість",
-          ),
+          itemCount: z
+            .string()
+            .trim()
+            .refine(
+              (value) => value === "" || (/^\d+$/.test(value) && Number(value) > 0),
+              "Вкажіть цілу кількість",
+            ),
           labelUa: z.string().trim().max(200),
           labelEn: z.string().trim().max(200),
           isDefault: z.boolean(),
@@ -222,8 +225,7 @@ export function mapProductFormToUpdate(values: ProductFormValues): ProductUpdate
           ingredientStatements: item.ingredientStatements,
           shelfLifeRules: item.shelfLifeRules.map((rule, sortOrder) => ({
             rawShelfLife: rule.rawShelfLife === "" ? null : rule.rawShelfLife,
-            rawTemperatureRange:
-              rule.rawTemperatureRange === "" ? null : rule.rawTemperatureRange,
+            rawTemperatureRange: rule.rawTemperatureRange === "" ? null : rule.rawTemperatureRange,
             durationValue: rule.durationValue === "" ? null : rule.durationValue,
             durationUnit: rule.durationUnit === "" ? null : rule.durationUnit,
             minTemperatureC: rule.minTemperatureC === "" ? null : rule.minTemperatureC,
@@ -318,7 +320,9 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
   };
 }
 
-function mapShelfLifeRuleToForm(rule: ProductDetails["packages"][number]["shelfLifeRules"][number]) {
+function mapShelfLifeRuleToForm(
+  rule: ProductDetails["packages"][number]["shelfLifeRules"][number],
+) {
   return {
     rawShelfLife: rule.rawShelfLife ?? "",
     rawTemperatureRange: rule.rawTemperatureRange ?? "",

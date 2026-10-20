@@ -167,9 +167,7 @@ try {
         labelEn: "250 g package",
         isDefault: true,
         status: "ACTIVE",
-        ingredientStatements: [
-          { locale: "uk-UA", statement: "Яблуко, цукор" },
-        ],
+        ingredientStatements: [{ locale: "uk-UA", statement: "Яблуко, цукор" }],
         shelfLifeRules: [
           {
             rawShelfLife: "12 місяців",
@@ -187,7 +185,10 @@ try {
   assert.equal(updatedPackageProduct?.packages[0]?.kind, "FIXED_MASS");
   assert.equal(updatedPackageProduct?.packages[0]?.weightG, "250");
   assert.equal(updatedPackageProduct?.packages[0]?.labelUa, "Пакування 250 г");
-  assert.equal(updatedPackageProduct?.packages[0]?.ingredientStatements[0]?.statement, "Яблуко, цукор");
+  assert.equal(
+    updatedPackageProduct?.packages[0]?.ingredientStatements[0]?.statement,
+    "Яблуко, цукор",
+  );
   assert.equal(updatedPackageProduct?.packages[0]?.ingredientStatements[0]?.source, "MANUAL");
   assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.durationValue, "12");
   assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.source, "MANUAL");

@@ -376,13 +376,7 @@ export const productOpenApiSchemas = Object.freeze({
       gtin: { type: ["string", "null"], pattern: "^(?:[0-9]{8}|[0-9]{12,14})$" },
       kind: {
         type: "string",
-        enum: [
-          "UNSPECIFIED",
-          "FIXED_MASS",
-          "FIXED_VOLUME",
-          "FIXED_MASS_AND_VOLUME",
-          "FIXED_COUNT",
-        ],
+        enum: ["UNSPECIFIED", "FIXED_MASS", "FIXED_VOLUME", "FIXED_MASS_AND_VOLUME", "FIXED_COUNT"],
       },
       weightG: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
       volumeMl: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },

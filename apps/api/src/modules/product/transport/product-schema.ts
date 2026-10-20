@@ -100,8 +100,18 @@ const productPackage = z
     weightG: decimal(0.0001, 100_000_000, 4).nullable(),
     volumeMl: decimal(0.0001, 100_000_000, 4).nullable(),
     itemCount: z.number().int().min(1).max(1_000_000).nullable(),
-    labelUa: z.string().trim().max(200).transform((value) => (value === "" ? null : value)).nullable(),
-    labelEn: z.string().trim().max(200).transform((value) => (value === "" ? null : value)).nullable(),
+    labelUa: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((value) => (value === "" ? null : value))
+      .nullable(),
+    labelEn: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((value) => (value === "" ? null : value))
+      .nullable(),
     isDefault: z.boolean(),
     status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
     ingredientStatements: z

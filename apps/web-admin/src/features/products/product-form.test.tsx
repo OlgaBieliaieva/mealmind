@@ -87,6 +87,43 @@ describe("ProductForm", () => {
     expect(screen.getByRole("combobox", { name: "Базова одиниця" })).toHaveValue(unitId);
   });
 
+  it("shows inherited nutrients when an existing branded product is opened", () => {
+    const onLoadBaseProduct = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          type: "BRANDED",
+          nameEn: "Brand apple",
+          categoryId,
+          brandId,
+          defaultMeasurementUnitId: unitId,
+          baseProductId,
+        }}
+        initialInheritedNutrients={[
+          {
+            nutrientId: "b4b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            nutrientCode: "protein",
+            nutrientName: "Білки",
+            unit: "г",
+            valuePer100g: "2.5",
+            valueType: "ESTIMATED",
+            origin: "BASE_PRODUCT",
+          },
+        ]}
+        onLoadBaseProduct={onLoadBaseProduct}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Успадковані нутрієнти" })).toBeVisible();
+    expect(screen.getByText("Білки: 2.5 г / 100 г")).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "Нутрієнт 1" })).not.toBeInTheDocument();
+    expect(onLoadBaseProduct).not.toHaveBeenCalled();
+  });
+
   it("submits independently selected product characteristics", async () => {
     const onSubmit = vi.fn();
     render(
@@ -219,9 +256,7 @@ describe("ProductForm", () => {
               status: "ACTIVE",
               ingredientStatements: [],
               shelfLifeRules: [],
-              sourceIngredientStatements: [
-                { locale: "uk-UA", statement: "Какао, цукор, молоко" },
-              ],
+              sourceIngredientStatements: [{ locale: "uk-UA", statement: "Какао, цукор, молоко" }],
               sourceShelfLifeRules: [
                 {
                   rawShelfLife: "12 місяців",
@@ -271,9 +306,7 @@ describe("ProductForm", () => {
             expect.objectContaining({
               id: packageId,
               weightG: "55",
-              ingredientStatements: [
-                { locale: "uk-UA", statement: "Какао, цукор, сухе молоко" },
-              ],
+              ingredientStatements: [{ locale: "uk-UA", statement: "Какао, цукор, сухе молоко" }],
             }),
           ],
           portions: [
@@ -325,9 +358,7 @@ describe("ProductForm", () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           dietaryTagIds: [dietaryTagId],
-          allergens: [
-            { allergenId, declaration: "MAY_CONTAIN", evidenceNote: "" },
-          ],
+          allergens: [{ allergenId, declaration: "MAY_CONTAIN", evidenceNote: "" }],
         }),
       ),
     );

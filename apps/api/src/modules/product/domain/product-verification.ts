@@ -39,14 +39,7 @@ const REQUIRED_NUTRIENTS = [
 export function evaluateProductVerification(
   product: Pick<
     ProductDetails,
-    | "type"
-    | "nameUa"
-    | "brandId"
-    | "foodState"
-    | "nutrients"
-    | "packages"
-    | "portions"
-    | "media"
+    "type" | "nameUa" | "brandId" | "foodState" | "nutrients" | "packages" | "portions" | "media"
   >,
 ): ProductVerificationReadiness {
   const blockingIssues: ProductVerificationBlockingIssue[] = [];

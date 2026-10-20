@@ -211,6 +211,86 @@ try {
     result.events.map((event) => event.action),
     ["REVIEW_STARTED", "APPROVED", "PUBLISHED"],
   );
+
+  const secondSourceSku = "integration-" + randomUUID();
+  const secondCandidate = await database.productImportCandidate.create({
+    data: {
+      batchId: batch.id,
+      storeExternalId: "48215625",
+      sourceSku: secondSourceSku,
+      disposition: "CANDIDATE",
+      status: "APPROVED",
+      reasonCodes: [],
+      matchStatus: "MATCHED",
+      classificationDecision: "ELIGIBLE",
+      normalizedGtin: "01234567890123",
+      sourceFingerprint: randomUUID().replaceAll("-", "").padEnd(64, "0").slice(0, 64),
+      sourceCategoryIds: { source: ["milk-metro"], localized: ["milk-metro"] },
+      sourceDraft: {},
+      reviewDraft: {
+        title: "Інтеграційне молоко, менше пакування",
+        sourceTitle: "Integration milk, smaller package",
+        brandName: sourceBrandName,
+        description: "Друге пакування наявного продукту",
+        gtin: { normalized: "01234567890123" },
+        package: { kind: "FIXED_MASS", weightG: 500 },
+        ingredients: ["Milk"],
+        nutritionFacts: {
+          ingredient_energy: "53 ккал",
+          ingredient_protein: "2.8 г",
+          ingredient_fat: "2.5 г",
+          ingredient_carbohydrates: "4.7 г",
+        },
+        availability: { inStock: true },
+        reviewResolution: {
+          mode: "ADD_PACKAGE_TO_EXISTING_PRODUCT",
+          targetProductId: result.publishedProduct!.id,
+        },
+        canonical: {
+          nameUa: "Інтеграційне молоко",
+          nameEn: "Integration milk",
+        },
+      },
+      fieldProvenance: {},
+      sourceSnapshots: {},
+      reviewedByUserId: admin.id,
+      reviewedAt: new Date("2026-10-08T12:00:00Z"),
+    },
+  });
+  const secondDetails = await repository.findById(secondCandidate.id);
+  assert.notEqual(secondDetails, null);
+
+  const secondPublished = await publisher.publish({
+    candidate: secondDetails!,
+    publication: parseProductImportPublicationDraft(secondDetails!),
+    expectedUpdatedAt: secondDetails!.updatedAt,
+    actorUserId: admin.id,
+  });
+  assert.equal(secondPublished, true);
+
+  const productWithSecondPackage = await database.product.findUniqueOrThrow({
+    where: { id: result.publishedProduct!.id },
+    include: {
+      packages: { orderBy: { createdAt: "asc" } },
+      sourceReferences: { orderBy: { createdAt: "asc" } },
+    },
+  });
+  const publishedSecondCandidate = await database.productImportCandidate.findUniqueOrThrow({
+    where: { id: secondCandidate.id },
+  });
+  assert.equal(publishedSecondCandidate.status, "PUBLISHED");
+  assert.equal(productWithSecondPackage.packages.length, 2);
+  assert.equal(productWithSecondPackage.sourceReferences.length, 2);
+  assert.equal(
+    productWithSecondPackage.sourceReferences.filter((source) => source.isPrimary).length,
+    1,
+  );
+  assert.equal(
+    productWithSecondPackage.sourceReferences.find(
+      (source) => source.externalId === `48215625:${secondSourceSku}`,
+    )?.isPrimary,
+    false,
+  );
   console.log("Zakaz product import publication integration test passed.");
 } finally {
   // Audit events are append-only and keep RESTRICT references.

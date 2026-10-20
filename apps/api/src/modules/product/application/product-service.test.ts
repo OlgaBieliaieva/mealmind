@@ -220,14 +220,17 @@ describe("product service", () => {
     const service = createProductService(productRepository, mediaStorage);
 
     await expect(
-      service.create({
-        type: "GENERIC",
-        nameEn: "Apple",
-        categoryId,
-        defaultMeasurementUnitId: unitId,
-        brandId,
-        status: "DRAFT",
-      }, actorUserId),
+      service.create(
+        {
+          type: "GENERIC",
+          nameEn: "Apple",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          brandId,
+          status: "DRAFT",
+        },
+        actorUserId,
+      ),
     ).rejects.toBeInstanceOf(ProductInvariantError);
 
     expect(productRepository.create).not.toHaveBeenCalled();
@@ -239,14 +242,17 @@ describe("product service", () => {
     );
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand Apple",
-      brandId,
-      gtin: "00000012345678",
-      baseProductId,
-      status: "DRAFT",
-    }, actorUserId);
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand Apple",
+        brandId,
+        gtin: "00000012345678",
+        baseProductId,
+        status: "DRAFT",
+      },
+      actorUserId,
+    );
 
     expect(productRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -293,14 +299,17 @@ describe("product service", () => {
     );
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand Apple",
-      brandId,
-      baseProductId,
-      status: "DRAFT",
-      nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "UNKNOWN" }],
-    }, actorUserId);
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand Apple",
+        brandId,
+        baseProductId,
+        status: "DRAFT",
+        nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "UNKNOWN" }],
+      },
+      actorUserId,
+    );
 
     expect(productRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -312,15 +321,18 @@ describe("product service", () => {
   it("creates a branded product without a base or GTIN when classification is explicit", async () => {
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand snack",
-      brandId,
-      categoryId,
-      defaultMeasurementUnitId: unitId,
-      status: "DRAFT",
-      nutrients: [{ nutrientId, valuePer100g: "8", valueType: "UNKNOWN" }],
-    }, actorUserId);
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand snack",
+        brandId,
+        categoryId,
+        defaultMeasurementUnitId: unitId,
+        status: "DRAFT",
+        nutrients: [{ nutrientId, valuePer100g: "8", valueType: "UNKNOWN" }],
+      },
+      actorUserId,
+    );
 
     expect(productRepository.findById).not.toHaveBeenCalled();
     const created = vi.mocked(productRepository.create).mock.calls[0]?.[0];

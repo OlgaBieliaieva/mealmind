@@ -693,12 +693,14 @@ function mergeProspectivePackages(
         ...item,
         id,
         archivedAt: item.status === "ARCHIVED" ? new Date().toISOString() : null,
-        ingredientStatements: (item.ingredientStatements ?? []).map((statement, statementIndex) => ({
-          ...statement,
-          id: `prospective-ingredient-${statementIndex}`,
-          isPrimary: true,
-          source: "MANUAL" as const,
-        })),
+        ingredientStatements: (item.ingredientStatements ?? []).map(
+          (statement, statementIndex) => ({
+            ...statement,
+            id: `prospective-ingredient-${statementIndex}`,
+            isPrimary: true,
+            source: "MANUAL" as const,
+          }),
+        ),
         shelfLifeRules: (item.shelfLifeRules ?? []).map((rule, ruleIndex) => ({
           ...rule,
           id: `prospective-shelf-life-${ruleIndex}`,
@@ -719,7 +721,8 @@ async function enrichNutrients(
 
   return input.map((item) => ({
     ...item,
-    nutrientCode: codes.get(item.nutrientId) ?? existingById.get(item.nutrientId)?.nutrientCode ?? "",
+    nutrientCode:
+      codes.get(item.nutrientId) ?? existingById.get(item.nutrientId)?.nutrientCode ?? "",
     nutrientName: existingById.get(item.nutrientId)?.nutrientName ?? item.nutrientId,
     unit: existingById.get(item.nutrientId)?.unit ?? "",
     origin: "PRODUCT" as const,

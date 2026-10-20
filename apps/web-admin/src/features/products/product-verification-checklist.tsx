@@ -50,7 +50,10 @@ export function ProductVerificationChecklist({
         </p>
         {verifiedAt === null ? null : (
           <p className="product-verification-card__meta">
-            Востаннє перевірено: {new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(verifiedAt))}
+            Востаннє перевірено:{" "}
+            {new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium", timeStyle: "short" }).format(
+              new Date(verifiedAt),
+            )}
           </p>
         )}
       </div>

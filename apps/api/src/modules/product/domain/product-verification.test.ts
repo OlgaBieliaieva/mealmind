@@ -45,7 +45,9 @@ describe("product verification readiness", () => {
 
   it("reports every missing core nutrient and unspecified state", () => {
     expect(
-      evaluateProductVerification(product({ nameUa: null, foodState: "UNSPECIFIED", nutrients: [] })),
+      evaluateProductVerification(
+        product({ nameUa: null, foodState: "UNSPECIFIED", nutrients: [] }),
+      ),
     ).toMatchObject({
       status: "BLOCKED",
       blockingIssues: [
@@ -73,13 +75,13 @@ describe("product verification readiness", () => {
               weightG: null,
               volumeMl: null,
               itemCount: null,
-            labelUa: null,
-            labelEn: null,
+              labelUa: null,
+              labelEn: null,
               isDefault: true,
               status: "ACTIVE",
-            archivedAt: null,
-            ingredientStatements: [],
-            shelfLifeRules: [],
+              archivedAt: null,
+              ingredientStatements: [],
+              shelfLifeRules: [],
             },
           ],
         }),

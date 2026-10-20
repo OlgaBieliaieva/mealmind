@@ -388,10 +388,12 @@ async function resolveIngredients(
         productName: product.nameUa ?? product.nameEn,
         measurementUnitSymbol: unitSymbol,
         nutrients: Object.freeze(
-          effectiveNutrients.filter((item) => item.productId === product.id).map((item) => ({
-            nutrientId: item.nutrientId,
-            valuePer100g: item.valuePer100g.toString(),
-          })),
+          effectiveNutrients
+            .filter((item) => item.productId === product.id)
+            .map((item) => ({
+              nutrientId: item.nutrientId,
+              valuePer100g: item.valuePer100g.toString(),
+            })),
         ),
       });
     }),

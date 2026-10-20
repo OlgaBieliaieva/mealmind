@@ -35,6 +35,7 @@ export interface ProductOption {
 export interface ProductFormProps {
   readonly mode: "create" | "edit";
   readonly initialValues?: ProductFormValues;
+  readonly initialInheritedNutrients?: ProductDetails["nutrients"];
   readonly categories: readonly ProductOption[];
   readonly measurementUnits: readonly ProductOption[];
   readonly brands: readonly ProductOption[];
@@ -62,6 +63,7 @@ const nutrientValueTypeOptions = [
 export function ProductForm({
   mode,
   initialValues = EMPTY_PRODUCT_FORM,
+  initialInheritedNutrients,
   categories,
   measurementUnits,
   brands,
@@ -92,11 +94,14 @@ export function ProductForm({
   const packageFields = useFieldArray({ control, name: "packages", keyName: "fieldKey" });
   const allergenFields = useFieldArray({ control, name: "allergens" });
   const productType = useWatch({ control, name: "type" });
+  const baseProductId = useWatch({ control, name: "baseProductId" });
   const labelNutrients = useWatch({ control, name: "nutrients" });
   const packageValues = useWatch({ control, name: "packages" });
   const dietaryTagSuggestions = useWatch({ control, name: "dietaryTagSuggestions" });
   const allergenSuggestions = useWatch({ control, name: "allergenSuggestions" });
-  const [basePreview, setBasePreview] = useState<ProductDetails | null>(null);
+  const [selectedBaseNutrients, setSelectedBaseNutrients] = useState<
+    ProductDetails["nutrients"] | null
+  >(null);
   const [baseStatus, setBaseStatus] = useState<"idle" | "loading" | "error">("idle");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
@@ -111,9 +116,10 @@ export function ProductForm({
     [brands, createdBrands],
   );
   const inheritedNutrients = useMemo(() => {
+    const baseNutrients = selectedBaseNutrients ?? initialInheritedNutrients ?? [];
     const overridden = new Set((labelNutrients ?? []).map((item) => item.nutrientId));
-    return basePreview?.nutrients.filter((item) => !overridden.has(item.nutrientId)) ?? [];
-  }, [basePreview, labelNutrients]);
+    return baseNutrients.filter((item) => !overridden.has(item.nutrientId));
+  }, [initialInheritedNutrients, labelNutrients, selectedBaseNutrients]);
 
   useDirtyFormGuard(isDirty);
   useEffect(() => reset(initialValues), [initialValues, reset]);
@@ -127,14 +133,14 @@ export function ProductForm({
   async function selectBaseProduct(id: string): Promise<void> {
     setValue("baseProductId", id, { shouldDirty: true, shouldValidate: true });
     if (id === "") {
-      setBasePreview(null);
+      setSelectedBaseNutrients([]);
       setBaseStatus("idle");
       return;
     }
     setBaseStatus("loading");
     try {
       const base = await onLoadBaseProduct(id);
-      setBasePreview(base);
+      setSelectedBaseNutrients(base.nutrients);
       setValue("categoryId", base.categoryId, { shouldDirty: true, shouldValidate: true });
       setValue("defaultMeasurementUnitId", base.defaultMeasurementUnitId, {
         shouldDirty: true,
@@ -147,7 +153,7 @@ export function ProductForm({
       );
       setBaseStatus("idle");
     } catch {
-      setBasePreview(null);
+      setSelectedBaseNutrients([]);
       setBaseStatus("error");
     }
   }
@@ -357,7 +363,7 @@ export function ProductForm({
                   Не вдалося завантажити базовий продукт. Спробуйте вибрати його ще раз.
                 </p>
               ) : null}
-              {basePreview === null ? null : (
+              {baseProductId === "" ? null : (
                 <section
                   className="product-form__inheritance-preview"
                   aria-labelledby="inherited-nutrients-title"
@@ -404,11 +410,10 @@ export function ProductForm({
           <fieldset className="product-form__section">
             <legend>Дієтичні теги та алергени</legend>
             <p className="product-form__hint">
-              Тут зберігаються лише підтверджені адміністратором атрибути. Пропозиції з
-              майбутніх правил або джерел показуються окремо й не вважаються перевіреними.
+              Тут зберігаються лише підтверджені адміністратором атрибути. Пропозиції з майбутніх
+              правил або джерел показуються окремо й не вважаються перевіреними.
             </p>
-            {(dietaryTagSuggestions?.length ?? 0) > 0 ||
-            (allergenSuggestions?.length ?? 0) > 0 ? (
+            {(dietaryTagSuggestions?.length ?? 0) > 0 || (allergenSuggestions?.length ?? 0) > 0 ? (
               <section className="product-form__package-source">
                 <h3>Непідтверджені пропозиції</h3>
                 {dietaryTagSuggestions?.map((item) => (
@@ -512,14 +517,8 @@ export function ProductForm({
                     error={errors.packages?.[index]?.itemCount?.message}
                     {...register(`packages.${index}.itemCount`)}
                   />
-                  <TextInput
-                    label="Назва українською"
-                    {...register(`packages.${index}.labelUa`)}
-                  />
-                  <TextInput
-                    label="Назва англійською"
-                    {...register(`packages.${index}.labelEn`)}
-                  />
+                  <TextInput label="Назва українською" {...register(`packages.${index}.labelUa`)} />
+                  <TextInput label="Назва англійською" {...register(`packages.${index}.labelEn`)} />
                   <SelectField
                     label="Статус"
                     options={PACKAGE_STATUS_OPTIONS}
@@ -536,9 +535,13 @@ export function ProductForm({
                           onChange={(event) => {
                             if (event.target.checked) {
                               packageFields.fields.forEach((_, packageIndex) =>
-                                setValue(`packages.${packageIndex}.isDefault`, packageIndex === index, {
-                                  shouldDirty: true,
-                                }),
+                                setValue(
+                                  `packages.${packageIndex}.isDefault`,
+                                  packageIndex === index,
+                                  {
+                                    shouldDirty: true,
+                                  },
+                                ),
                               );
                             } else {
                               defaultField.onChange(false);
@@ -743,10 +746,7 @@ export function ProductForm({
                         <Button
                           variant="secondary"
                           onClick={() =>
-                            shelfLifeField.onChange([
-                              ...shelfLifeField.value,
-                              emptyShelfLifeRule(),
-                            ])
+                            shelfLifeField.onChange([...shelfLifeField.value, emptyShelfLifeRule()])
                           }
                         >
                           Додати строк або температурний режим

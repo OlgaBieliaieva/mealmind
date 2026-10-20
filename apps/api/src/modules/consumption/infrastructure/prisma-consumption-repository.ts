@@ -518,9 +518,9 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                           ),
                         )
                         .map((value) => ({
-                        nutrient: value.nutrient,
-                        value: value.valuePer100g,
-                      })),
+                          nutrient: value.nutrient,
+                          value: value.valuePer100g,
+                        })),
                     )
                   : item.mealEntry.recipe?.yieldWeightG &&
                       item.mealEntry.recipe.yieldWeightG.greaterThan(0)
