@@ -375,6 +375,11 @@ async function resolveCreateInput(
 }
 
 function validateProductWrite(input: Omit<ProductWrite, "source">): void {
+  if (input.portions.some((portion) => portion.productPackageId != null)) {
+    throw new ProductInvariantError(
+      "Порцію можна прив’язати лише до вже збереженого пакування продукту",
+    );
+  }
   if (input.type === "GENERIC") {
     if (input.brandId || input.gtin || input.baseProductId) {
       throw new ProductInvariantError("Generic products cannot have brand, GTIN or base product");
@@ -402,6 +407,9 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
     }
     validatePackages(input.packages);
   }
+  if (input.portions !== undefined || input.packages !== undefined) {
+    validatePortionPackageLinks(existing, input);
+  }
   if (
     input.dietaryTags !== undefined &&
     new Set(input.dietaryTags.map((item) => item.dietaryTagId)).size !== input.dietaryTags.length
@@ -413,6 +421,24 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
     new Set(input.allergens.map((item) => item.allergenId)).size !== input.allergens.length
   ) {
     throw new ProductInvariantError("Алергени дублюються");
+  }
+}
+
+function validatePortionPackageLinks(existing: ProductDetails, input: ProductUpdate): void {
+  const packageStatuses = new Map(existing.packages.map((item) => [item.id, item.status]));
+  for (const item of input.packages ?? []) {
+    if (item.id !== undefined) packageStatuses.set(item.id, item.status);
+  }
+
+  for (const portion of input.portions ?? existing.portions) {
+    if (!portion.isActive || portion.productPackageId == null) continue;
+    const status = packageStatuses.get(portion.productPackageId);
+    if (status === undefined) {
+      throw new ProductInvariantError("Пакування порції не належить цьому продукту");
+    }
+    if (status === "ARCHIVED") {
+      throw new ProductInvariantError("Активну порцію не можна прив’язати до архівного пакування");
+    }
   }
 }
 

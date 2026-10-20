@@ -84,6 +84,7 @@ export const productFormSchema = z
     ),
     portions: z.array(
       z.object({
+        productPackageId: z.union([z.literal(""), z.string().uuid()]),
         amount: decimalText(1_000_000).refine((value) => value !== "", "Вкажіть кількість"),
         gramWeight: decimalText(1_000_000).refine((value) => value !== "", "Вкажіть вагу"),
         labelEn: z.string().trim().min(1, "Вкажіть назву порції").max(200),
@@ -264,6 +265,7 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
       valueType: nutrient.valueType as ProductFormValues["nutrients"][number]["valueType"],
     })),
     portions: product.portions.map((portion) => ({
+      productPackageId: portion.productPackageId ?? "",
       amount: portion.amount,
       gramWeight: portion.gramWeight,
       labelEn: portion.labelEn,
@@ -341,6 +343,7 @@ function mapCommon(values: ProductFormValues): Omit<ProductWrite, "type"> {
     nutrients: values.nutrients,
     portions: values.portions.map((portion, index) => ({
       ...portion,
+      productPackageId: portion.productPackageId === "" ? null : portion.productPackageId,
       labelUa: portion.labelUa === "" ? null : portion.labelUa,
       measurementUnitId: portion.measurementUnitId === "" ? null : portion.measurementUnitId,
       isActive: true,

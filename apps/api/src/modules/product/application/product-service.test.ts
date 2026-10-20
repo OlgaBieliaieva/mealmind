@@ -23,6 +23,7 @@ const nutrientId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const secondNutrientId = "75b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const mediaId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const actorUserId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const packageId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
   return {
@@ -501,6 +502,58 @@ describe("product service", () => {
         verifiedByUserId: null,
         verifiedAt: null,
       }),
+    );
+  });
+
+  it("accepts active package portions and rejects links to archived packages", async () => {
+    const packageRecord = {
+      id: packageId,
+      gtin: "04821234567890",
+      kind: "FIXED_MASS" as const,
+      weightG: "50",
+      volumeMl: null,
+      itemCount: null,
+      labelUa: "Батончик 50 г",
+      labelEn: null,
+      isDefault: true,
+      status: "ACTIVE" as const,
+      archivedAt: null,
+      ingredientStatements: [],
+      shelfLifeRules: [],
+    };
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({ type: "BRANDED", brandId, packages: [packageRecord] }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+    const portion = {
+      productPackageId: packageId,
+      amount: "1",
+      gramWeight: "50",
+      labelEn: "1 bar",
+      labelUa: "1 батончик",
+      kind: "PACKAGE" as const,
+      weightType: "LABEL" as const,
+      measurementUnitId: null,
+      isDefault: true,
+      isActive: true,
+      sortOrder: 0,
+    };
+
+    await service.update(productId, { portions: [portion] }, actorUserId);
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({ portions: [portion] }),
+    );
+
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        type: "BRANDED",
+        brandId,
+        packages: [{ ...packageRecord, status: "ARCHIVED", archivedAt: "2026-10-20T00:00:00Z" }],
+      }),
+    );
+    await expect(service.update(productId, { portions: [portion] }, actorUserId)).rejects.toThrow(
+      "Активну порцію не можна прив’язати до архівного пакування",
     );
   });
 

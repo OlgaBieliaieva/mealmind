@@ -292,6 +292,38 @@ export const productOpenApiSchemas = Object.freeze({
       },
     },
   },
+  ProductPortionWrite: {
+    type: "object",
+    required: [
+      "amount",
+      "gramWeight",
+      "labelEn",
+      "kind",
+      "weightType",
+      "isDefault",
+      "isActive",
+      "sortOrder",
+    ],
+    properties: {
+      productPackageId: { type: ["string", "null"], format: "uuid" },
+      amount: { oneOf: [{ type: "string" }, { type: "number" }] },
+      gramWeight: { oneOf: [{ type: "string" }, { type: "number" }] },
+      labelEn: { type: "string", minLength: 1, maxLength: 200 },
+      labelUa: { type: ["string", "null"], maxLength: 200 },
+      kind: {
+        type: "string",
+        enum: ["MASS", "VOLUME", "COUNT", "HOUSEHOLD", "PACKAGE", "SERVING", "OTHER"],
+      },
+      weightType: {
+        type: "string",
+        enum: ["MEASURED", "CALCULATED", "ESTIMATED", "LABEL", "UNKNOWN"],
+      },
+      measurementUnitId: { type: ["string", "null"], format: "uuid" },
+      isDefault: { type: "boolean" },
+      isActive: { type: "boolean" },
+      sortOrder: { type: "integer", minimum: -32_768, maximum: 32_767 },
+    },
+  },
   ProductVerificationReadiness: {
     type: "object",
     required: ["status", "blockingIssues", "warnings"],
@@ -451,7 +483,7 @@ export const productOpenApiSchemas = Object.freeze({
       },
       notes: { type: ["string", "null"] },
       nutrients: { type: "array", items: { $ref: "#/components/schemas/ProductNutrientWrite" } },
-      portions: { type: "array", items: { type: "object", additionalProperties: true } },
+      portions: { type: "array", items: { $ref: "#/components/schemas/ProductPortionWrite" } },
     },
   },
   ProductUpdate: {
@@ -481,7 +513,7 @@ export const productOpenApiSchemas = Object.freeze({
       },
     ],
     description:
-      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними. dietaryTags та allergens є повними наборами атрибутів, вручну підтверджених поточним адміністратором; source/rule-based пропозиції не стають канонічними без такого підтвердження.",
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. Порція може посилатися через productPackageId лише на збережене неархівне пакування цього продукту. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними. dietaryTags та allergens є повними наборами атрибутів, вручну підтверджених поточним адміністратором; source/rule-based пропозиції не стають канонічними без такого підтвердження.",
   },
   ProductFoodCharacteristic: {
     type: "object",

@@ -124,6 +124,7 @@ export interface ProductPackageWrite {
 }
 
 export interface ProductPortionWrite {
+  readonly productPackageId?: string | null;
   readonly amount: string;
   readonly gramWeight: string;
   readonly labelEn: string;

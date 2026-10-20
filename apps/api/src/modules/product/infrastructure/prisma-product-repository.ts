@@ -576,6 +576,9 @@ function portionCreateData(
   data: ProductWrite["portions"][number],
 ): Prisma.ProductPortionUncheckedCreateWithoutProductInput {
   return {
+    ...(data.productPackageId === undefined
+      ? {}
+      : { productPackageId: data.productPackageId }),
     amount: data.amount,
     gramWeight: data.gramWeight,
     labelEn: data.labelEn,
@@ -643,6 +646,7 @@ function mapProductDetails(row: ProductRow): ProductDetails {
       row.portions.map((portion) =>
         Object.freeze({
           id: portion.id,
+          productPackageId: portion.productPackageId,
           amount: portion.amount.toString(),
           gramWeight: portion.gramWeight.toString(),
           labelEn: portion.labelEn,

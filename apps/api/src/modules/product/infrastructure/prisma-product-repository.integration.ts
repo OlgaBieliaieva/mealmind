@@ -186,6 +186,26 @@ try {
   assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.source, "MANUAL");
   assert.equal(updatedPackageProduct?.gtin, gtin);
 
+  const productWithPackagePortion = await repository.update(branded.id, {
+    portions: [
+      {
+        productPackageId: createdDefaultPackage.id,
+        amount: "1",
+        gramWeight: "250",
+        labelEn: "1 package",
+        labelUa: "1 пакування",
+        kind: "PACKAGE",
+        weightType: "LABEL",
+        measurementUnitId: null,
+        isDefault: true,
+        isActive: true,
+        sortOrder: 0,
+      },
+    ],
+  });
+  assert.equal(productWithPackagePortion?.portions[0]?.productPackageId, createdDefaultPackage.id);
+  assert.equal(productWithPackagePortion?.portions[0]?.gramWeight, "250");
+
   const productWithVerifiedAttributes = await repository.update(branded.id, {
     dietaryTags: [{ dietaryTagId: dietaryTag.id, evidenceNote: "Перевірено за етикеткою" }],
     allergens: [

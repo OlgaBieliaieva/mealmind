@@ -857,6 +857,14 @@ export function ProductForm({
                   inputMode="decimal"
                   {...register(`portions.${index}.gramWeight`)}
                 />
+                {mode === "edit" && productType === "BRANDED" ? (
+                  <SelectField
+                    label="Пакування"
+                    placeholder="Без прив’язки до пакування"
+                    options={packageOptions(packageValues)}
+                    {...register(`portions.${index}.productPackageId`)}
+                  />
+                ) : null}
                 <SelectField
                   label="Одиниця"
                   placeholder="Без одиниці"
@@ -877,6 +885,7 @@ export function ProductForm({
             variant="secondary"
             onClick={() =>
               portionFields.append({
+                productPackageId: "",
                 amount: "1",
                 gramWeight: "",
                 labelEn: "",
@@ -952,6 +961,23 @@ const ALLERGEN_DECLARATION_OPTIONS = [
   { value: "MAY_CONTAIN", label: "Може містити" },
   { value: "SHARED_FACILITY", label: "Вироблено на спільному обладнанні" },
 ] as const;
+
+function packageOptions(
+  packages: ProductFormValues["packages"] | undefined,
+): readonly ProductOption[] {
+  return (packages ?? [])
+    .filter((item) => item.id !== "" && item.status !== "ARCHIVED")
+    .map((item) => ({
+      value: item.id,
+      label:
+        item.labelUa ||
+        item.labelEn ||
+        [item.weightG && `${item.weightG} г`, item.volumeMl && `${item.volumeMl} мл`, item.gtin]
+          .filter(Boolean)
+          .join(" · ") ||
+        "Пакування без назви",
+    }));
+}
 
 function emptyShelfLifeRule() {
   return {

@@ -69,6 +69,7 @@ const nutrient = z.object({
 });
 
 const portion = z.object({
+  productPackageId: uuid.nullable().optional(),
   amount: decimal(0.0001, 1_000_000, 4),
   gramWeight: decimal(0.0001, 1_000_000, 4),
   labelEn: z.string().trim().min(1).max(200),

@@ -234,16 +234,30 @@ describe("ProductForm", () => {
               ],
             },
           ],
+          portions: [
+            {
+              productPackageId: packageId,
+              amount: "1",
+              gramWeight: "50",
+              labelEn: "1 bar",
+              labelUa: "1 батончик",
+              kind: "PACKAGE",
+              weightType: "LABEL",
+              measurementUnitId: "",
+              isDefault: true,
+            },
+          ],
         }}
         onSubmit={onSubmit}
       />,
     );
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Вага, г" }), {
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Вага, г" })[0]!, {
       target: { value: "55" },
     });
     expect(screen.getByText(/Какао, цукор, молоко/)).toBeVisible();
     expect(screen.getByText(/12 місяців/)).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Пакування" })).toHaveValue(packageId);
     fireEvent.click(screen.getByRole("button", { name: "Додати склад" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Склад" }), {
       target: { value: "Какао, цукор, сухе молоко" },
@@ -260,6 +274,13 @@ describe("ProductForm", () => {
               ingredientStatements: [
                 { locale: "uk-UA", statement: "Какао, цукор, сухе молоко" },
               ],
+            }),
+          ],
+          portions: [
+            expect.objectContaining({
+              productPackageId: packageId,
+              labelUa: "1 батончик",
+              gramWeight: "50",
             }),
           ],
         }),

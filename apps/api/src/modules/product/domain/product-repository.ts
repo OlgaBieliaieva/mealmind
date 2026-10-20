@@ -75,6 +75,7 @@ export interface ProductNutrientRecord extends ProductNutrientWrite {
 }
 
 export interface ProductPortionWrite {
+  readonly productPackageId?: string | null | undefined;
   readonly amount: string;
   readonly gramWeight: string;
   readonly labelEn: string;
