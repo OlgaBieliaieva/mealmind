@@ -37,6 +37,24 @@ const decimal = (minimum: number, maximum: number, scale: number) =>
     .refine((value) => (value.split(".")[1]?.length ?? 0) <= scale, {
       message: `Must have no more than ${scale} decimal places`,
     });
+const signedDecimal = (minimum: number, maximum: number, scale: number) =>
+  z
+    .union([z.string(), z.number()])
+    .transform(String)
+    .refine((value) => /^-?\d+(?:\.\d+)?$/.test(value), "Must be a decimal")
+    .refine((value) => Number(value) >= minimum && Number(value) <= maximum, {
+      message: `Must be between ${minimum} and ${maximum}`,
+    })
+    .refine((value) => (value.split(".")[1]?.length ?? 0) <= scale, {
+      message: `Must have no more than ${scale} decimal places`,
+    });
+const requiredNullableText = (maximum: number) =>
+  z
+    .string()
+    .trim()
+    .max(maximum)
+    .transform((value) => (value === "" ? null : value))
+    .nullable();
 
 const gtin = z
   .string()
@@ -51,6 +69,7 @@ const nutrient = z.object({
 });
 
 const portion = z.object({
+  productPackageId: uuid.nullable().optional(),
   amount: decimal(0.0001, 1_000_000, 4),
   gramWeight: decimal(0.0001, 1_000_000, 4),
   labelEn: z.string().trim().min(1).max(200),
@@ -66,6 +85,102 @@ const portion = z.object({
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(-32_768).max(32_767).default(0),
 });
+
+const productPackage = z
+  .object({
+    id: uuid.optional(),
+    gtin: gtin.nullable(),
+    kind: z.enum([
+      "UNSPECIFIED",
+      "FIXED_MASS",
+      "FIXED_VOLUME",
+      "FIXED_MASS_AND_VOLUME",
+      "FIXED_COUNT",
+    ]),
+    weightG: decimal(0.0001, 100_000_000, 4).nullable(),
+    volumeMl: decimal(0.0001, 100_000_000, 4).nullable(),
+    itemCount: z.number().int().min(1).max(1_000_000).nullable(),
+    labelUa: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((value) => (value === "" ? null : value))
+      .nullable(),
+    labelEn: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((value) => (value === "" ? null : value))
+      .nullable(),
+    isDefault: z.boolean(),
+    status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+    ingredientStatements: z
+      .array(
+        z.object({
+          locale: z.string().trim().min(2).max(16),
+          statement: z.string().trim().min(1).max(20_000),
+        }),
+      )
+      .max(10)
+      .optional(),
+    shelfLifeRules: z
+      .array(
+        z
+          .object({
+            rawShelfLife: requiredNullableText(2_000),
+            rawTemperatureRange: requiredNullableText(2_000),
+            durationValue: decimal(0.0001, 1_000_000, 4).nullable(),
+            durationUnit: z.enum(["HOURS", "DAYS", "MONTHS", "YEARS"]).nullable(),
+            minTemperatureC: signedDecimal(-273.15, 1_000, 2).nullable(),
+            maxTemperatureC: signedDecimal(-273.15, 1_000, 2).nullable(),
+            sortOrder: z.number().int().min(0).max(32_767),
+          })
+          .superRefine((rule, context) => {
+            if ((rule.durationValue === null) !== (rule.durationUnit === null)) {
+              addIssue(context, "durationValue", "Duration value and unit must be set together");
+            }
+            if (
+              rule.minTemperatureC !== null &&
+              rule.maxTemperatureC !== null &&
+              Number(rule.minTemperatureC) > Number(rule.maxTemperatureC)
+            ) {
+              addIssue(context, "maxTemperatureC", "Maximum temperature must not be lower");
+            }
+            if (
+              rule.rawShelfLife === null &&
+              rule.rawTemperatureRange === null &&
+              rule.durationValue === null &&
+              rule.minTemperatureC === null &&
+              rule.maxTemperatureC === null
+            ) {
+              addIssue(context, "rawShelfLife", "At least one shelf-life value is required");
+            }
+          }),
+      )
+      .max(20)
+      .optional(),
+  })
+  .superRefine((value, context) => {
+    const locales = value.ingredientStatements?.map((item) => item.locale.toLowerCase()) ?? [];
+    if (new Set(locales).size !== locales.length) {
+      addIssue(context, "ingredientStatements", "Ingredient locales must be unique");
+    }
+    if (
+      (value.kind === "FIXED_MASS" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+      value.weightG === null
+    ) {
+      addIssue(context, "weightG", "Weight is required for this package kind");
+    }
+    if (
+      (value.kind === "FIXED_VOLUME" || value.kind === "FIXED_MASS_AND_VOLUME") &&
+      value.volumeMl === null
+    ) {
+      addIssue(context, "volumeMl", "Volume is required for this package kind");
+    }
+    if (value.kind === "FIXED_COUNT" && value.itemCount === null) {
+      addIssue(context, "itemCount", "Item count is required for this package kind");
+    }
+  });
 
 const productFields = {
   nameEn: z.string().trim().min(1).max(240),
@@ -128,6 +243,26 @@ const updateProductBody = z.object({
   verificationStatus: z.enum(["UNVERIFIED", "VERIFIED", "REJECTED"]).optional(),
   nutrients: productFields.nutrients,
   portions: productFields.portions,
+  packages: z.array(productPackage).max(100).optional(),
+  dietaryTags: z
+    .array(
+      z.object({
+        dietaryTagId: uuid,
+        evidenceNote: requiredNullableText(2_000),
+      }),
+    )
+    .max(100)
+    .optional(),
+  allergens: z
+    .array(
+      z.object({
+        allergenId: uuid,
+        declaration: z.enum(["CONTAINS", "MAY_CONTAIN", "SHARED_FACILITY"]),
+        evidenceNote: requiredNullableText(2_000),
+      }),
+    )
+    .max(100)
+    .optional(),
 });
 
 export const listProductsSchema = z.object({

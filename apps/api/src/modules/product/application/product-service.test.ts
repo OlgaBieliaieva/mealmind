@@ -7,7 +7,11 @@ import type {
   ProductMediaRecord,
   ProductRepository,
 } from "../domain/product-repository.js";
-import { ProductInvariantError, ProductMediaProcessingError } from "./product-errors.js";
+import {
+  ProductInvariantError,
+  ProductMediaProcessingError,
+  ProductVerificationBlockedError,
+} from "./product-errors.js";
 import { createProductService } from "./product-service.js";
 
 const productId = "24b79ffc-e6af-440c-ae38-8cd37c22be1c";
@@ -18,6 +22,8 @@ const brandId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const nutrientId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const secondNutrientId = "75b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const mediaId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const actorUserId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const packageId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
   return {
@@ -41,6 +47,8 @@ function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
     ediblePortionPercent: "95",
     status: "DRAFT",
     verificationStatus: "UNVERIFIED",
+    verifiedByUserId: null,
+    verifiedAt: null,
     notes: null,
     archivedAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
@@ -48,13 +56,29 @@ function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
     nutrients: [
       {
         nutrientId,
+        nutrientCode: "protein",
         nutrientName: "Білки",
         unit: "G",
         valuePer100g: "0.3",
         valueType: "ANALYTICAL",
+        origin: "PRODUCT",
+      },
+    ],
+    ownNutrients: [
+      {
+        nutrientId,
+        nutrientCode: "protein",
+        nutrientName: "Білки",
+        unit: "G",
+        valuePer100g: "0.3",
+        valueType: "ANALYTICAL",
+        origin: "PRODUCT",
       },
     ],
     portions: [],
+    packages: [],
+    dietaryTags: [],
+    allergens: [],
     media: [],
     ...overrides,
   };
@@ -86,6 +110,7 @@ function repository(): ProductRepository {
     list: vi.fn(async () => ({ items: [], page: 1, pageSize: 20, total: 0 })),
     searchActive: vi.fn(async () => ({ items: [], page: 1, pageSize: 20, total: 0 })),
     findById: vi.fn(async () => product()),
+    findNutrientCodes: vi.fn(async () => new Map([[nutrientId, "protein"]])),
     create: vi.fn(async (data) =>
       product({
         type: data.type,
@@ -195,33 +220,39 @@ describe("product service", () => {
     const service = createProductService(productRepository, mediaStorage);
 
     await expect(
-      service.create({
-        type: "GENERIC",
-        nameEn: "Apple",
-        categoryId,
-        defaultMeasurementUnitId: unitId,
-        brandId,
-        status: "DRAFT",
-      }),
+      service.create(
+        {
+          type: "GENERIC",
+          nameEn: "Apple",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          brandId,
+          status: "DRAFT",
+        },
+        actorUserId,
+      ),
     ).rejects.toBeInstanceOf(ProductInvariantError);
 
     expect(productRepository.create).not.toHaveBeenCalled();
   });
 
-  it("creates a branded variant with an explicit snapshot inherited from a generic base", async () => {
+  it("does not persist inherited nutrients in a branded variant", async () => {
     vi.mocked(productRepository.findById).mockResolvedValue(
       product({ id: baseProductId, status: "ACTIVE" }),
     );
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand Apple",
-      brandId,
-      gtin: "00000012345678",
-      baseProductId,
-      status: "DRAFT",
-    });
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand Apple",
+        brandId,
+        gtin: "00000012345678",
+        baseProductId,
+        status: "DRAFT",
+      },
+      actorUserId,
+    );
 
     expect(productRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -230,13 +261,7 @@ describe("product service", () => {
         defaultMeasurementUnitId: unitId,
         foodState: "RAW",
         ediblePortionPercent: "95",
-        nutrients: [
-          expect.objectContaining({
-            nutrientId,
-            valuePer100g: "0.3",
-            valueType: "ESTIMATED",
-          }),
-        ],
+        nutrients: [],
         source: expect.objectContaining({
           provider: "MEALMIND_ADMIN",
           dataset: "ADMIN_CATALOG",
@@ -245,7 +270,7 @@ describe("product service", () => {
     );
   });
 
-  it("lets label nutrients override estimated base values", async () => {
+  it("persists only label nutrients that override the effective base profile", async () => {
     vi.mocked(productRepository.findById).mockResolvedValue(
       product({
         id: baseProductId,
@@ -253,38 +278,42 @@ describe("product service", () => {
         nutrients: [
           {
             nutrientId,
+            nutrientCode: "protein",
             nutrientName: "Білки",
             unit: "G",
             valuePer100g: "0.3",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
           {
             nutrientId: secondNutrientId,
+            nutrientCode: "total_fat",
             nutrientName: "Жири",
             unit: "G",
             valuePer100g: "0.2",
             valueType: "ANALYTICAL",
+            origin: "PRODUCT",
           },
         ],
       }),
     );
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand Apple",
-      brandId,
-      baseProductId,
-      status: "DRAFT",
-      nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "UNKNOWN" }],
-    });
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand Apple",
+        brandId,
+        baseProductId,
+        status: "DRAFT",
+        nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "UNKNOWN" }],
+      },
+      actorUserId,
+    );
 
     expect(productRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        nutrients: [
-          { nutrientId, valuePer100g: "1.4", valueType: "LABEL" },
-          { nutrientId: secondNutrientId, valuePer100g: "0.2", valueType: "ESTIMATED" },
-        ],
+        nutrients: [{ nutrientId, valuePer100g: "1.4", valueType: "LABEL" }],
       }),
     );
   });
@@ -292,21 +321,252 @@ describe("product service", () => {
   it("creates a branded product without a base or GTIN when classification is explicit", async () => {
     const service = createProductService(productRepository, mediaStorage);
 
-    await service.create({
-      type: "BRANDED",
-      nameEn: "Brand snack",
-      brandId,
-      categoryId,
-      defaultMeasurementUnitId: unitId,
-      status: "DRAFT",
-      nutrients: [{ nutrientId, valuePer100g: "8", valueType: "UNKNOWN" }],
-    });
+    await service.create(
+      {
+        type: "BRANDED",
+        nameEn: "Brand snack",
+        brandId,
+        categoryId,
+        defaultMeasurementUnitId: unitId,
+        status: "DRAFT",
+        nutrients: [{ nutrientId, valuePer100g: "8", valueType: "UNKNOWN" }],
+      },
+      actorUserId,
+    );
 
     expect(productRepository.findById).not.toHaveBeenCalled();
     const created = vi.mocked(productRepository.create).mock.calls[0]?.[0];
     expect(created).not.toHaveProperty("baseProductId");
     expect(created).not.toHaveProperty("gtin");
     expect(created?.nutrients).toEqual([{ nutrientId, valuePer100g: "8", valueType: "LABEL" }]);
+  });
+
+  it("blocks verification while required catalog data is missing", async () => {
+    const service = createProductService(productRepository, mediaStorage);
+
+    await expect(
+      service.update(productId, { verificationStatus: "VERIFIED" }, actorUserId),
+    ).rejects.toBeInstanceOf(ProductVerificationBlockedError);
+    expect(productRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("records the verifier when the product satisfies the verification contract", async () => {
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        nutrients: [
+          {
+            nutrientId: "energy-id",
+            nutrientCode: "energy_kcal",
+            nutrientName: "Енергія",
+            unit: "KCAL",
+            valuePer100g: "52",
+            valueType: "ANALYTICAL",
+            origin: "PRODUCT",
+          },
+          {
+            nutrientId: "protein-id",
+            nutrientCode: "protein",
+            nutrientName: "Білки",
+            unit: "G",
+            valuePer100g: "0.3",
+            valueType: "ANALYTICAL",
+            origin: "PRODUCT",
+          },
+          {
+            nutrientId: "fat-id",
+            nutrientCode: "total_fat",
+            nutrientName: "Жири",
+            unit: "G",
+            valuePer100g: "0.2",
+            valueType: "ANALYTICAL",
+            origin: "PRODUCT",
+          },
+          {
+            nutrientId: "carbohydrate-id",
+            nutrientCode: "carbohydrate",
+            nutrientName: "Вуглеводи",
+            unit: "G",
+            valuePer100g: "14",
+            valueType: "ANALYTICAL",
+            origin: "PRODUCT",
+          },
+        ],
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.update(productId, { verificationStatus: "VERIFIED" }, actorUserId);
+
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: expect.any(Date),
+      }),
+    );
+  });
+
+  it("returns a materially edited verified product to unverified", async () => {
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: "2026-10-19T10:00:00.000Z",
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.update(productId, { nameUa: "Нове яблуко" }, actorUserId);
+
+    expect(productRepository.update).toHaveBeenCalledWith(productId, {
+      nameUa: "Нове яблуко",
+      verificationStatus: "UNVERIFIED",
+      verifiedByUserId: null,
+      verifiedAt: null,
+    });
+  });
+
+  it("returns a verified branded product to unverified when its package changes", async () => {
+    const packageId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        type: "BRANDED",
+        brandId,
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: "2026-10-19T10:00:00.000Z",
+        packages: [
+          {
+            id: packageId,
+            gtin: "00482123456789",
+            kind: "FIXED_MASS",
+            weightG: "100",
+            volumeMl: null,
+            itemCount: null,
+            labelUa: null,
+            labelEn: null,
+            isDefault: true,
+            status: "ACTIVE",
+            archivedAt: null,
+            ingredientStatements: [],
+            shelfLifeRules: [],
+          },
+        ],
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+
+    await service.update(
+      productId,
+      {
+        packages: [
+          {
+            id: packageId,
+            gtin: "00482123456789",
+            kind: "FIXED_MASS",
+            weightG: "120",
+            volumeMl: null,
+            itemCount: null,
+            labelUa: "120 г",
+            labelEn: null,
+            isDefault: true,
+            status: "ACTIVE",
+          },
+        ],
+      },
+      actorUserId,
+    );
+
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({
+        verificationStatus: "UNVERIFIED",
+        verifiedByUserId: null,
+        verifiedAt: null,
+      }),
+    );
+  });
+
+  it("records the administrator and reopens verification when confirmed attributes change", async () => {
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: "2026-10-19T10:00:00.000Z",
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+    const dietaryTagId = "a5b79ffc-e6af-440c-ae38-8cd37c22be1c";
+
+    await service.update(
+      productId,
+      { dietaryTags: [{ dietaryTagId, evidenceNote: null }] },
+      actorUserId,
+    );
+
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({
+        dietaryTags: [{ dietaryTagId, evidenceNote: null }],
+        attributeActorUserId: actorUserId,
+        verificationStatus: "UNVERIFIED",
+        verifiedByUserId: null,
+        verifiedAt: null,
+      }),
+    );
+  });
+
+  it("accepts active package portions and rejects links to archived packages", async () => {
+    const packageRecord = {
+      id: packageId,
+      gtin: "04821234567890",
+      kind: "FIXED_MASS" as const,
+      weightG: "50",
+      volumeMl: null,
+      itemCount: null,
+      labelUa: "Батончик 50 г",
+      labelEn: null,
+      isDefault: true,
+      status: "ACTIVE" as const,
+      archivedAt: null,
+      ingredientStatements: [],
+      shelfLifeRules: [],
+    };
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({ type: "BRANDED", brandId, packages: [packageRecord] }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+    const portion = {
+      productPackageId: packageId,
+      amount: "1",
+      gramWeight: "50",
+      labelEn: "1 bar",
+      labelUa: "1 батончик",
+      kind: "PACKAGE" as const,
+      weightType: "LABEL" as const,
+      measurementUnitId: null,
+      isDefault: true,
+      isActive: true,
+      sortOrder: 0,
+    };
+
+    await service.update(productId, { portions: [portion] }, actorUserId);
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({ portions: [portion] }),
+    );
+
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        type: "BRANDED",
+        brandId,
+        packages: [{ ...packageRecord, status: "ARCHIVED", archivedAt: "2026-10-20T00:00:00Z" }],
+      }),
+    );
+    await expect(service.update(productId, { portions: [portion] }, actorUserId)).rejects.toThrow(
+      "Активну порцію не можна прив’язати до архівного пакування",
+    );
   });
 
   it("does not allow an active product to return directly to draft", async () => {

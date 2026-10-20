@@ -88,6 +88,47 @@ describe("product form schema and mapper", () => {
 
     expect(update).not.toHaveProperty("type");
     expect(update).not.toHaveProperty("baseProductId");
-    expect(update).toMatchObject({ brandId, gtin: "12345678", verificationStatus: "VERIFIED" });
+    expect(update).not.toHaveProperty("gtin");
+    expect(update).toMatchObject({ brandId, verificationStatus: "VERIFIED", packages: [] });
+  });
+
+  it("maps canonical package fields into the branded update payload", () => {
+    const update = mapProductFormToUpdate({
+      ...EMPTY_PRODUCT_FORM,
+      type: "BRANDED",
+      nameEn: "Brand Apple",
+      categoryId,
+      defaultMeasurementUnitId: unitId,
+      brandId,
+      packages: [
+        {
+          id: "74b79ffc-e6af-440c-ae38-8cd37c22be1c",
+          gtin: "4821234567890",
+          kind: "FIXED_MASS",
+          weightG: "120",
+          volumeMl: "",
+          itemCount: "",
+          labelUa: "120 г",
+          labelEn: "",
+          isDefault: true,
+          status: "ACTIVE",
+          ingredientStatements: [],
+          shelfLifeRules: [],
+          sourceIngredientStatements: [],
+          sourceShelfLifeRules: [],
+        },
+      ],
+    });
+
+    expect(update.packages).toEqual([
+      expect.objectContaining({
+        gtin: "4821234567890",
+        kind: "FIXED_MASS",
+        weightG: "120",
+        volumeMl: null,
+        itemCount: null,
+        isDefault: true,
+      }),
+    ]);
   });
 });

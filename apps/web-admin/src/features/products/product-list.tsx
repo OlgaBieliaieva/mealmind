@@ -14,6 +14,7 @@ import {
   type ProductType,
   type ProductVerificationStatus,
 } from "@/shared/api/products";
+import { listReferenceData, type ReferenceItem } from "@/shared/api/reference-data";
 import { formatProductCharacteristics } from "@/shared/lib/product-characteristics";
 import { Button, Card, PageState, SelectField, TextInput } from "@/shared/ui";
 
@@ -44,11 +45,29 @@ export function ProductList() {
   const [sourceProvider, setSourceProvider] = useState<ProductSourceProvider | "UNASSIGNED" | "">(
     asSourceProvider(searchParams.get("sourceProvider")) ?? "",
   );
-  const categoryId = searchParams.get("categoryId") ?? undefined;
-  const brandId = searchParams.get("brandId") ?? undefined;
+  const [categoryId, setCategoryId] = useState(searchParams.get("categoryId") ?? "");
+  const [brandId, setBrandId] = useState(searchParams.get("brandId") ?? "");
   const createdFrom = searchParams.get("createdFrom") ?? undefined;
   const includeArchived = searchParams.get("includeArchived") !== "false";
   const [page, setPage] = useState(1);
+  const categories = useQuery({
+    queryKey: ["admin-reference-options", "product-categories"],
+    queryFn: () =>
+      listReferenceData(apiClient, {
+        resource: "product-categories",
+        pageSize: 100,
+        includeInactive: false,
+      }),
+  });
+  const brands = useQuery({
+    queryKey: ["admin-reference-options", "brands"],
+    queryFn: () =>
+      listReferenceData(apiClient, {
+        resource: "brands",
+        pageSize: 100,
+        includeInactive: true,
+      }),
+  });
   const query = useQuery({
     queryKey: [
       "admin-products",
@@ -74,8 +93,8 @@ export function ProductList() {
         ...(verificationStatus === "" ? {} : { verificationStatus }),
         ...(foodState === "" ? {} : { foodState }),
         ...(sourceProvider === "" ? {} : { sourceProvider }),
-        ...(categoryId === undefined ? {} : { categoryId }),
-        ...(brandId === undefined ? {} : { brandId }),
+        ...(categoryId === "" ? {} : { categoryId }),
+        ...(brandId === "" ? {} : { brandId }),
         ...(createdFrom === undefined ? {} : { createdFrom }),
         includeArchived,
         page,
@@ -185,13 +204,50 @@ export function ProductList() {
               setSourceProvider(event.target.value as ProductSourceProvider | "UNASSIGNED" | "")
             }
           />
+          <SelectField
+            label="Категорія"
+            value={categoryId}
+            options={[
+              { value: "", label: "Усі категорії" },
+              ...flattenReferenceOptions(categories.data?.data.items ?? []),
+            ]}
+            disabled={categories.isPending || categories.isError}
+            onChange={(event) => {
+              setCategoryId(event.target.value);
+              setPage(1);
+            }}
+          />
+          <SelectField
+            label="Бренд"
+            value={brandId}
+            options={[
+              { value: "", label: "Усі бренди" },
+              ...(brands.data?.data.items ?? [])
+                .filter((item) => item.status !== "ARCHIVED")
+                .map((item) => ({ value: item.id, label: referenceLabel(item, true) })),
+            ]}
+            disabled={brands.isPending || brands.isError}
+            onChange={(event) => {
+              setBrandId(event.target.value);
+              setPage(1);
+            }}
+          />
           <Button type="submit" variant="secondary">
             Застосувати
           </Button>
         </form>
         {categoryId || brandId || createdFrom ? (
           <p className="product-filters__context">
-            Застосовано перехід з аналітики. <Link href="/products">Скинути додаткові фільтри</Link>
+            Застосовано додаткові фільтри.{" "}
+            <Link
+              href="/products"
+              onClick={() => {
+                setCategoryId("");
+                setBrandId("");
+              }}
+            >
+              Скинути додаткові фільтри
+            </Link>
           </p>
         ) : null}
       </Card>
@@ -279,11 +335,20 @@ export function ProductList() {
                       </span>
                     </td>
                     <td>
-                      <span
-                        className={`product-verification product-verification--${product.verificationStatus.toLowerCase()}`}
-                      >
-                        {PRODUCT_VERIFICATION_STATUS_LABELS[product.verificationStatus]}
-                      </span>
+                      <div className="product-verification-state">
+                        <span
+                          className={`product-verification product-verification--${product.verificationStatus.toLowerCase()}`}
+                        >
+                          {PRODUCT_VERIFICATION_STATUS_LABELS[product.verificationStatus]}
+                        </span>
+                        <small
+                          className={`product-readiness product-readiness--${product.verificationReadiness.status.toLowerCase()}`}
+                        >
+                          {product.verificationReadiness.status === "READY"
+                            ? "Готовий до перевірки"
+                            : `Потрібно доповнити: ${product.verificationReadiness.blockingIssues.length}`}
+                        </small>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -346,4 +411,28 @@ function asSourceProvider(value: string | null): ProductSourceProvider | "UNASSI
     value === "UNASSIGNED"
     ? value
     : undefined;
+}
+
+function flattenReferenceOptions(
+  items: readonly ReferenceItem[],
+  depth = 0,
+): readonly { readonly value: string; readonly label: string }[] {
+  return items.flatMap((item) => [
+    { value: item.id, label: `${"— ".repeat(depth)}${referenceLabel(item)}` },
+    ...flattenReferenceOptions(
+      Array.isArray(item.children) ? (item.children as readonly ReferenceItem[]) : [],
+      depth + 1,
+    ),
+  ]);
+}
+
+function referenceLabel(item: ReferenceItem, preferPrimaryName = false): string {
+  const fields = preferPrimaryName
+    ? (["name", "nameUa", "nameEn", "code"] as const)
+    : (["nameUa", "name", "nameEn", "code"] as const);
+  for (const field of fields) {
+    const value = item[field];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  return item.id;
 }

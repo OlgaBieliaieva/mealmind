@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { createDatabaseClient } from "@mealmind/db";
 
 import { ProductConflictError } from "../application/product-errors.js";
+import { findEffectiveProductNutrients } from "./effective-product-nutrients.js";
 import { createPrismaProductRepository } from "./prisma-product-repository.js";
 
 try {
@@ -18,6 +19,7 @@ const database = createDatabaseClient({ connectionString, log: ["error"] });
 const repository = createPrismaProductRepository(database);
 const createdProductIds: string[] = [];
 let brandId: string | undefined;
+let verifierId: string | undefined;
 const adminSource = {
   provider: "MEALMIND_ADMIN",
   dataset: "ADMIN_CATALOG",
@@ -25,16 +27,26 @@ const adminSource = {
 } as const;
 
 try {
-  const [category, unit, nutrient, characteristic] = await Promise.all([
+  const [category, unit, nutrient, characteristic, dietaryTag, allergen] = await Promise.all([
     database.productCategory.findFirstOrThrow({ where: { isAssignable: true, isActive: true } }),
     database.measurementUnit.findFirstOrThrow({ where: { isActive: true } }),
     database.nutrient.findFirstOrThrow({ where: { isActive: true } }),
     database.productFoodCharacteristic.findFirstOrThrow({ where: { code: "frozen" } }),
+    database.dietaryTag.findFirstOrThrow({ where: { isActive: true } }),
+    database.allergen.findFirstOrThrow({ where: { isActive: true } }),
   ]);
   const brand = await database.brand.create({
     data: { name: `Integration Brand ${crypto.randomUUID()}`, status: "ACTIVE" },
   });
   brandId = brand.id;
+  const verifier = await database.user.create({
+    data: {
+      externalSubject: crypto.randomUUID(),
+      email: `product-verifier-${crypto.randomUUID()}@example.test`,
+      applicationRole: "ADMIN",
+    },
+  });
+  verifierId = verifier.id;
 
   const generic = await repository.create({
     type: "GENERIC",
@@ -71,6 +83,8 @@ try {
   const updatedWithoutRelations = await repository.update(generic.id, {
     notes: "updated",
     verificationStatus: "VERIFIED",
+    verifiedByUserId: verifier.id,
+    verifiedAt: new Date("2026-10-19T12:00:00.000Z"),
   });
   assert.equal(updatedWithoutRelations?.nutrients.length, 1);
   assert.equal(updatedWithoutRelations?.portions.length, 1);
@@ -86,6 +100,11 @@ try {
 
   const characteristicsCleared = await repository.update(generic.id, { characteristicIds: [] });
   assert.equal(characteristicsCleared?.foodCharacteristics.length, 0);
+
+  const restoredGenericNutrients = await repository.update(generic.id, {
+    nutrients: [{ nutrientId: nutrient.id, valuePer100g: "2.5", valueType: "ANALYTICAL" }],
+  });
+  assert.equal(restoredGenericNutrients?.nutrients[0]?.valuePer100g, "2.5");
 
   const gtin = String(Date.now()).slice(-12).padStart(14, "0");
   const branded = await repository.create({
@@ -105,6 +124,28 @@ try {
   createdProductIds.push(branded.id);
   assert.equal(branded.sourceProvider, "MEALMIND_ADMIN");
   assert.equal(branded.sourceDataset, "ADMIN_CATALOG");
+  assert.equal(branded.ownNutrients.length, 0);
+  assert.equal(branded.nutrients.length, 1);
+  assert.equal(branded.nutrients[0]?.valuePer100g, "2.5");
+  assert.equal(branded.nutrients[0]?.valueType, "ESTIMATED");
+  assert.equal(branded.nutrients[0]?.origin, "BASE_PRODUCT");
+
+  await database.product.update({
+    where: { id: branded.id },
+    data: { verificationStatus: "VERIFIED", verifiedByUserId: verifier.id, verifiedAt: new Date() },
+  });
+
+  await repository.update(generic.id, {
+    nutrients: [{ nutrientId: nutrient.id, valuePer100g: "3.75", valueType: "ANALYTICAL" }],
+  });
+  const brandedAfterBaseUpdate = await repository.findById(branded.id);
+  assert.equal(brandedAfterBaseUpdate?.nutrients[0]?.valuePer100g, "3.75");
+  assert.equal(brandedAfterBaseUpdate?.ownNutrients.length, 0);
+  assert.equal(brandedAfterBaseUpdate?.verificationStatus, "UNVERIFIED");
+  assert.equal(brandedAfterBaseUpdate?.verifiedByUserId, null);
+  const effectiveNutrients = await findEffectiveProductNutrients(database, [branded.id]);
+  assert.equal(effectiveNutrients[0]?.valuePer100g.toString(), "3.75");
+  assert.equal(effectiveNutrients[0]?.origin, "BASE_PRODUCT");
 
   const createdDefaultPackage = await database.productPackage.findFirstOrThrow({
     where: { productId: branded.id, isDefault: true, status: { not: "ARCHIVED" } },
@@ -112,6 +153,82 @@ try {
   assert.equal(createdDefaultPackage.gtin, gtin);
   assert.equal(createdDefaultPackage.kind, "UNSPECIFIED");
   assert.equal(createdDefaultPackage.status, "DRAFT");
+
+  const updatedPackageProduct = await repository.update(branded.id, {
+    packages: [
+      {
+        id: createdDefaultPackage.id,
+        gtin,
+        kind: "FIXED_MASS",
+        weightG: "250",
+        volumeMl: null,
+        itemCount: null,
+        labelUa: "Пакування 250 г",
+        labelEn: "250 g package",
+        isDefault: true,
+        status: "ACTIVE",
+        ingredientStatements: [{ locale: "uk-UA", statement: "Яблуко, цукор" }],
+        shelfLifeRules: [
+          {
+            rawShelfLife: "12 місяців",
+            rawTemperatureRange: "від 0 до 25 °C",
+            durationValue: "12",
+            durationUnit: "MONTHS",
+            minTemperatureC: "0",
+            maxTemperatureC: "25",
+            sortOrder: 0,
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(updatedPackageProduct?.packages[0]?.kind, "FIXED_MASS");
+  assert.equal(updatedPackageProduct?.packages[0]?.weightG, "250");
+  assert.equal(updatedPackageProduct?.packages[0]?.labelUa, "Пакування 250 г");
+  assert.equal(
+    updatedPackageProduct?.packages[0]?.ingredientStatements[0]?.statement,
+    "Яблуко, цукор",
+  );
+  assert.equal(updatedPackageProduct?.packages[0]?.ingredientStatements[0]?.source, "MANUAL");
+  assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.durationValue, "12");
+  assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.source, "MANUAL");
+  assert.equal(updatedPackageProduct?.gtin, gtin);
+
+  const productWithPackagePortion = await repository.update(branded.id, {
+    portions: [
+      {
+        productPackageId: createdDefaultPackage.id,
+        amount: "1",
+        gramWeight: "250",
+        labelEn: "1 package",
+        labelUa: "1 пакування",
+        kind: "PACKAGE",
+        weightType: "LABEL",
+        measurementUnitId: null,
+        isDefault: true,
+        isActive: true,
+        sortOrder: 0,
+      },
+    ],
+  });
+  assert.equal(productWithPackagePortion?.portions[0]?.productPackageId, createdDefaultPackage.id);
+  assert.equal(productWithPackagePortion?.portions[0]?.gramWeight, "250");
+
+  const productWithVerifiedAttributes = await repository.update(branded.id, {
+    dietaryTags: [{ dietaryTagId: dietaryTag.id, evidenceNote: "Перевірено за етикеткою" }],
+    allergens: [
+      {
+        allergenId: allergen.id,
+        declaration: "CONTAINS",
+        evidenceNote: "Вказано у складі",
+      },
+    ],
+    attributeActorUserId: verifier.id,
+  });
+  assert.equal(productWithVerifiedAttributes?.dietaryTags[0]?.status, "VERIFIED");
+  assert.equal(productWithVerifiedAttributes?.dietaryTags[0]?.method, "MANUAL_REVIEW");
+  assert.equal(productWithVerifiedAttributes?.allergens[0]?.declaration, "CONTAINS");
+  assert.equal(productWithVerifiedAttributes?.allergens[0]?.status, "VERIFIED");
 
   await assert.rejects(
     repository.create({
@@ -250,6 +367,7 @@ try {
     await database.product.deleteMany({ where: { id: { in: createdProductIds } } });
   }
   if (brandId !== undefined) await database.brand.deleteMany({ where: { id: brandId } });
+  if (verifierId !== undefined) await database.user.deleteMany({ where: { id: verifierId } });
   await database.$disconnect();
 }
 

@@ -36,12 +36,28 @@ function product(overrides: Partial<ProductDetailsView> = {}): ProductDetailsVie
     ediblePortionPercent: "95",
     status: "DRAFT",
     verificationStatus: "UNVERIFIED",
+    verifiedByUserId: null,
+    verifiedAt: null,
+    verificationReadiness: {
+      status: "BLOCKED",
+      blockingIssues: [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_TOTAL_FAT",
+        "MISSING_CARBOHYDRATE",
+      ],
+      warnings: ["MISSING_PRIMARY_IMAGE", "MISSING_DEFAULT_PORTION"],
+    },
     notes: null,
     archivedAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     nutrients: [],
+    ownNutrients: [],
     portions: [],
+    packages: [],
+    dietaryTags: [],
+    allergens: [],
     media: [],
     ...overrides,
   };
@@ -291,7 +307,23 @@ describe("product router", () => {
     const edited = await request(app)
       .patch(`/api/v1/admin/products/${productId}`)
       .set(authorization)
-      .send({ nameUa: "Червоне яблуко", verificationStatus: "REJECTED" });
+      .send({
+        nameUa: "Червоне яблуко",
+        verificationStatus: "REJECTED",
+        dietaryTags: [
+          {
+            dietaryTagId: "74b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            evidenceNote: "Перевірено за етикеткою",
+          },
+        ],
+        allergens: [
+          {
+            allergenId: "84b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            declaration: "MAY_CONTAIN",
+            evidenceNote: null,
+          },
+        ],
+      });
     const archived = await request(app)
       .patch(`/api/v1/admin/products/${productId}/status`)
       .set(authorization)
@@ -300,10 +332,27 @@ describe("product router", () => {
     expect(created.status).toBe(201);
     expect(viewed.status).toBe(200);
     expect(edited.body.data.nameUa).toBe("Червоне яблуко");
-    expect(service.update).toHaveBeenCalledWith(productId, {
-      nameUa: "Червоне яблуко",
-      verificationStatus: "REJECTED",
-    });
+    expect(service.update).toHaveBeenCalledWith(
+      productId,
+      {
+        nameUa: "Червоне яблуко",
+        verificationStatus: "REJECTED",
+        dietaryTags: [
+          {
+            dietaryTagId: "74b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            evidenceNote: "Перевірено за етикеткою",
+          },
+        ],
+        allergens: [
+          {
+            allergenId: "84b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            declaration: "MAY_CONTAIN",
+            evidenceNote: null,
+          },
+        ],
+      },
+      "64b79ffc-e6af-440c-ae38-8cd37c22be1c",
+    );
     expect(archived.body.data.status).toBe("ARCHIVED");
   });
 

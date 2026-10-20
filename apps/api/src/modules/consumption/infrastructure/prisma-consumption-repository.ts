@@ -1,4 +1,5 @@
 import type { DatabaseClient } from "@mealmind/db";
+import { findEffectiveProductNutrients } from "../../product/infrastructure/effective-product-nutrients.js";
 import type {
   ConsumptionDashboard,
   ConsumptionRepository,
@@ -136,24 +137,22 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
     if (input.productId) {
       const product = await database.product.findFirst({
         where: { id: input.productId, status: "ACTIVE" },
-        select: {
-          nutrients: {
-            where: {
-              nutrient: {
-                isActive: true,
-                OR: [{ displayLevel: "BASIC" }, { isTargetable: true }],
-              },
-            },
-            select: {
-              valuePer100g: true,
-              valueType: true,
-              nutrient: { select: { id: true, code: true, nameUa: true, unit: true } },
-            },
-          },
-        },
+        select: { id: true },
       });
       if (!product) throw new ConsumptionNotFoundError();
-      return product.nutrients.map((item) => ({
+      const allowedNutrients = await database.nutrient.findMany({
+        where: {
+          isActive: true,
+          OR: [{ displayLevel: "BASIC" }, { isTargetable: true }],
+        },
+        select: { id: true },
+      });
+      const nutrients = await findEffectiveProductNutrients(
+        database,
+        [product.id],
+        allowedNutrients.map((item) => item.id),
+      );
+      return nutrients.map((item) => ({
         nutrientId: item.nutrient.id,
         code: item.nutrient.code,
         name: item.nutrient.nameUa,
@@ -455,6 +454,13 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
           },
         },
       });
+      const effectivePlannedProductNutrients = await findEffectiveProductNutrients(
+        database,
+        candidates.flatMap((item) =>
+          item.mealEntry.productId === null ? [] : [item.mealEntry.productId],
+        ),
+        undefined,
+      );
       const activeEntries = await database.consumptionEntry.findMany({
         where: {
           familyId: input.familyId,
@@ -504,10 +510,17 @@ export function createPrismaConsumptionRepository(database: DatabaseClient): Con
                   )
                 : item.mealEntry.product
                   ? cardNutrition(
-                      item.mealEntry.product.nutrients.map((value) => ({
-                        nutrient: value.nutrient,
-                        value: value.valuePer100g,
-                      })),
+                      effectivePlannedProductNutrients
+                        .filter((value) => value.productId === item.mealEntry.productId)
+                        .filter((value) =>
+                          CARD_NUTRIENTS.includes(
+                            value.nutrient.code as (typeof CARD_NUTRIENTS)[number],
+                          ),
+                        )
+                        .map((value) => ({
+                          nutrient: value.nutrient,
+                          value: value.valuePer100g,
+                        })),
                     )
                   : item.mealEntry.recipe?.yieldWeightG &&
                       item.mealEntry.recipe.yieldWeightG.greaterThan(0)

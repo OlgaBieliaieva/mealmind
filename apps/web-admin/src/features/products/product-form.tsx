@@ -35,11 +35,14 @@ export interface ProductOption {
 export interface ProductFormProps {
   readonly mode: "create" | "edit";
   readonly initialValues?: ProductFormValues;
+  readonly initialInheritedNutrients?: ProductDetails["nutrients"];
   readonly categories: readonly ProductOption[];
   readonly measurementUnits: readonly ProductOption[];
   readonly brands: readonly ProductOption[];
   readonly genericProducts: readonly ProductOption[];
   readonly nutrients: readonly ProductOption[];
+  readonly dietaryTags?: readonly ProductOption[];
+  readonly allergens?: readonly ProductOption[];
   readonly foodCharacteristics?: readonly ProductOption[];
   readonly isSubmitting?: boolean;
   readonly onSearchGenericProducts: (query: string) => Promise<readonly BaseProductOption[]>;
@@ -60,11 +63,14 @@ const nutrientValueTypeOptions = [
 export function ProductForm({
   mode,
   initialValues = EMPTY_PRODUCT_FORM,
+  initialInheritedNutrients,
   categories,
   measurementUnits,
   brands,
   genericProducts,
   nutrients,
+  dietaryTags = [],
+  allergens = [],
   foodCharacteristics = [],
   isSubmitting = false,
   onSearchGenericProducts,
@@ -85,9 +91,17 @@ export function ProductForm({
   });
   const nutrientFields = useFieldArray({ control, name: "nutrients" });
   const portionFields = useFieldArray({ control, name: "portions" });
+  const packageFields = useFieldArray({ control, name: "packages", keyName: "fieldKey" });
+  const allergenFields = useFieldArray({ control, name: "allergens" });
   const productType = useWatch({ control, name: "type" });
+  const baseProductId = useWatch({ control, name: "baseProductId" });
   const labelNutrients = useWatch({ control, name: "nutrients" });
-  const [basePreview, setBasePreview] = useState<ProductDetails | null>(null);
+  const packageValues = useWatch({ control, name: "packages" });
+  const dietaryTagSuggestions = useWatch({ control, name: "dietaryTagSuggestions" });
+  const allergenSuggestions = useWatch({ control, name: "allergenSuggestions" });
+  const [selectedBaseNutrients, setSelectedBaseNutrients] = useState<
+    ProductDetails["nutrients"] | null
+  >(null);
   const [baseStatus, setBaseStatus] = useState<"idle" | "loading" | "error">("idle");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
@@ -102,9 +116,10 @@ export function ProductForm({
     [brands, createdBrands],
   );
   const inheritedNutrients = useMemo(() => {
+    const baseNutrients = selectedBaseNutrients ?? initialInheritedNutrients ?? [];
     const overridden = new Set((labelNutrients ?? []).map((item) => item.nutrientId));
-    return basePreview?.nutrients.filter((item) => !overridden.has(item.nutrientId)) ?? [];
-  }, [basePreview, labelNutrients]);
+    return baseNutrients.filter((item) => !overridden.has(item.nutrientId));
+  }, [initialInheritedNutrients, labelNutrients, selectedBaseNutrients]);
 
   useDirtyFormGuard(isDirty);
   useEffect(() => reset(initialValues), [initialValues, reset]);
@@ -118,14 +133,14 @@ export function ProductForm({
   async function selectBaseProduct(id: string): Promise<void> {
     setValue("baseProductId", id, { shouldDirty: true, shouldValidate: true });
     if (id === "") {
-      setBasePreview(null);
+      setSelectedBaseNutrients([]);
       setBaseStatus("idle");
       return;
     }
     setBaseStatus("loading");
     try {
       const base = await onLoadBaseProduct(id);
-      setBasePreview(base);
+      setSelectedBaseNutrients(base.nutrients);
       setValue("categoryId", base.categoryId, { shouldDirty: true, shouldValidate: true });
       setValue("defaultMeasurementUnitId", base.defaultMeasurementUnitId, {
         shouldDirty: true,
@@ -138,7 +153,7 @@ export function ProductForm({
       );
       setBaseStatus("idle");
     } catch {
-      setBasePreview(null);
+      setSelectedBaseNutrients([]);
       setBaseStatus("error");
     }
   }
@@ -223,10 +238,9 @@ export function ProductForm({
             />
             <SelectField
               label="Статус перевірки"
-              options={Object.entries(PRODUCT_VERIFICATION_STATUS_LABELS).map(([value, label]) => ({
-                value,
-                label,
-              }))}
+              options={Object.entries(PRODUCT_VERIFICATION_STATUS_LABELS)
+                .filter(([value]) => mode === "edit" || value !== "VERIFIED")
+                .map(([value, label]) => ({ value, label }))}
               error={errors.verificationStatus?.message}
               {...register("verificationStatus")}
             />
@@ -311,18 +325,20 @@ export function ProductForm({
                     Створити новий бренд
                   </Button>
                 </div>
-                <div className="product-form__field-with-action">
-                  <TextInput
-                    label="GTIN"
-                    inputMode="numeric"
-                    description="Необов’язково: 8, 12, 13 або 14 цифр."
-                    error={errors.gtin?.message}
-                    {...register("gtin")}
-                  />
-                  <Button variant="secondary" onClick={() => setScannerOpen(true)}>
-                    Сканувати штрихкод
-                  </Button>
-                </div>
+                {mode === "create" ? (
+                  <div className="product-form__field-with-action">
+                    <TextInput
+                      label="GTIN основного пакування"
+                      inputMode="numeric"
+                      description="Необов’язково: 8, 12, 13 або 14 цифр."
+                      error={errors.gtin?.message}
+                      {...register("gtin")}
+                    />
+                    <Button variant="secondary" onClick={() => setScannerOpen(true)}>
+                      Сканувати штрихкод
+                    </Button>
+                  </div>
+                ) : null}
                 <Controller
                   control={control}
                   name="baseProductId"
@@ -347,7 +363,7 @@ export function ProductForm({
                   Не вдалося завантажити базовий продукт. Спробуйте вибрати його ще раз.
                 </p>
               ) : null}
-              {basePreview === null ? null : (
+              {baseProductId === "" ? null : (
                 <section
                   className="product-form__inheritance-preview"
                   aria-labelledby="inherited-nutrients-title"
@@ -355,7 +371,7 @@ export function ProductForm({
                   <h3 id="inherited-nutrients-title">Успадковані нутрієнти</h3>
                   <p>
                     Значення базового продукту, яких немає серед введених даних етикетки, будуть
-                    збережені як оцінені (ESTIMATED).
+                    динамічно використані як оцінені (ESTIMATED) без створення копій.
                   </p>
                   {inheritedNutrients.length === 0 ? (
                     <p>Усі нутрієнти базового продукту перевизначені даними етикетки.</p>
@@ -389,6 +405,388 @@ export function ProductForm({
             )}
           </div>
         </fieldset>
+
+        {mode === "edit" ? (
+          <fieldset className="product-form__section">
+            <legend>Дієтичні теги та алергени</legend>
+            <p className="product-form__hint">
+              Тут зберігаються лише підтверджені адміністратором атрибути. Пропозиції з майбутніх
+              правил або джерел показуються окремо й не вважаються перевіреними.
+            </p>
+            {(dietaryTagSuggestions?.length ?? 0) > 0 || (allergenSuggestions?.length ?? 0) > 0 ? (
+              <section className="product-form__package-source">
+                <h3>Непідтверджені пропозиції</h3>
+                {dietaryTagSuggestions?.map((item) => (
+                  <p key={`dietary-suggestion-${item.id}`}>Дієтичний тег: {item.name}</p>
+                ))}
+                {allergenSuggestions?.map((item) => (
+                  <p key={`allergen-suggestion-${item.id}`}>Алерген: {item.name}</p>
+                ))}
+              </section>
+            ) : null}
+            <Controller
+              control={control}
+              name="dietaryTagIds"
+              render={({ field }) => (
+                <SearchableMultiSelect
+                  label="Підтверджені дієтичні теги"
+                  options={dietaryTags}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <div className="product-form__rows">
+              {allergenFields.fields.map((field, index) => (
+                <div className="product-form__repeat-row" key={field.id}>
+                  <SelectField
+                    label={`Алерген ${index + 1}`}
+                    placeholder="Оберіть алерген"
+                    options={allergens}
+                    error={errors.allergens?.[index]?.allergenId?.message}
+                    {...register(`allergens.${index}.allergenId`)}
+                  />
+                  <SelectField
+                    label="Декларація"
+                    options={ALLERGEN_DECLARATION_OPTIONS}
+                    {...register(`allergens.${index}.declaration`)}
+                  />
+                  <TextInput
+                    label="Підстава або примітка"
+                    {...register(`allergens.${index}.evidenceNote`)}
+                  />
+                  <Button variant="ghost" onClick={() => allergenFields.remove(index)}>
+                    Видалити алерген
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                allergenFields.append({
+                  allergenId: "",
+                  declaration: "CONTAINS",
+                  evidenceNote: "",
+                })
+              }
+            >
+              Додати алерген
+            </Button>
+          </fieldset>
+        ) : null}
+
+        {mode === "edit" && productType === "BRANDED" ? (
+          <fieldset className="product-form__section">
+            <legend>Пакування</legend>
+            <p className="product-form__hint">
+              GTIN та розмір належать конкретному пакуванню. Архівуйте застарілу позицію замість
+              видалення, щоб зберегти історію та джерела імпорту.
+            </p>
+            <div className="product-form__rows">
+              {packageFields.fields.map((field, index) => (
+                <div className="product-form__repeat-row" key={field.fieldKey}>
+                  <input type="hidden" {...register(`packages.${index}.id`)} />
+                  <TextInput
+                    label="GTIN"
+                    inputMode="numeric"
+                    error={errors.packages?.[index]?.gtin?.message}
+                    {...register(`packages.${index}.gtin`)}
+                  />
+                  <SelectField
+                    label="Тип пакування"
+                    options={PACKAGE_KIND_OPTIONS}
+                    error={errors.packages?.[index]?.kind?.message}
+                    {...register(`packages.${index}.kind`)}
+                  />
+                  <TextInput
+                    label="Вага, г"
+                    inputMode="decimal"
+                    error={errors.packages?.[index]?.weightG?.message}
+                    {...register(`packages.${index}.weightG`)}
+                  />
+                  <TextInput
+                    label="Об’єм, мл"
+                    inputMode="decimal"
+                    error={errors.packages?.[index]?.volumeMl?.message}
+                    {...register(`packages.${index}.volumeMl`)}
+                  />
+                  <TextInput
+                    label="Кількість одиниць"
+                    inputMode="numeric"
+                    error={errors.packages?.[index]?.itemCount?.message}
+                    {...register(`packages.${index}.itemCount`)}
+                  />
+                  <TextInput label="Назва українською" {...register(`packages.${index}.labelUa`)} />
+                  <TextInput label="Назва англійською" {...register(`packages.${index}.labelEn`)} />
+                  <SelectField
+                    label="Статус"
+                    options={PACKAGE_STATUS_OPTIONS}
+                    {...register(`packages.${index}.status`)}
+                  />
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.isDefault`}
+                    render={({ field: defaultField }) => (
+                      <label className="product-form__checkbox">
+                        <input
+                          type="checkbox"
+                          checked={defaultField.value}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              packageFields.fields.forEach((_, packageIndex) =>
+                                setValue(
+                                  `packages.${packageIndex}.isDefault`,
+                                  packageIndex === index,
+                                  {
+                                    shouldDirty: true,
+                                  },
+                                ),
+                              );
+                            } else {
+                              defaultField.onChange(false);
+                            }
+                          }}
+                        />
+                        Основне пакування
+                      </label>
+                    )}
+                  />
+                  {(packageValues?.[index]?.sourceIngredientStatements.length ?? 0) > 0 ||
+                  (packageValues?.[index]?.sourceShelfLifeRules.length ?? 0) > 0 ? (
+                    <section className="product-form__package-source">
+                      <h4>Дані джерела</h4>
+                      {(packageValues?.[index]?.sourceIngredientStatements ?? []).map(
+                        (statement, sourceIndex) => (
+                          <p key={`${statement.locale}-${sourceIndex}`}>
+                            <strong>Склад ({statement.locale}):</strong> {statement.statement}
+                          </p>
+                        ),
+                      )}
+                      {(packageValues?.[index]?.sourceShelfLifeRules ?? []).map(
+                        (rule, sourceIndex) => (
+                          <p key={`source-rule-${sourceIndex}`}>
+                            <strong>Зберігання:</strong> {formatShelfLifeRule(rule)}
+                          </p>
+                        ),
+                      )}
+                    </section>
+                  ) : null}
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.ingredientStatements`}
+                    render={({ field: statementsField }) => (
+                      <section className="product-form__package-details">
+                        <h4>Підтверджений склад</h4>
+                        {statementsField.value.map((statement, statementIndex) => (
+                          <div
+                            className="product-form__repeat-row"
+                            key={`${statement.locale}-${statementIndex}`}
+                          >
+                            <TextInput
+                              label="Локаль"
+                              value={statement.locale}
+                              error={
+                                errors.packages?.[index]?.ingredientStatements?.[statementIndex]
+                                  ?.locale?.message
+                              }
+                              onChange={(event) =>
+                                statementsField.onChange(
+                                  statementsField.value.map((item, currentIndex) =>
+                                    currentIndex === statementIndex
+                                      ? { ...item, locale: event.target.value }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                            <label className="ui-field">
+                              <span className="ui-field__label">Склад</span>
+                              <textarea
+                                className="ui-control product-form__textarea"
+                                value={statement.statement}
+                                onChange={(event) =>
+                                  statementsField.onChange(
+                                    statementsField.value.map((item, currentIndex) =>
+                                      currentIndex === statementIndex
+                                        ? { ...item, statement: event.target.value }
+                                        : item,
+                                    ),
+                                  )
+                                }
+                              />
+                            </label>
+                            <Button
+                              variant="ghost"
+                              onClick={() =>
+                                statementsField.onChange(
+                                  statementsField.value.filter(
+                                    (_, currentIndex) => currentIndex !== statementIndex,
+                                  ),
+                                )
+                              }
+                            >
+                              Видалити склад
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            statementsField.onChange([
+                              ...statementsField.value,
+                              { locale: "uk-UA", statement: "" },
+                            ])
+                          }
+                        >
+                          Додати склад
+                        </Button>
+                      </section>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.shelfLifeRules`}
+                    render={({ field: shelfLifeField }) => (
+                      <section className="product-form__package-details">
+                        <h4>Підтверджені строки й температури</h4>
+                        {shelfLifeField.value.map((rule, ruleIndex) => (
+                          <div className="product-form__repeat-row" key={`rule-${ruleIndex}`}>
+                            <TextInput
+                              label="Строк придатності (текст)"
+                              value={rule.rawShelfLife}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    rawShelfLife: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Температурний діапазон (текст)"
+                              value={rule.rawTemperatureRange}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    rawTemperatureRange: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Тривалість"
+                              inputMode="decimal"
+                              value={rule.durationValue}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    durationValue: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <SelectField
+                              label="Одиниця тривалості"
+                              placeholder="Не визначено"
+                              options={SHELF_LIFE_UNIT_OPTIONS}
+                              value={rule.durationUnit}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    durationUnit: event.target.value as typeof rule.durationUnit,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Мінімальна температура, °C"
+                              inputMode="decimal"
+                              value={rule.minTemperatureC}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    minTemperatureC: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Максимальна температура, °C"
+                              inputMode="decimal"
+                              value={rule.maxTemperatureC}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    maxTemperatureC: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <Button
+                              variant="ghost"
+                              onClick={() =>
+                                shelfLifeField.onChange(
+                                  shelfLifeField.value.filter(
+                                    (_, currentIndex) => currentIndex !== ruleIndex,
+                                  ),
+                                )
+                              }
+                            >
+                              Видалити правило
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            shelfLifeField.onChange([...shelfLifeField.value, emptyShelfLifeRule()])
+                          }
+                        >
+                          Додати строк або температурний режим
+                        </Button>
+                      </section>
+                    )}
+                  />
+                  {packageValues?.[index]?.id === "" ? (
+                    <Button variant="ghost" onClick={() => packageFields.remove(index)}>
+                      Видалити нове пакування
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                packageFields.append({
+                  id: "",
+                  gtin: "",
+                  kind: "UNSPECIFIED",
+                  weightG: "",
+                  volumeMl: "",
+                  itemCount: "",
+                  labelUa: "",
+                  labelEn: "",
+                  isDefault: packageFields.fields.length === 0,
+                  status: "DRAFT",
+                  ingredientStatements: [],
+                  shelfLifeRules: [],
+                  sourceIngredientStatements: [],
+                  sourceShelfLifeRules: [],
+                })
+              }
+            >
+              Додати пакування
+            </Button>
+          </fieldset>
+        ) : null}
 
         <fieldset className="product-form__section">
           <legend>Поживність на 100 г</legend>
@@ -459,6 +857,14 @@ export function ProductForm({
                   inputMode="decimal"
                   {...register(`portions.${index}.gramWeight`)}
                 />
+                {mode === "edit" && productType === "BRANDED" ? (
+                  <SelectField
+                    label="Пакування"
+                    placeholder="Без прив’язки до пакування"
+                    options={packageOptions(packageValues)}
+                    {...register(`portions.${index}.productPackageId`)}
+                  />
+                ) : null}
                 <SelectField
                   label="Одиниця"
                   placeholder="Без одиниці"
@@ -479,6 +885,7 @@ export function ProductForm({
             variant="secondary"
             onClick={() =>
               portionFields.append({
+                productPackageId: "",
                 amount: "1",
                 gramWeight: "",
                 labelEn: "",
@@ -527,6 +934,82 @@ const CHARACTERISTIC_GROUPS = [
   { kind: "COOKING_METHOD", label: "Спосіб приготування" },
   { kind: "PROCESSING_METHOD", label: "Спосіб обробки" },
 ] as const;
+
+const PACKAGE_KIND_OPTIONS = [
+  { value: "UNSPECIFIED", label: "Не визначено" },
+  { value: "FIXED_MASS", label: "Фіксована вага" },
+  { value: "FIXED_VOLUME", label: "Фіксований об’єм" },
+  { value: "FIXED_MASS_AND_VOLUME", label: "Вага й об’єм" },
+  { value: "FIXED_COUNT", label: "Фіксована кількість" },
+] as const;
+
+const PACKAGE_STATUS_OPTIONS = [
+  { value: "DRAFT", label: "Чернетка" },
+  { value: "ACTIVE", label: "Активне" },
+  { value: "ARCHIVED", label: "Архівне" },
+] as const;
+
+const SHELF_LIFE_UNIT_OPTIONS = [
+  { value: "HOURS", label: "Години" },
+  { value: "DAYS", label: "Дні" },
+  { value: "MONTHS", label: "Місяці" },
+  { value: "YEARS", label: "Роки" },
+] as const;
+
+const ALLERGEN_DECLARATION_OPTIONS = [
+  { value: "CONTAINS", label: "Містить" },
+  { value: "MAY_CONTAIN", label: "Може містити" },
+  { value: "SHARED_FACILITY", label: "Вироблено на спільному обладнанні" },
+] as const;
+
+function packageOptions(
+  packages: ProductFormValues["packages"] | undefined,
+): readonly ProductOption[] {
+  return (packages ?? [])
+    .filter((item) => item.id !== "" && item.status !== "ARCHIVED")
+    .map((item) => ({
+      value: item.id,
+      label:
+        item.labelUa ||
+        item.labelEn ||
+        [item.weightG && `${item.weightG} г`, item.volumeMl && `${item.volumeMl} мл`, item.gtin]
+          .filter(Boolean)
+          .join(" · ") ||
+        "Пакування без назви",
+    }));
+}
+
+function emptyShelfLifeRule() {
+  return {
+    rawShelfLife: "",
+    rawTemperatureRange: "",
+    durationValue: "",
+    durationUnit: "",
+    minTemperatureC: "",
+    maxTemperatureC: "",
+  } satisfies ShelfLifeFormRule;
+}
+
+type ShelfLifeFormRule = ProductFormValues["packages"][number]["shelfLifeRules"][number];
+
+function replaceAt<T>(values: readonly T[], index: number, next: T): readonly T[] {
+  return values.map((value, currentIndex) => (currentIndex === index ? next : value));
+}
+
+function formatShelfLifeRule(rule: ShelfLifeFormRule): string {
+  return [
+    rule.rawShelfLife,
+    rule.rawTemperatureRange,
+    rule.durationValue === ""
+      ? ""
+      : `${rule.durationValue} ${SHELF_LIFE_UNIT_OPTIONS.find((item) => item.value === rule.durationUnit)?.label ?? ""}`,
+    rule.minTemperatureC === "" && rule.maxTemperatureC === ""
+      ? ""
+      : `${rule.minTemperatureC || "…"}…${rule.maxTemperatureC || "…"} °C`,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
 
 function nutrientValueLabel(
   nutrientId: string | undefined,

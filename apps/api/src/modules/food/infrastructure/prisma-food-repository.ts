@@ -1,5 +1,7 @@
 import { Prisma, type DatabaseClient } from "@mealmind/db";
 
+import { findEffectiveProductNutrients } from "../../product/infrastructure/effective-product-nutrients.js";
+
 import type {
   FoodKind,
   FoodRepository,
@@ -172,6 +174,7 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
       });
 
       if (!product) return null;
+      const effectiveProductNutrients = await findEffectiveProductNutrients(database, [product.id]);
 
       const relatedRecipes = uniqueById(product.recipeIngredients.map((item) => item.recipe));
 
@@ -203,7 +206,7 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
         })),
         defaultUnit: product.defaultMeasurementUnit,
         isFavorite: product.favorites.length > 0,
-        nutrients: product.nutrients.map(({ nutrient, valuePer100g, valueType }) => ({
+        nutrients: effectiveProductNutrients.map(({ nutrient, valuePer100g, valueType }) => ({
           id: nutrient.id,
           code: nutrient.code,
           name: nutrient.nameUa,
@@ -382,6 +385,19 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
       });
 
       if (!recipe) return null;
+      const effectiveIngredientNutrients = await findEffectiveProductNutrients(
+        database,
+        recipe.ingredients.map((ingredient) => ingredient.product.id),
+      );
+      const ingredientsWithEffectiveNutrients = recipe.ingredients.map((ingredient) => ({
+        ...ingredient,
+        product: {
+          ...ingredient.product,
+          nutrients: effectiveIngredientNutrients.filter(
+            (item) => item.productId === ingredient.product.id,
+          ),
+        },
+      }));
       const calculatedYieldWeightG =
         recipe.yieldWeightG?.toNumber() ??
         recipe.ingredients.reduce(
@@ -395,7 +411,7 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
               valueTotal: valueTotal.toNumber(),
               completeness,
             }))
-          : calculateRecipeNutrients(recipe.ingredients);
+          : calculateRecipeNutrients(ingredientsWithEffectiveNutrients);
 
       return {
         kind: "recipe",
@@ -429,7 +445,7 @@ export function createPrismaFoodRepository(database: DatabaseClient): FoodReposi
         restTimeMin: recipe.restTimeMin,
         totalTimeMin: sumTime(recipe),
         isFavorite: recipe.favorites.length > 0,
-        ingredients: recipe.ingredients.map((ingredient) => ({
+        ingredients: ingredientsWithEffectiveNutrients.map((ingredient) => ({
           id: ingredient.id,
           productId: ingredient.product.id,
           productName: ingredient.product.nameUa ?? ingredient.product.nameEn,

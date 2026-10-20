@@ -1,5 +1,7 @@
 import { Prisma, type DatabaseClient } from "@mealmind/db";
 
+import { findEffectiveProductNutrients } from "../../product/infrastructure/effective-product-nutrients.js";
+
 import { RecipeConflictError, RecipeInvariantError } from "../application/recipe-errors.js";
 import { RECIPE_CALCULATOR_VERSION } from "../application/recipe-nutrition-calculator.js";
 import type {
@@ -319,14 +321,13 @@ async function resolveIngredients(
   const unitIds = [
     ...new Set(inputs.flatMap((item) => (item.measurementUnitId ? [item.measurementUnitId] : []))),
   ];
-  const [products, units] = await Promise.all([
+  const [products, units, effectiveNutrients] = await Promise.all([
     database.product.findMany({
       where: { id: { in: productIds }, status: { not: "ARCHIVED" } },
       select: {
         id: true,
         nameUa: true,
         nameEn: true,
-        nutrients: { select: { nutrientId: true, valuePer100g: true } },
         portions: {
           where: { isActive: true },
           select: { id: true, amount: true, gramWeight: true },
@@ -337,6 +338,7 @@ async function resolveIngredients(
       where: { id: { in: unitIds }, isActive: true },
       select: { id: true, symbol: true, dimension: true, factorToBaseUnit: true },
     }),
+    findEffectiveProductNutrients(database, productIds),
   ]);
   const productById = new Map(products.map((product) => [product.id, product]));
   const unitById = new Map(units.map((unit) => [unit.id, unit]));
@@ -386,10 +388,12 @@ async function resolveIngredients(
         productName: product.nameUa ?? product.nameEn,
         measurementUnitSymbol: unitSymbol,
         nutrients: Object.freeze(
-          product.nutrients.map((item) => ({
-            nutrientId: item.nutrientId,
-            valuePer100g: item.valuePer100g.toString(),
-          })),
+          effectiveNutrients
+            .filter((item) => item.productId === product.id)
+            .map((item) => ({
+              nutrientId: item.nutrientId,
+              valuePer100g: item.valuePer100g.toString(),
+            })),
         ),
       });
     }),

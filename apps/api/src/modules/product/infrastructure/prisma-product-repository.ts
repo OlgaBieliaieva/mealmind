@@ -14,12 +14,22 @@ import type {
   ProductUpdate,
   ProductWrite,
 } from "../domain/product-repository.js";
+import { evaluateProductVerification } from "../domain/product-verification.js";
 
 const productInclude = {
   category: { select: { nameUa: true, nameEn: true } },
   brand: { select: { name: true } },
   defaultMeasurementUnit: { select: { symbol: true } },
-  baseProduct: { select: { nameUa: true, nameEn: true } },
+  baseProduct: {
+    select: {
+      nameUa: true,
+      nameEn: true,
+      nutrients: {
+        include: { nutrient: { select: { code: true, nameUa: true, nameEn: true, unit: true } } },
+        orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
+      },
+    },
+  },
   sourceReferences: {
     where: { isPrimary: true },
     orderBy: [{ createdAt: "asc" }],
@@ -27,13 +37,28 @@ const productInclude = {
     select: { provider: true, dataset: true },
   },
   nutrients: {
-    include: { nutrient: { select: { nameUa: true, nameEn: true, unit: true } } },
+    include: { nutrient: { select: { code: true, nameUa: true, nameEn: true, unit: true } } },
     orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
   },
   portions: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+  packages: {
+    include: {
+      ingredientTexts: { orderBy: [{ locale: "asc" }, { isPrimary: "desc" }, { id: "asc" }] },
+      shelfLifeRules: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+    },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+  },
   foodCharacteristics: {
     include: { characteristic: true },
     orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
+  },
+  dietaryTags: {
+    include: { dietaryTag: { select: { code: true, nameUa: true } } },
+    orderBy: [{ dietaryTag: { sortOrder: "asc" } }, { dietaryTagId: "asc" }],
+  },
+  allergens: {
+    include: { allergen: { select: { code: true, nameUa: true } } },
+    orderBy: { allergenId: "asc" },
   },
   media: {
     where: { status: { not: "ARCHIVED" } },
@@ -116,6 +141,15 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
       return row === null ? null : mapProductDetails(row);
     },
 
+    async findNutrientCodes(ids) {
+      if (ids.length === 0) return new Map();
+      const rows = await database.nutrient.findMany({
+        where: { id: { in: [...new Set(ids)] } },
+        select: { id: true, code: true },
+      });
+      return new Map(rows.map((row) => [row.id, row.code]));
+    },
+
     async create(data) {
       try {
         const productId = randomUUID();
@@ -138,11 +172,34 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
             include: productInclude,
           });
 
-          if (data.gtin !== undefined) {
+          if (data.gtin !== undefined && data.packages === undefined) {
             await syncLegacyDefaultPackage(transaction, updated, data.gtin);
           }
 
-          return updated;
+          if (data.packages !== undefined) {
+            await updateProductPackages(transaction, id, data.packages);
+          }
+          if (data.dietaryTags !== undefined || data.allergens !== undefined) {
+            if (data.attributeActorUserId === undefined) {
+              throw new ProductInvariantError("Для перевірки атрибутів потрібен адміністратор");
+            }
+            await updateVerifiedAttributes(transaction, id, data, data.attributeActorUserId);
+          }
+          if (updated.type === "GENERIC" && data.nutrients !== undefined) {
+            await transaction.product.updateMany({
+              where: { baseProductId: id, verificationStatus: "VERIFIED" },
+              data: {
+                verificationStatus: "UNVERIFIED",
+                verifiedByUserId: null,
+                verifiedAt: null,
+              },
+            });
+          }
+
+          return transaction.product.findUniqueOrThrow({
+            where: { id },
+            include: productInclude,
+          });
         });
         return mapProductDetails(row);
       } catch (error) {
@@ -431,6 +488,12 @@ function productUpdateData(data: ProductUpdate): Prisma.ProductUpdateInput {
     ...(data.verificationStatus === undefined
       ? {}
       : { verificationStatus: data.verificationStatus }),
+    ...(data.verifiedByUserId === undefined
+      ? {}
+      : data.verifiedByUserId === null
+        ? { verifiedByUser: { disconnect: true } }
+        : { verifiedByUser: { connect: { id: data.verifiedByUserId } } }),
+    ...(data.verifiedAt === undefined ? {} : { verifiedAt: data.verifiedAt }),
     ...(data.nutrients === undefined
       ? {}
       : {
@@ -523,6 +586,7 @@ function portionCreateData(
   data: ProductWrite["portions"][number],
 ): Prisma.ProductPortionUncheckedCreateWithoutProductInput {
   return {
+    ...(data.productPackageId === undefined ? {} : { productPackageId: data.productPackageId }),
     amount: data.amount,
     gramWeight: data.gramWeight,
     labelEn: data.labelEn,
@@ -538,6 +602,11 @@ function portionCreateData(
 
 function mapProductDetails(row: ProductRow): ProductDetails {
   const source = row.sourceReferences[0] ?? null;
+  const ownNutrients = row.nutrients.map((item) => mapNutrient(item, "PRODUCT"));
+  const ownNutrientIds = new Set(ownNutrients.map((item) => item.nutrientId));
+  const inheritedNutrients = (row.baseProduct?.nutrients ?? [])
+    .filter((item) => !ownNutrientIds.has(item.nutrientId))
+    .map((item) => mapNutrient(item, "BASE_PRODUCT"));
 
   return Object.freeze({
     id: row.id,
@@ -573,25 +642,19 @@ function mapProductDetails(row: ProductRow): ProductDetails {
     ediblePortionPercent: row.ediblePortionPercent?.toString() ?? null,
     status: row.status,
     verificationStatus: row.verificationStatus,
+    verifiedByUserId: row.verifiedByUserId,
+    verifiedAt: row.verifiedAt?.toISOString() ?? null,
     notes: row.notes,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    nutrients: Object.freeze(
-      row.nutrients.map((item) =>
-        Object.freeze({
-          nutrientId: item.nutrientId,
-          nutrientName: item.nutrient.nameUa ?? item.nutrient.nameEn,
-          unit: item.nutrient.unit,
-          valuePer100g: item.valuePer100g.toString(),
-          valueType: item.valueType,
-        }),
-      ),
-    ),
+    nutrients: Object.freeze([...ownNutrients, ...inheritedNutrients]),
+    ownNutrients: Object.freeze(ownNutrients),
     portions: Object.freeze(
       row.portions.map((portion) =>
         Object.freeze({
           id: portion.id,
+          productPackageId: portion.productPackageId,
           amount: portion.amount.toString(),
           gramWeight: portion.gramWeight.toString(),
           labelEn: portion.labelEn,
@@ -605,7 +668,285 @@ function mapProductDetails(row: ProductRow): ProductDetails {
         }),
       ),
     ),
+    packages: Object.freeze(
+      row.packages.map((item) =>
+        Object.freeze({
+          id: item.id,
+          gtin: item.gtin,
+          kind: item.kind,
+          weightG: item.weightG?.toString() ?? null,
+          volumeMl: item.volumeMl?.toString() ?? null,
+          itemCount: item.itemCount,
+          labelUa: item.labelUa,
+          labelEn: item.labelEn,
+          isDefault: item.isDefault,
+          status: item.status,
+          archivedAt: item.archivedAt?.toISOString() ?? null,
+          ingredientStatements: Object.freeze(
+            item.ingredientTexts.map((statement) =>
+              Object.freeze({
+                id: statement.id,
+                locale: statement.locale,
+                statement: statement.statement,
+                isPrimary: statement.isPrimary,
+                source:
+                  statement.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
+              }),
+            ),
+          ),
+          shelfLifeRules: Object.freeze(
+            item.shelfLifeRules.map((rule) =>
+              Object.freeze({
+                id: rule.id,
+                rawShelfLife: rule.rawShelfLife,
+                rawTemperatureRange: rule.rawTemperatureRange,
+                durationValue: rule.durationValue?.toString() ?? null,
+                durationUnit: rule.durationUnit,
+                minTemperatureC: rule.minTemperatureC?.toString() ?? null,
+                maxTemperatureC: rule.maxTemperatureC?.toString() ?? null,
+                sortOrder: rule.sortOrder,
+                source: rule.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
+              }),
+            ),
+          ),
+        }),
+      ),
+    ),
+    dietaryTags: Object.freeze(
+      row.dietaryTags.map((item) =>
+        Object.freeze({
+          dietaryTagId: item.dietaryTagId,
+          code: item.dietaryTag.code,
+          nameUa: item.dietaryTag.nameUa,
+          status: item.status,
+          method: item.method,
+          evidenceNote: item.evidenceNote,
+          verifiedAt: item.verifiedAt?.toISOString() ?? null,
+        }),
+      ),
+    ),
+    allergens: Object.freeze(
+      row.allergens.map((item) =>
+        Object.freeze({
+          allergenId: item.allergenId,
+          code: item.allergen.code,
+          nameUa: item.allergen.nameUa,
+          declaration: item.declaration,
+          status: item.status,
+          method: item.method,
+          evidenceNote: item.evidenceNote,
+          verifiedAt: item.verifiedAt?.toISOString() ?? null,
+        }),
+      ),
+    ),
     media: Object.freeze(row.media.map(mapMedia)),
+  });
+}
+
+async function updateVerifiedAttributes(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  data: ProductUpdate,
+  actorUserId: string,
+): Promise<void> {
+  const now = new Date();
+  if (data.dietaryTags !== undefined) {
+    const ids = [...new Set(data.dietaryTags.map((item) => item.dietaryTagId))];
+    const active = await transaction.dietaryTag.count({
+      where: { id: { in: ids }, isActive: true },
+    });
+    if (active !== ids.length)
+      throw new ProductInvariantError("Один або кілька dietary tags недоступні");
+    await transaction.productDietaryTag.deleteMany({
+      where: { productId, method: "MANUAL_REVIEW", dietaryTagId: { notIn: ids } },
+    });
+    for (const item of data.dietaryTags) {
+      await transaction.productDietaryTag.upsert({
+        where: { productId_dietaryTagId: { productId, dietaryTagId: item.dietaryTagId } },
+        create: {
+          productId,
+          dietaryTagId: item.dietaryTagId,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+          createdAt: now,
+        },
+        update: {
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          sourceReferenceId: null,
+          ruleCode: null,
+          ruleVersion: null,
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+        },
+      });
+    }
+  }
+
+  if (data.allergens !== undefined) {
+    const ids = [...new Set(data.allergens.map((item) => item.allergenId))];
+    const active = await transaction.allergen.count({ where: { id: { in: ids }, isActive: true } });
+    if (active !== ids.length)
+      throw new ProductInvariantError("Один або кілька алергенів недоступні");
+    await transaction.productAllergen.deleteMany({
+      where: { productId, method: "MANUAL_REVIEW", allergenId: { notIn: ids } },
+    });
+    for (const item of data.allergens) {
+      await transaction.productAllergen.upsert({
+        where: { productId_allergenId: { productId, allergenId: item.allergenId } },
+        create: {
+          productId,
+          allergenId: item.allergenId,
+          declaration: item.declaration,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+          createdAt: now,
+        },
+        update: {
+          declaration: item.declaration,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          sourceReferenceId: null,
+          ruleCode: null,
+          ruleVersion: null,
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+        },
+      });
+    }
+  }
+}
+
+async function updateProductPackages(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  packages: NonNullable<ProductUpdate["packages"]>,
+): Promise<void> {
+  for (const item of packages) {
+    if (item.id !== undefined) {
+      const exists = await transaction.productPackage.findFirst({
+        where: { id: item.id, productId },
+        select: { id: true },
+      });
+      if (exists === null) throw new ProductInvariantError("Пакування не належить цьому продукту");
+    }
+
+    if (item.isDefault && item.status !== "ARCHIVED") {
+      await transaction.productPackage.updateMany({
+        where: { productId, isDefault: true, status: { not: "ARCHIVED" } },
+        data: { isDefault: false },
+      });
+    }
+
+    const data = {
+      gtin: item.gtin,
+      kind: item.kind,
+      weightG: item.weightG,
+      volumeMl: item.volumeMl,
+      itemCount: item.itemCount,
+      labelUa: item.labelUa,
+      labelEn: item.labelEn,
+      isDefault: item.status === "ARCHIVED" ? false : item.isDefault,
+      status: item.status,
+      archivedAt: item.status === "ARCHIVED" ? new Date() : null,
+    } as const;
+
+    let packageId: string;
+    if (item.id === undefined) {
+      const created = await transaction.productPackage.create({ data: { ...data, productId } });
+      packageId = created.id;
+    } else {
+      await transaction.productPackage.update({ where: { id: item.id }, data });
+      packageId = item.id;
+    }
+
+    if (item.ingredientStatements !== undefined) {
+      await transaction.productIngredientStatement.deleteMany({
+        where: { productPackageId: packageId, sourceReferenceId: null },
+      });
+      for (const statement of item.ingredientStatements) {
+        await transaction.productIngredientStatement.create({
+          data: {
+            productPackageId: packageId,
+            locale: statement.locale,
+            statement: statement.statement,
+            isPrimary: false,
+          },
+        });
+      }
+      const statements = await transaction.productIngredientStatement.findMany({
+        where: { productPackageId: packageId },
+        orderBy: [{ sourceReferenceId: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
+        select: { id: true, locale: true },
+      });
+      for (const locale of new Set(statements.map((statement) => statement.locale))) {
+        await transaction.productIngredientStatement.updateMany({
+          where: { productPackageId: packageId, locale },
+          data: { isPrimary: false },
+        });
+        const primary = statements.find((statement) => statement.locale === locale);
+        if (primary !== undefined) {
+          await transaction.productIngredientStatement.update({
+            where: { id: primary.id },
+            data: { isPrimary: true },
+          });
+        }
+      }
+    }
+
+    if (item.shelfLifeRules !== undefined) {
+      await transaction.productPackageShelfLifeRule.deleteMany({
+        where: { productPackageId: packageId, sourceReferenceId: null },
+      });
+      if (item.shelfLifeRules.length > 0) {
+        await transaction.productPackageShelfLifeRule.createMany({
+          data: item.shelfLifeRules.map((rule) => ({
+            productPackageId: packageId,
+            rawShelfLife: rule.rawShelfLife,
+            rawTemperatureRange: rule.rawTemperatureRange,
+            durationValue: rule.durationValue,
+            durationUnit: rule.durationUnit,
+            minTemperatureC: rule.minTemperatureC,
+            maxTemperatureC: rule.maxTemperatureC,
+            sortOrder: rule.sortOrder,
+          })),
+        });
+      }
+    }
+  }
+
+  const currentDefault = await transaction.productPackage.findFirst({
+    where: { productId, isDefault: true, status: { not: "ARCHIVED" } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { gtin: true },
+  });
+  await transaction.product.update({
+    where: { id: productId },
+    data: { gtin: currentDefault?.gtin ?? null },
+  });
+}
+
+function mapNutrient(item: ProductRow["nutrients"][number], origin: "PRODUCT" | "BASE_PRODUCT") {
+  return Object.freeze({
+    nutrientId: item.nutrientId,
+    nutrientCode: item.nutrient.code,
+    nutrientName: item.nutrient.nameUa ?? item.nutrient.nameEn,
+    unit: item.nutrient.unit,
+    valuePer100g: item.valuePer100g.toString(),
+    valueType: origin === "BASE_PRODUCT" ? ("ESTIMATED" as const) : item.valueType,
+    origin,
   });
 }
 
@@ -629,6 +970,9 @@ function mapProductSummary(row: ProductRow): ProductSummary {
     foodCharacteristics: details.foodCharacteristics,
     status: details.status,
     verificationStatus: details.verificationStatus,
+    verifiedByUserId: details.verifiedByUserId,
+    verifiedAt: details.verifiedAt,
+    verificationReadiness: evaluateProductVerification(details),
     updatedAt: details.updatedAt,
     primaryMedia,
   });

@@ -3,6 +3,23 @@ import type { ApiClient } from "./api-client";
 export type ProductType = "GENERIC" | "BRANDED";
 export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type ProductVerificationStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED";
+export type ProductVerificationBlockingIssue =
+  | "MISSING_UA_NAME"
+  | "UNSPECIFIED_FOOD_STATE"
+  | "MISSING_ENERGY"
+  | "MISSING_PROTEIN"
+  | "MISSING_TOTAL_FAT"
+  | "MISSING_CARBOHYDRATE"
+  | "MISSING_BRAND"
+  | "MISSING_ACTIVE_PACKAGE"
+  | "MISSING_PACKAGE_GTIN"
+  | "MISSING_PACKAGE_QUANTITY";
+export type ProductVerificationWarning = "MISSING_PRIMARY_IMAGE" | "MISSING_DEFAULT_PORTION";
+export interface ProductVerificationReadiness {
+  readonly status: "READY" | "BLOCKED";
+  readonly blockingIssues: readonly ProductVerificationBlockingIssue[];
+  readonly warnings: readonly ProductVerificationWarning[];
+}
 export type ProductSourceProvider = "USDA" | "ZAKAZ" | "MEALMIND_ADMIN" | "MEALMIND_USER";
 export type ProductFoodState = "UNSPECIFIED" | "RAW" | "COOKED" | "PROCESSED" | "READY_TO_EAT";
 export type ProductFoodCharacteristicKind =
@@ -26,7 +43,84 @@ export interface ProductNutrientWrite {
   readonly valueType: string;
 }
 
+export interface ProductPackage {
+  readonly id: string;
+  readonly gtin: string | null;
+  readonly kind:
+    "UNSPECIFIED" | "FIXED_MASS" | "FIXED_VOLUME" | "FIXED_MASS_AND_VOLUME" | "FIXED_COUNT";
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: ProductStatus;
+  readonly archivedAt: string | null;
+  readonly ingredientStatements: readonly ProductIngredientStatement[];
+  readonly shelfLifeRules: readonly ProductShelfLifeRule[];
+}
+
+export interface ProductIngredientStatement {
+  readonly id: string;
+  readonly locale: string;
+  readonly statement: string;
+  readonly isPrimary: boolean;
+  readonly source: "MANUAL" | "SOURCE";
+}
+
+export interface ProductShelfLifeRule {
+  readonly id: string;
+  readonly rawShelfLife: string | null;
+  readonly rawTemperatureRange: string | null;
+  readonly durationValue: string | null;
+  readonly durationUnit: "HOURS" | "DAYS" | "MONTHS" | "YEARS" | null;
+  readonly minTemperatureC: string | null;
+  readonly maxTemperatureC: string | null;
+  readonly sortOrder: number;
+  readonly source: "MANUAL" | "SOURCE";
+}
+
+export interface ProductDietaryTag {
+  readonly dietaryTagId: string;
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly evidenceNote: string | null;
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductAllergen {
+  readonly allergenId: string;
+  readonly code: string;
+  readonly nameUa: string;
+  readonly declaration: "CONTAINS" | "MAY_CONTAIN" | "SHARED_FACILITY";
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly evidenceNote: string | null;
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductPackageWrite {
+  readonly id?: string;
+  readonly gtin: string | null;
+  readonly kind: ProductPackage["kind"];
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: ProductStatus;
+  readonly ingredientStatements?: readonly Pick<
+    ProductIngredientStatement,
+    "locale" | "statement"
+  >[];
+  readonly shelfLifeRules?: readonly Omit<ProductShelfLifeRule, "id" | "source">[];
+}
+
 export interface ProductPortionWrite {
+  readonly productPackageId?: string | null;
   readonly amount: string;
   readonly gramWeight: string;
   readonly labelEn: string;
@@ -77,6 +171,9 @@ export interface ProductSummary {
   readonly foodCharacteristics: readonly ProductFoodCharacteristic[];
   readonly status: ProductStatus;
   readonly verificationStatus: ProductVerificationStatus;
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
+  readonly verificationReadiness: ProductVerificationReadiness;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMedia | null;
 }
@@ -93,10 +190,16 @@ export interface ProductDetails extends Omit<ProductSummary, "primaryMedia"> {
   readonly notes: string | null;
   readonly archivedAt: string | null;
   readonly nutrients: readonly (ProductNutrientWrite & {
+    readonly nutrientCode: string;
     readonly nutrientName: string;
     readonly unit: string;
+    readonly origin: "PRODUCT" | "BASE_PRODUCT";
   })[];
+  readonly ownNutrients: ProductDetails["nutrients"];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
+  readonly packages: readonly ProductPackage[];
+  readonly dietaryTags: readonly ProductDietaryTag[];
+  readonly allergens: readonly ProductAllergen[];
   readonly media: readonly ProductMedia[];
 }
 
@@ -118,7 +221,14 @@ export interface ProductWrite {
   readonly portions?: readonly ProductPortionWrite[];
 }
 
-export type ProductUpdate = Omit<Partial<ProductWrite>, "type" | "baseProductId">;
+export type ProductUpdate = Omit<Partial<ProductWrite>, "type" | "baseProductId"> & {
+  readonly packages?: readonly ProductPackageWrite[];
+  readonly dietaryTags?: readonly Pick<ProductDietaryTag, "dietaryTagId" | "evidenceNote">[];
+  readonly allergens?: readonly Pick<
+    ProductAllergen,
+    "allergenId" | "declaration" | "evidenceNote"
+  >[];
+};
 
 export interface ProductListParameters {
   readonly search?: string;

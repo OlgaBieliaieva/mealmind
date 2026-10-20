@@ -18,10 +18,15 @@ import type {
   ProductWrite,
 } from "../domain/product-repository.js";
 import {
+  evaluateProductVerification,
+  type ProductVerificationReadiness,
+} from "../domain/product-verification.js";
+import {
   ProductInvariantError,
   ProductMediaNotFoundError,
   ProductMediaProcessingError,
   ProductNotFoundError,
+  ProductVerificationBlockedError,
 } from "./product-errors.js";
 
 export const PRODUCT_MEDIA_MAX_BYTES = 5 * 1024 * 1024;
@@ -62,6 +67,7 @@ export interface ProductMediaView extends ProductMediaRecord {
 
 export interface ProductDetailsView extends Omit<ProductDetails, "media"> {
   readonly media: readonly ProductMediaView[];
+  readonly verificationReadiness: ProductVerificationReadiness;
 }
 
 export interface ProductSummaryView extends Omit<ProductSummary, "primaryMedia"> {
@@ -83,8 +89,8 @@ export interface ProductService {
   list(query: ProductListQuery): Promise<ProductPageView>;
   search(query: ProductSearchQuery): Promise<ProductSearchPage>;
   get(id: string): Promise<ProductDetailsView>;
-  create(input: CreateProductInput): Promise<ProductDetailsView>;
-  update(id: string, input: ProductUpdate): Promise<ProductDetailsView>;
+  create(input: CreateProductInput, actorUserId: string): Promise<ProductDetailsView>;
+  update(id: string, input: ProductUpdate, actorUserId: string): Promise<ProductDetailsView>;
   changeStatus(id: string, status: ProductStatus): Promise<ProductDetailsView>;
   reserveMedia(
     productId: string,
@@ -132,6 +138,9 @@ export function createProductService(
     },
 
     async create(input) {
+      if (input.verificationStatus === "VERIFIED") {
+        throw new ProductInvariantError("Новий продукт спочатку потрібно зберегти й перевірити");
+      }
       const resolved = await resolveCreateInput(repository, input);
       validateProductWrite(resolved);
       return presentProduct(
@@ -147,10 +156,22 @@ export function createProductService(
       );
     },
 
-    async update(id, input) {
+    async update(id, input, actorUserId) {
       const existing = await requireProduct(repository, id);
       validateProductUpdate(existing, input);
-      const updated = await repository.update(id, input);
+      const verificationUpdate = await resolveVerificationUpdate(
+        repository,
+        existing,
+        input,
+        actorUserId,
+      );
+      const normalized: ProductUpdate = {
+        ...verificationUpdate,
+        ...(input.dietaryTags !== undefined || input.allergens !== undefined
+          ? { attributeActorUserId: actorUserId }
+          : {}),
+      };
+      const updated = await repository.update(id, normalized);
 
       if (updated === null) throw new ProductNotFoundError();
       return presentProduct(storage, updated);
@@ -335,7 +356,7 @@ async function resolveCreateInput(
       input.characteristicIds ??
       base.foodCharacteristics.map((characteristic) => characteristic.id),
     ediblePortionPercent: input.ediblePortionPercent ?? base.ediblePortionPercent,
-    nutrients: mergeBrandedNutrients(base.nutrients, input.nutrients ?? []),
+    nutrients: toLabelNutrients(input.nutrients ?? []),
     portions:
       input.portions ??
       base.portions.map((portion) => ({
@@ -354,6 +375,11 @@ async function resolveCreateInput(
 }
 
 function validateProductWrite(input: Omit<ProductWrite, "source">): void {
+  if (input.portions.some((portion) => portion.productPackageId != null)) {
+    throw new ProductInvariantError(
+      "Порцію можна прив’язати лише до вже збереженого пакування продукту",
+    );
+  }
   if (input.type === "GENERIC") {
     if (input.brandId || input.gtin || input.baseProductId) {
       throw new ProductInvariantError("Generic products cannot have brand, GTIN or base product");
@@ -374,34 +400,62 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
   if (existing.type === "BRANDED" && input.brandId === "") {
     throw new ProductInvariantError("Brand cannot be removed from a branded product");
   }
+
+  if (input.packages !== undefined) {
+    if (existing.type !== "BRANDED") {
+      throw new ProductInvariantError("Пакування можна додавати лише до брендованого продукту");
+    }
+    validatePackages(input.packages);
+  }
+  if (input.portions !== undefined || input.packages !== undefined) {
+    validatePortionPackageLinks(existing, input);
+  }
+  if (
+    input.dietaryTags !== undefined &&
+    new Set(input.dietaryTags.map((item) => item.dietaryTagId)).size !== input.dietaryTags.length
+  ) {
+    throw new ProductInvariantError("Dietary tags дублюються");
+  }
+  if (
+    input.allergens !== undefined &&
+    new Set(input.allergens.map((item) => item.allergenId)).size !== input.allergens.length
+  ) {
+    throw new ProductInvariantError("Алергени дублюються");
+  }
+}
+
+function validatePortionPackageLinks(existing: ProductDetails, input: ProductUpdate): void {
+  const packageStatuses = new Map(existing.packages.map((item) => [item.id, item.status]));
+  for (const item of input.packages ?? []) {
+    if (item.id !== undefined) packageStatuses.set(item.id, item.status);
+  }
+
+  for (const portion of input.portions ?? existing.portions) {
+    if (!portion.isActive || portion.productPackageId == null) continue;
+    const status = packageStatuses.get(portion.productPackageId);
+    if (status === undefined) {
+      throw new ProductInvariantError("Пакування порції не належить цьому продукту");
+    }
+    if (status === "ARCHIVED") {
+      throw new ProductInvariantError("Активну порцію не можна прив’язати до архівного пакування");
+    }
+  }
+}
+
+function validatePackages(packages: NonNullable<ProductUpdate["packages"]>): void {
+  const ids = packages.flatMap((item) => (item.id === undefined ? [] : [item.id]));
+  const gtins = packages.flatMap((item) => (item.gtin === null ? [] : [item.gtin]));
+  if (new Set(ids).size !== ids.length) throw new ProductInvariantError("Пакування дублюються");
+  if (new Set(gtins).size !== gtins.length) throw new ProductInvariantError("GTIN дублюються");
+  if (packages.filter((item) => item.isDefault && item.status !== "ARCHIVED").length > 1) {
+    throw new ProductInvariantError("Лише одне актуальне пакування може бути основним");
+  }
 }
 
 function toLabelNutrients(
   nutrients: readonly ProductWrite["nutrients"][number][],
 ): ProductWrite["nutrients"] {
   return nutrients.map((nutrient) => ({ ...nutrient, valueType: "LABEL" }));
-}
-
-function mergeBrandedNutrients(
-  baseNutrients: ProductDetails["nutrients"],
-  labelNutrients: readonly ProductWrite["nutrients"][number][],
-): ProductWrite["nutrients"] {
-  const merged = new Map<string, ProductWrite["nutrients"][number]>(
-    baseNutrients.map((nutrient) => [
-      nutrient.nutrientId,
-      {
-        nutrientId: nutrient.nutrientId,
-        valuePer100g: nutrient.valuePer100g,
-        valueType: "ESTIMATED" as const,
-      },
-    ]),
-  );
-
-  for (const nutrient of toLabelNutrients(labelNutrients)) {
-    merged.set(nutrient.nutrientId, nutrient);
-  }
-
-  return [...merged.values()];
 }
 
 function assertStatusTransition(current: ProductStatus, next: ProductStatus): void {
@@ -471,10 +525,216 @@ async function presentProduct(
 ): Promise<ProductDetailsView> {
   return Object.freeze({
     ...product,
+    verificationReadiness: evaluateProductVerification(product),
     media: Object.freeze(
       await Promise.all(product.media.map((media) => presentMedia(storage, media))),
     ),
   });
+}
+
+const MATERIAL_PRODUCT_FIELDS = [
+  "nameEn",
+  "nameUa",
+  "gtin",
+  "categoryId",
+  "brandId",
+  "defaultMeasurementUnitId",
+  "foodState",
+  "characteristicIds",
+  "ediblePortionPercent",
+  "nutrients",
+  "portions",
+  "packages",
+  "dietaryTags",
+  "allergens",
+] as const satisfies readonly (keyof ProductUpdate)[];
+
+async function resolveVerificationUpdate(
+  repository: ProductRepository,
+  existing: ProductDetails,
+  input: ProductUpdate,
+  actorUserId: string,
+): Promise<ProductUpdate> {
+  if (input.verificationStatus === "VERIFIED") {
+    const prospective = await applyProductUpdate(repository, existing, input);
+    const readiness = evaluateProductVerification(prospective);
+    if (readiness.status === "BLOCKED") {
+      throw new ProductVerificationBlockedError(readiness.blockingIssues);
+    }
+
+    return {
+      ...input,
+      verificationStatus: "VERIFIED",
+      verifiedByUserId: actorUserId,
+      verifiedAt: new Date(),
+    };
+  }
+
+  const changesMaterialData = MATERIAL_PRODUCT_FIELDS.some((field) => input[field] !== undefined);
+  const mustReopen = existing.verificationStatus === "VERIFIED" && changesMaterialData;
+  const clearsVerification =
+    mustReopen ||
+    input.verificationStatus === "UNVERIFIED" ||
+    input.verificationStatus === "REJECTED";
+
+  if (!clearsVerification) return input;
+
+  return {
+    ...input,
+    ...(mustReopen && input.verificationStatus === undefined
+      ? { verificationStatus: "UNVERIFIED" as const }
+      : {}),
+    verifiedByUserId: null,
+    verifiedAt: null,
+  };
+}
+
+async function applyProductUpdate(
+  repository: ProductRepository,
+  existing: ProductDetails,
+  input: ProductUpdate,
+): Promise<ProductDetails> {
+  const nutrients =
+    input.nutrients === undefined
+      ? existing.nutrients
+      : mergeEffectiveNutrients(
+          await enrichNutrients(repository, input.nutrients, existing.ownNutrients),
+          existing.nutrients.filter((item) => item.origin === "BASE_PRODUCT"),
+        );
+
+  return {
+    ...existing,
+    ...(input.nameEn === undefined ? {} : { nameEn: input.nameEn }),
+    ...(input.nameUa === undefined ? {} : { nameUa: input.nameUa }),
+    ...(input.brandId === undefined ? {} : { brandId: input.brandId }),
+    ...(input.foodState === undefined ? {} : { foodState: input.foodState }),
+    ...(input.portions === undefined
+      ? {}
+      : {
+          portions: input.portions.map((portion, index) => ({
+            id: `prospective-${index}`,
+            ...portion,
+          })),
+        }),
+    ...(input.packages === undefined
+      ? {}
+      : {
+          packages: mergeProspectivePackages(existing.packages, input.packages),
+        }),
+    ...(input.dietaryTags === undefined
+      ? {}
+      : {
+          dietaryTags: input.dietaryTags.map((item) => ({
+            ...item,
+            code: item.dietaryTagId,
+            nameUa: item.dietaryTagId,
+            status: "VERIFIED" as const,
+            method: "MANUAL_REVIEW" as const,
+            verifiedAt: new Date().toISOString(),
+          })),
+        }),
+    ...(input.allergens === undefined
+      ? {}
+      : {
+          allergens: input.allergens.map((item) => ({
+            ...item,
+            code: item.allergenId,
+            nameUa: item.allergenId,
+            status: "VERIFIED" as const,
+            method: "MANUAL_REVIEW" as const,
+            verifiedAt: new Date().toISOString(),
+          })),
+        }),
+    nutrients,
+  };
+}
+
+function mergeProspectivePackages(
+  existing: ProductDetails["packages"],
+  updates: NonNullable<ProductUpdate["packages"]>,
+): ProductDetails["packages"] {
+  const updateById = new Map(
+    updates.flatMap((item) => (item.id === undefined ? [] : [[item.id, item] as const])),
+  );
+  const existingIds = new Set(existing.map((item) => item.id));
+  const replaced = existing.map((item) => {
+    const update = updateById.get(item.id);
+    return update === undefined
+      ? item
+      : {
+          ...item,
+          ...update,
+          id: item.id,
+          archivedAt: update.status === "ARCHIVED" ? new Date().toISOString() : null,
+          ingredientStatements:
+            update.ingredientStatements === undefined
+              ? item.ingredientStatements
+              : update.ingredientStatements.map((statement, index) => ({
+                  ...statement,
+                  id: `prospective-ingredient-${index}`,
+                  isPrimary: true,
+                  source: "MANUAL" as const,
+                })),
+          shelfLifeRules:
+            update.shelfLifeRules === undefined
+              ? item.shelfLifeRules
+              : update.shelfLifeRules.map((rule, index) => ({
+                  ...rule,
+                  id: `prospective-shelf-life-${index}`,
+                  source: "MANUAL" as const,
+                })),
+        };
+  });
+  const created = updates
+    .filter((item) => item.id === undefined || !existingIds.has(item.id))
+    .map((item, index): ProductDetails["packages"][number] => {
+      const id = item.id ?? `prospective-package-${index}`;
+      return {
+        ...item,
+        id,
+        archivedAt: item.status === "ARCHIVED" ? new Date().toISOString() : null,
+        ingredientStatements: (item.ingredientStatements ?? []).map(
+          (statement, statementIndex) => ({
+            ...statement,
+            id: `prospective-ingredient-${statementIndex}`,
+            isPrimary: true,
+            source: "MANUAL" as const,
+          }),
+        ),
+        shelfLifeRules: (item.shelfLifeRules ?? []).map((rule, ruleIndex) => ({
+          ...rule,
+          id: `prospective-shelf-life-${ruleIndex}`,
+          source: "MANUAL" as const,
+        })),
+      };
+    });
+  return [...replaced, ...created];
+}
+
+async function enrichNutrients(
+  repository: ProductRepository,
+  input: NonNullable<ProductUpdate["nutrients"]>,
+  existing: ProductDetails["nutrients"],
+): Promise<ProductDetails["nutrients"]> {
+  const existingById = new Map(existing.map((item) => [item.nutrientId, item]));
+  const codes = await repository.findNutrientCodes(input.map((item) => item.nutrientId));
+
+  return input.map((item) => ({
+    ...item,
+    nutrientCode:
+      codes.get(item.nutrientId) ?? existingById.get(item.nutrientId)?.nutrientCode ?? "",
+    nutrientName: existingById.get(item.nutrientId)?.nutrientName ?? item.nutrientId,
+    unit: existingById.get(item.nutrientId)?.unit ?? "",
+    origin: "PRODUCT" as const,
+  }));
+}
+
+function mergeEffectiveNutrients(
+  own: ProductDetails["ownNutrients"],
+  inherited: ProductDetails["nutrients"],
+): ProductDetails["nutrients"] {
+  const ownIds = new Set(own.map((item) => item.nutrientId));
+  return [...own, ...inherited.filter((item) => !ownIds.has(item.nutrientId))];
 }
 
 async function presentMedia(

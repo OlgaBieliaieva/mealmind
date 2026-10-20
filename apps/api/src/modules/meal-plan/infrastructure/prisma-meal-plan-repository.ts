@@ -1,5 +1,7 @@
 import { Prisma, type DatabaseClient } from "@mealmind/db";
 
+import { findEffectiveProductNutrients } from "../../product/infrastructure/effective-product-nutrients.js";
+
 import {
   MealEntryNotFoundError,
   MealPlanAccessDeniedError,
@@ -1244,6 +1246,22 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
       ]);
 
       const selected = new Set(query.selectedDates);
+      const effectiveProductNutrients = await findEffectiveProductNutrients(
+        database,
+        (plan?.entries ?? []).flatMap((entry) => (entry.product ? [entry.product.id] : [])),
+      );
+      const effectiveNutrientsByProduct = new Map(
+        [...new Set(effectiveProductNutrients.map((item) => item.productId))].map((productId) => [
+          productId,
+          effectiveProductNutrients
+            .filter(
+              (item) =>
+                item.productId === productId &&
+                summaryNutrients.includes(item.nutrient.code as (typeof summaryNutrients)[number]),
+            )
+            .map((item) => ({ valuePer100g: item.valuePer100g, nutrient: item.nutrient })),
+        ]),
+      );
 
       /*
        * Meal types family-wide.
@@ -1278,6 +1296,16 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
       const memberFoodSources: MemberFoodSource[] = [];
 
       const entries = (plan?.entries ?? []).map((entry): MealPlanEntryView => {
+        const nutritionEntry =
+          entry.product === null
+            ? entry
+            : {
+                ...entry,
+                product: {
+                  ...entry.product,
+                  nutrients: effectiveNutrientsByProduct.get(entry.product.id) ?? [],
+                },
+              };
         const entryDate = dateOnly(entry.date);
         const cookingAllocation = entry.cookingAllocations[0] ?? null;
         const completedCookingSession =
@@ -1393,7 +1421,7 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
                   ? preparedQuantity
                   : numeric(participant.quantityInGrams);
 
-              const nutrients = portionNutrients(entry, grams, completedCookingSession);
+              const nutrients = portionNutrients(nutritionEntry, grams, completedCookingSession);
 
               const nutrientByCode = new Map(
                 nutrients.map((nutrient) => [nutrient.code, nutrient.value] as const),
@@ -1443,7 +1471,7 @@ export function createPrismaMealPlanRepository(database: DatabaseClient): MealPl
 
                   portionGrams: grams,
 
-                  energyPer100g: energyPer100g(entry, completedCookingSession),
+                  energyPer100g: energyPer100g(nutritionEntry, completedCookingSession),
 
                   portionEnergyKcal: nutrientByCode.get("energy_kcal") ?? null,
 

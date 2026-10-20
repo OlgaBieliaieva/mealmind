@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { Prisma, type DatabaseClient } from "@mealmind/db";
 
+import { findEffectiveProductNutrients } from "../../product/infrastructure/effective-product-nutrients.js";
+
 import {
   CookingConflictError,
   CookingNotFoundError,
@@ -162,13 +164,11 @@ async function calculateNutrition(
   const values =
     productIds.length === 0
       ? []
-      : await database.productNutrient.findMany({
-          where: {
-            productId: { in: productIds },
-            nutrientId: { in: nutrients.map((item) => item.id) },
-          },
-          select: { productId: true, nutrientId: true, valuePer100g: true },
-        });
+      : await findEffectiveProductNutrients(
+          database,
+          productIds,
+          nutrients.map((item) => item.id),
+        );
   const valueByKey = new Map(
     values.map((value) => [
       `${value.productId}:${value.nutrientId}`,

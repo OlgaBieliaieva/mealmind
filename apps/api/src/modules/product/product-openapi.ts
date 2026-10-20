@@ -116,7 +116,7 @@ export const productOpenApiPaths = Object.freeze({
     post: {
       summary: "Створити generic або branded продукт",
       description:
-        "GTIN і generic base для branded продукту optional. Якщо base вибрано, label-нутрієнти перекривають його значення, а відсутні копіюються як ESTIMATED snapshot. Без base category та unit обов’язкові.",
+        "GTIN і generic base для branded продукту optional. Якщо base вибрано, власні label-нутрієнти перекривають його значення, а відсутні динамічно успадковуються як ESTIMATED з origin=BASE_PRODUCT без створення snapshot. Без base category та unit обов’язкові.",
       security: [{ bearerAuth: [] }],
       requestBody: jsonBody("#/components/schemas/ProductCreate"),
       responses: {
@@ -136,7 +136,7 @@ export const productOpenApiPaths = Object.freeze({
     patch: {
       summary: "Оновити дозволені поля продукту",
       description:
-        "Пропущені nutrients або portions зберігаються без змін; переданий порожній масив явно очищає relation.",
+        "Пропущені nutrients або portions зберігаються без змін; переданий порожній масив явно очищає relation. Для branded продукту nutrients містить лише власні значення, а effective profile формується під час читання з generic base.",
       security: [{ bearerAuth: [] }],
       parameters: [idParameter()],
       requestBody: jsonBody("#/components/schemas/ProductUpdate"),
@@ -201,6 +201,9 @@ export const productOpenApiSchemas = Object.freeze({
       "foodCharacteristics",
       "status",
       "verificationStatus",
+      "verifiedByUserId",
+      "verifiedAt",
+      "verificationReadiness",
       "updatedAt",
       "primaryMedia",
     ],
@@ -242,6 +245,9 @@ export const productOpenApiSchemas = Object.freeze({
         type: "string",
         enum: ["UNVERIFIED", "VERIFIED", "REJECTED"],
       },
+      verifiedByUserId: { type: ["string", "null"], format: "uuid" },
+      verifiedAt: { type: ["string", "null"], format: "date-time" },
+      verificationReadiness: { $ref: "#/components/schemas/ProductVerificationReadiness" },
       updatedAt: { type: "string", format: "date-time" },
       primaryMedia: { type: ["object", "null"], additionalProperties: true },
     },
@@ -286,6 +292,160 @@ export const productOpenApiSchemas = Object.freeze({
       },
     },
   },
+  ProductPortionWrite: {
+    type: "object",
+    required: [
+      "amount",
+      "gramWeight",
+      "labelEn",
+      "kind",
+      "weightType",
+      "isDefault",
+      "isActive",
+      "sortOrder",
+    ],
+    properties: {
+      productPackageId: { type: ["string", "null"], format: "uuid" },
+      amount: { oneOf: [{ type: "string" }, { type: "number" }] },
+      gramWeight: { oneOf: [{ type: "string" }, { type: "number" }] },
+      labelEn: { type: "string", minLength: 1, maxLength: 200 },
+      labelUa: { type: ["string", "null"], maxLength: 200 },
+      kind: {
+        type: "string",
+        enum: ["MASS", "VOLUME", "COUNT", "HOUSEHOLD", "PACKAGE", "SERVING", "OTHER"],
+      },
+      weightType: {
+        type: "string",
+        enum: ["MEASURED", "CALCULATED", "ESTIMATED", "LABEL", "UNKNOWN"],
+      },
+      measurementUnitId: { type: ["string", "null"], format: "uuid" },
+      isDefault: { type: "boolean" },
+      isActive: { type: "boolean" },
+      sortOrder: { type: "integer", minimum: -32_768, maximum: 32_767 },
+    },
+  },
+  ProductVerificationReadiness: {
+    type: "object",
+    required: ["status", "blockingIssues", "warnings"],
+    properties: {
+      status: { type: "string", enum: ["READY", "BLOCKED"] },
+      blockingIssues: {
+        type: "array",
+        uniqueItems: true,
+        items: {
+          type: "string",
+          enum: [
+            "MISSING_UA_NAME",
+            "UNSPECIFIED_FOOD_STATE",
+            "MISSING_ENERGY",
+            "MISSING_PROTEIN",
+            "MISSING_TOTAL_FAT",
+            "MISSING_CARBOHYDRATE",
+            "MISSING_BRAND",
+            "MISSING_ACTIVE_PACKAGE",
+            "MISSING_PACKAGE_GTIN",
+            "MISSING_PACKAGE_QUANTITY",
+          ],
+        },
+      },
+      warnings: {
+        type: "array",
+        uniqueItems: true,
+        items: {
+          type: "string",
+          enum: ["MISSING_PRIMARY_IMAGE", "MISSING_DEFAULT_PORTION"],
+        },
+      },
+    },
+  },
+  ProductPackageWrite: {
+    type: "object",
+    required: [
+      "gtin",
+      "kind",
+      "weightG",
+      "volumeMl",
+      "itemCount",
+      "labelUa",
+      "labelEn",
+      "isDefault",
+      "status",
+    ],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      gtin: { type: ["string", "null"], pattern: "^(?:[0-9]{8}|[0-9]{12,14})$" },
+      kind: {
+        type: "string",
+        enum: ["UNSPECIFIED", "FIXED_MASS", "FIXED_VOLUME", "FIXED_MASS_AND_VOLUME", "FIXED_COUNT"],
+      },
+      weightG: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      volumeMl: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      itemCount: { type: ["integer", "null"], minimum: 1 },
+      labelUa: { type: ["string", "null"], maxLength: 200 },
+      labelEn: { type: ["string", "null"], maxLength: 200 },
+      isDefault: { type: "boolean" },
+      status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] },
+      ingredientStatements: {
+        type: "array",
+        maxItems: 10,
+        items: { $ref: "#/components/schemas/ProductIngredientStatementWrite" },
+      },
+      shelfLifeRules: {
+        type: "array",
+        maxItems: 20,
+        items: { $ref: "#/components/schemas/ProductShelfLifeRuleWrite" },
+      },
+    },
+  },
+  ProductIngredientStatementWrite: {
+    type: "object",
+    required: ["locale", "statement"],
+    properties: {
+      locale: { type: "string", minLength: 2, maxLength: 16 },
+      statement: { type: "string", minLength: 1, maxLength: 20_000 },
+    },
+  },
+  ProductShelfLifeRuleWrite: {
+    type: "object",
+    required: [
+      "rawShelfLife",
+      "rawTemperatureRange",
+      "durationValue",
+      "durationUnit",
+      "minTemperatureC",
+      "maxTemperatureC",
+      "sortOrder",
+    ],
+    properties: {
+      rawShelfLife: { type: ["string", "null"], maxLength: 2_000 },
+      rawTemperatureRange: { type: ["string", "null"], maxLength: 2_000 },
+      durationValue: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      durationUnit: { type: ["string", "null"], enum: ["HOURS", "DAYS", "MONTHS", "YEARS", null] },
+      minTemperatureC: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      maxTemperatureC: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      sortOrder: { type: "integer", minimum: 0, maximum: 32_767 },
+    },
+  },
+  ProductDietaryTagWrite: {
+    type: "object",
+    required: ["dietaryTagId", "evidenceNote"],
+    properties: {
+      dietaryTagId: { type: "string", format: "uuid" },
+      evidenceNote: { type: ["string", "null"], maxLength: 2_000 },
+    },
+  },
+  ProductAllergenWrite: {
+    type: "object",
+    required: ["allergenId", "declaration", "evidenceNote"],
+    properties: {
+      allergenId: { type: "string", format: "uuid" },
+      declaration: {
+        type: "string",
+        enum: ["CONTAINS", "MAY_CONTAIN", "SHARED_FACILITY"],
+      },
+      evidenceNote: { type: ["string", "null"], maxLength: 2_000 },
+    },
+  },
   ProductCreate: {
     type: "object",
     required: ["type", "nameEn"],
@@ -317,13 +477,37 @@ export const productOpenApiSchemas = Object.freeze({
       },
       notes: { type: ["string", "null"] },
       nutrients: { type: "array", items: { $ref: "#/components/schemas/ProductNutrientWrite" } },
-      portions: { type: "array", items: { type: "object", additionalProperties: true } },
+      portions: { type: "array", items: { $ref: "#/components/schemas/ProductPortionWrite" } },
     },
   },
   ProductUpdate: {
-    allOf: [{ $ref: "#/components/schemas/ProductCreate" }],
+    allOf: [
+      { $ref: "#/components/schemas/ProductCreate" },
+      {
+        type: "object",
+        properties: {
+          packages: {
+            type: "array",
+            maxItems: 100,
+            items: { $ref: "#/components/schemas/ProductPackageWrite" },
+          },
+          dietaryTags: {
+            type: "array",
+            maxItems: 100,
+            uniqueItems: true,
+            items: { $ref: "#/components/schemas/ProductDietaryTagWrite" },
+          },
+          allergens: {
+            type: "array",
+            maxItems: 100,
+            uniqueItems: true,
+            items: { $ref: "#/components/schemas/ProductAllergenWrite" },
+          },
+        },
+      },
+    ],
     description:
-      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору.",
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. Порція може посилатися через productPackageId лише на збережене неархівне пакування цього продукту. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними. dietaryTags та allergens є повними наборами атрибутів, вручну підтверджених поточним адміністратором; source/rule-based пропозиції не стають канонічними без такого підтвердження.",
   },
   ProductFoodCharacteristic: {
     type: "object",
@@ -397,5 +581,6 @@ function adminErrorResponses() {
     "401": { $ref: "#/components/responses/AuthenticationRequired" },
     "403": { $ref: "#/components/responses/AdminRequired" },
     "404": { description: "Продукт або фото не знайдено" },
+    "422": { description: "Обов’язкові вимоги доменної верифікації не виконано" },
   };
 }

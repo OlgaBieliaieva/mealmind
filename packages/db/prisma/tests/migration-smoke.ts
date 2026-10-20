@@ -34,6 +34,8 @@ const EXPECTED_MIGRATIONS = [
   "20261007120000_zakaz_import_review_candidates",
   "20261007123000_product_import_event_actor_integrity",
   "20261008140000_product_import_active_review_metadata",
+  "20261019120000_product_verification_audit",
+  "20261019130000_remove_inherited_nutrient_snapshots",
 ] as const;
 
 loadEnvironment({

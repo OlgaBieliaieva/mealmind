@@ -13,6 +13,8 @@ const baseProductId = "54b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const frozenId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const boiledId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const fermentedId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const dietaryTagId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const allergenId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 const options = {
   categories: [{ value: categoryId, label: "Фрукти" }],
@@ -34,7 +36,7 @@ describe("ProductForm", () => {
     });
 
     expect(screen.getByRole("combobox", { name: "Бренд" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "GTIN" })).not.toBeRequired();
+    expect(screen.getByRole("textbox", { name: "GTIN основного пакування" })).not.toBeRequired();
     expect(screen.getByRole("combobox", { name: "Базовий generic-продукт" })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Сканувати штрихкод" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Створити новий бренд" })).toBeInTheDocument();
@@ -83,6 +85,43 @@ describe("ProductForm", () => {
     await waitFor(() => expect(onLoadBaseProduct).toHaveBeenCalledWith(baseProductId));
     expect(screen.getByRole("combobox", { name: "Категорія" })).toHaveValue(categoryId);
     expect(screen.getByRole("combobox", { name: "Базова одиниця" })).toHaveValue(unitId);
+  });
+
+  it("shows inherited nutrients when an existing branded product is opened", () => {
+    const onLoadBaseProduct = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          type: "BRANDED",
+          nameEn: "Brand apple",
+          categoryId,
+          brandId,
+          defaultMeasurementUnitId: unitId,
+          baseProductId,
+        }}
+        initialInheritedNutrients={[
+          {
+            nutrientId: "b4b79ffc-e6af-440c-ae38-8cd37c22be1c",
+            nutrientCode: "protein",
+            nutrientName: "Білки",
+            unit: "г",
+            valuePer100g: "2.5",
+            valueType: "ESTIMATED",
+            origin: "BASE_PRODUCT",
+          },
+        ]}
+        onLoadBaseProduct={onLoadBaseProduct}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Успадковані нутрієнти" })).toBeVisible();
+    expect(screen.getByText("Білки: 2.5 г / 100 г")).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "Нутрієнт 1" })).not.toBeInTheDocument();
+    expect(onLoadBaseProduct).not.toHaveBeenCalled();
   });
 
   it("submits independently selected product characteristics", async () => {
@@ -187,6 +226,142 @@ describe("ProductForm", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Значення, мг" })).toHaveValue("10");
+  });
+
+  it("keeps the canonical package id when an administrator edits its size", async () => {
+    const packageId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+    const onSubmit = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          type: "BRANDED",
+          nameEn: "Chocolate bar",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          brandId,
+          packages: [
+            {
+              id: packageId,
+              gtin: "4821234567890",
+              kind: "FIXED_MASS",
+              weightG: "50",
+              volumeMl: "",
+              itemCount: "",
+              labelUa: "Батончик 50 г",
+              labelEn: "",
+              isDefault: true,
+              status: "ACTIVE",
+              ingredientStatements: [],
+              shelfLifeRules: [],
+              sourceIngredientStatements: [{ locale: "uk-UA", statement: "Какао, цукор, молоко" }],
+              sourceShelfLifeRules: [
+                {
+                  rawShelfLife: "12 місяців",
+                  rawTemperatureRange: "від 0 до 25 °C",
+                  durationValue: "12",
+                  durationUnit: "MONTHS",
+                  minTemperatureC: "0",
+                  maxTemperatureC: "25",
+                },
+              ],
+            },
+          ],
+          portions: [
+            {
+              productPackageId: packageId,
+              amount: "1",
+              gramWeight: "50",
+              labelEn: "1 bar",
+              labelUa: "1 батончик",
+              kind: "PACKAGE",
+              weightType: "LABEL",
+              measurementUnitId: "",
+              isDefault: true,
+            },
+          ],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Вага, г" })[0]!, {
+      target: { value: "55" },
+    });
+    expect(screen.getByText(/Какао, цукор, молоко/)).toBeVisible();
+    expect(screen.getByText(/12 місяців/)).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Пакування" })).toHaveValue(packageId);
+    fireEvent.click(screen.getByRole("button", { name: "Додати склад" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Склад" }), {
+      target: { value: "Какао, цукор, сухе молоко" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          packages: [
+            expect.objectContaining({
+              id: packageId,
+              weightG: "55",
+              ingredientStatements: [{ locale: "uk-UA", statement: "Какао, цукор, сухе молоко" }],
+            }),
+          ],
+          portions: [
+            expect.objectContaining({
+              productPackageId: packageId,
+              labelUa: "1 батончик",
+              gramWeight: "50",
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it("submits administrator-verified dietary tags and allergen declarations", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        dietaryTags={[{ value: dietaryTagId, label: "Вегетаріанський" }]}
+        allergens={[{ value: allergenId, label: "Молоко" }]}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          nameEn: "Milk chocolate",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          dietaryTagSuggestions: [{ id: dietaryTagId, name: "Вегетаріанський" }],
+          allergenSuggestions: [{ id: allergenId, name: "Молоко" }],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByText("Дієтичний тег: Вегетаріанський")).toBeVisible();
+    expect(screen.getByText("Алерген: Молоко")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Підтверджені дієтичні теги/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Вегетаріанський" }));
+    fireEvent.click(screen.getByRole("button", { name: "Додати алерген" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Алерген 1" }), {
+      target: { value: allergenId },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Декларація" }), {
+      target: { value: "MAY_CONTAIN" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dietaryTagIds: [dietaryTagId],
+          allergens: [{ allergenId, declaration: "MAY_CONTAIN", evidenceNote: "" }],
+        }),
+      ),
+    );
   });
 
   it("announces validation errors and does not submit an incomplete form", async () => {

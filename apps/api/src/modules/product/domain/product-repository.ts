@@ -1,3 +1,5 @@
+import type { ProductVerificationReadiness } from "./product-verification.js";
+
 export const PRODUCT_TYPES = ["GENERIC", "BRANDED"] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
@@ -65,7 +67,15 @@ export interface ProductNutrientWrite {
   readonly valueType: NutrientValueType;
 }
 
+export interface ProductNutrientRecord extends ProductNutrientWrite {
+  readonly nutrientCode: string;
+  readonly nutrientName: string;
+  readonly unit: string;
+  readonly origin: "PRODUCT" | "BASE_PRODUCT";
+}
+
 export interface ProductPortionWrite {
+  readonly productPackageId?: string | null | undefined;
   readonly amount: string;
   readonly gramWeight: string;
   readonly labelEn: string;
@@ -110,8 +120,95 @@ export interface ProductUpdate {
   readonly ediblePortionPercent?: string | null | undefined;
   readonly notes?: string | null | undefined;
   readonly verificationStatus?: "UNVERIFIED" | "VERIFIED" | "REJECTED" | undefined;
+  readonly verifiedByUserId?: string | null | undefined;
+  readonly verifiedAt?: Date | null | undefined;
   readonly nutrients?: readonly ProductNutrientWrite[] | undefined;
   readonly portions?: readonly ProductPortionWrite[] | undefined;
+  readonly packages?: readonly ProductPackageWrite[] | undefined;
+  readonly dietaryTags?: readonly ProductDietaryTagWrite[] | undefined;
+  readonly allergens?: readonly ProductAllergenWrite[] | undefined;
+  readonly attributeActorUserId?: string | undefined;
+}
+
+export interface ProductDietaryTagWrite {
+  readonly dietaryTagId: string;
+  readonly evidenceNote: string | null;
+}
+
+export interface ProductAllergenWrite {
+  readonly allergenId: string;
+  readonly declaration: "CONTAINS" | "MAY_CONTAIN" | "SHARED_FACILITY";
+  readonly evidenceNote: string | null;
+}
+
+export interface ProductDietaryTagRecord extends ProductDietaryTagWrite {
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductAllergenRecord extends ProductAllergenWrite {
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductPackageWrite {
+  readonly id?: string | undefined;
+  readonly gtin: string | null;
+  readonly kind: ProductPackageRecord["kind"];
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: ProductPackageRecord["status"];
+  readonly ingredientStatements?: readonly ProductIngredientStatementWrite[] | undefined;
+  readonly shelfLifeRules?: readonly ProductShelfLifeRuleWrite[] | undefined;
+}
+
+export interface ProductIngredientStatementWrite {
+  readonly locale: string;
+  readonly statement: string;
+}
+
+export interface ProductShelfLifeRuleWrite {
+  readonly rawShelfLife: string | null;
+  readonly rawTemperatureRange: string | null;
+  readonly durationValue: string | null;
+  readonly durationUnit: "HOURS" | "DAYS" | "MONTHS" | "YEARS" | null;
+  readonly minTemperatureC: string | null;
+  readonly maxTemperatureC: string | null;
+  readonly sortOrder: number;
+}
+
+export interface ProductPackageRecord {
+  readonly id: string;
+  readonly gtin: string | null;
+  readonly kind:
+    "UNSPECIFIED" | "FIXED_MASS" | "FIXED_VOLUME" | "FIXED_MASS_AND_VOLUME" | "FIXED_COUNT";
+  readonly weightG: string | null;
+  readonly volumeMl: string | null;
+  readonly itemCount: number | null;
+  readonly labelUa: string | null;
+  readonly labelEn: string | null;
+  readonly isDefault: boolean;
+  readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  readonly archivedAt: string | null;
+  readonly ingredientStatements: readonly (ProductIngredientStatementWrite & {
+    readonly id: string;
+    readonly isPrimary: boolean;
+    readonly source: "MANUAL" | "SOURCE";
+  })[];
+  readonly shelfLifeRules: readonly (ProductShelfLifeRuleWrite & {
+    readonly id: string;
+    readonly source: "MANUAL" | "SOURCE";
+  })[];
 }
 
 export interface ProductMediaRecord {
@@ -164,15 +261,18 @@ export interface ProductDetails {
   readonly ediblePortionPercent: string | null;
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
   readonly notes: string | null;
   readonly archivedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly nutrients: readonly (ProductNutrientWrite & {
-    readonly nutrientName: string;
-    readonly unit: string;
-  })[];
+  readonly nutrients: readonly ProductNutrientRecord[];
+  readonly ownNutrients: readonly ProductNutrientRecord[];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
+  readonly packages: readonly ProductPackageRecord[];
+  readonly dietaryTags: readonly ProductDietaryTagRecord[];
+  readonly allergens: readonly ProductAllergenRecord[];
   readonly media: readonly ProductMediaRecord[];
 }
 
@@ -192,6 +292,9 @@ export interface ProductSummary {
   readonly foodCharacteristics: readonly ProductFoodCharacteristicRecord[];
   readonly status: ProductStatus;
   readonly verificationStatus: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+  readonly verifiedByUserId: string | null;
+  readonly verifiedAt: string | null;
+  readonly verificationReadiness: ProductVerificationReadiness;
   readonly updatedAt: string;
   readonly primaryMedia: ProductMediaRecord | null;
 }
@@ -264,6 +367,7 @@ export interface ProductRepository {
   list(query: ProductListQuery): Promise<ProductPage>;
   searchActive(query: ProductSearchQuery): Promise<ProductSearchPage>;
   findById(id: string): Promise<ProductDetails | null>;
+  findNutrientCodes(ids: readonly string[]): Promise<ReadonlyMap<string, string>>;
   create(data: ProductWrite): Promise<ProductDetails>;
   update(id: string, data: ProductUpdate): Promise<ProductDetails | null>;
   updateStatus(id: string, status: ProductStatus): Promise<ProductDetails | null>;
