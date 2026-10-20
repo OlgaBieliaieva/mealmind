@@ -130,12 +130,19 @@ try {
   assert.equal(branded.nutrients[0]?.valueType, "ESTIMATED");
   assert.equal(branded.nutrients[0]?.origin, "BASE_PRODUCT");
 
+  await database.product.update({
+    where: { id: branded.id },
+    data: { verificationStatus: "VERIFIED", verifiedByUserId: verifier.id, verifiedAt: new Date() },
+  });
+
   await repository.update(generic.id, {
     nutrients: [{ nutrientId: nutrient.id, valuePer100g: "3.75", valueType: "ANALYTICAL" }],
   });
   const brandedAfterBaseUpdate = await repository.findById(branded.id);
   assert.equal(brandedAfterBaseUpdate?.nutrients[0]?.valuePer100g, "3.75");
   assert.equal(brandedAfterBaseUpdate?.ownNutrients.length, 0);
+  assert.equal(brandedAfterBaseUpdate?.verificationStatus, "UNVERIFIED");
+  assert.equal(brandedAfterBaseUpdate?.verifiedByUserId, null);
   const effectiveNutrients = await findEffectiveProductNutrients(database, [branded.id]);
   assert.equal(effectiveNutrients[0]?.valuePer100g.toString(), "3.75");
   assert.equal(effectiveNutrients[0]?.origin, "BASE_PRODUCT");

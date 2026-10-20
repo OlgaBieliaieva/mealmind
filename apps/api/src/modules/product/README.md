@@ -20,6 +20,8 @@
 - branded product зберігає лише власні nutrient values із пакування або лабораторного джерела;
   власні значення перекривають generic base за `nutrientId`, а відсутні значення динамічно
   успадковуються під час читання як `ESTIMATED` з `origin=BASE_PRODUCT`;
+- зміна nutrient profile generic base автоматично повертає всі залежні перевірені branded
+  products у `UNVERIFIED`, оскільки їхній effective profile змінюється без копіювання значень;
 - `nutrients` у detail contract є effective profile, а `ownNutrients` містить лише канонічні
   значення самого продукту й використовується формою редагування; зміна generic base одразу
   впливає на залежні branded products без копіювання або масового оновлення snapshots;

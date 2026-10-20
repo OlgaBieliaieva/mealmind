@@ -184,6 +184,25 @@
   background: #fbe5e5;
 }
 
+.product-verification-state {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+}
+
+.product-readiness {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.product-readiness--ready {
+  color: #165b2c;
+}
+
+.product-readiness--blocked {
+  color: #8a2525;
+}
+
 .product-pagination,
 .product-form__actions {
   display: flex;

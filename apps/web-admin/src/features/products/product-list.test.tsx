@@ -77,6 +77,11 @@ describe("ProductList", () => {
             nameEn: "Peach",
             nameUa: "Персик",
             verificationStatus: "REJECTED",
+            verificationReadiness: {
+              status: "BLOCKED",
+              blockingIssues: ["MISSING_ENERGY"],
+              warnings: ["MISSING_DEFAULT_PORTION"],
+            },
           }),
         ],
       },
@@ -104,6 +109,10 @@ describe("ProductList", () => {
     );
     expect(within(table).getByText("Перевірено")).toHaveClass("product-verification--verified");
     expect(within(table).getByText("Відхилено")).toHaveClass("product-verification--rejected");
+    expect(within(table).getAllByText("Готовий до перевірки")).toHaveLength(2);
+    expect(within(table).getByText("Потрібно доповнити: 1")).toHaveClass(
+      "product-readiness--blocked",
+    );
     await waitFor(() => expect(mocks.get).toHaveBeenCalledOnce());
     await validateRenderedUi(container);
   });

@@ -185,6 +185,16 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
             }
             await updateVerifiedAttributes(transaction, id, data, data.attributeActorUserId);
           }
+          if (updated.type === "GENERIC" && data.nutrients !== undefined) {
+            await transaction.product.updateMany({
+              where: { baseProductId: id, verificationStatus: "VERIFIED" },
+              data: {
+                verificationStatus: "UNVERIFIED",
+                verifiedByUserId: null,
+                verifiedAt: null,
+              },
+            });
+          }
 
           return transaction.product.findUniqueOrThrow({
             where: { id },

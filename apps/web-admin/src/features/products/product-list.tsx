@@ -279,11 +279,20 @@ export function ProductList() {
                       </span>
                     </td>
                     <td>
-                      <span
-                        className={`product-verification product-verification--${product.verificationStatus.toLowerCase()}`}
-                      >
-                        {PRODUCT_VERIFICATION_STATUS_LABELS[product.verificationStatus]}
-                      </span>
+                      <div className="product-verification-state">
+                        <span
+                          className={`product-verification product-verification--${product.verificationStatus.toLowerCase()}`}
+                        >
+                          {PRODUCT_VERIFICATION_STATUS_LABELS[product.verificationStatus]}
+                        </span>
+                        <small
+                          className={`product-readiness product-readiness--${product.verificationReadiness.status.toLowerCase()}`}
+                        >
+                          {product.verificationReadiness.status === "READY"
+                            ? "Готовий до перевірки"
+                            : `Потрібно доповнити: ${product.verificationReadiness.blockingIssues.length}`}
+                        </small>
+                      </div>
                     </td>
                   </tr>
                 ))}
