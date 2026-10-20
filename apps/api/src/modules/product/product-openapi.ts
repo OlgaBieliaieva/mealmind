@@ -400,6 +400,26 @@ export const productOpenApiSchemas = Object.freeze({
       sortOrder: { type: "integer", minimum: 0, maximum: 32_767 },
     },
   },
+  ProductDietaryTagWrite: {
+    type: "object",
+    required: ["dietaryTagId", "evidenceNote"],
+    properties: {
+      dietaryTagId: { type: "string", format: "uuid" },
+      evidenceNote: { type: ["string", "null"], maxLength: 2_000 },
+    },
+  },
+  ProductAllergenWrite: {
+    type: "object",
+    required: ["allergenId", "declaration", "evidenceNote"],
+    properties: {
+      allergenId: { type: "string", format: "uuid" },
+      declaration: {
+        type: "string",
+        enum: ["CONTAINS", "MAY_CONTAIN", "SHARED_FACILITY"],
+      },
+      evidenceNote: { type: ["string", "null"], maxLength: 2_000 },
+    },
+  },
   ProductCreate: {
     type: "object",
     required: ["type", "nameEn"],
@@ -445,11 +465,23 @@ export const productOpenApiSchemas = Object.freeze({
             maxItems: 100,
             items: { $ref: "#/components/schemas/ProductPackageWrite" },
           },
+          dietaryTags: {
+            type: "array",
+            maxItems: 100,
+            uniqueItems: true,
+            items: { $ref: "#/components/schemas/ProductDietaryTagWrite" },
+          },
+          allergens: {
+            type: "array",
+            maxItems: 100,
+            uniqueItems: true,
+            items: { $ref: "#/components/schemas/ProductAllergenWrite" },
+          },
         },
       },
     ],
     description:
-      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними.",
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними. dietaryTags та allergens є повними наборами атрибутів, вручну підтверджених поточним адміністратором; source/rule-based пропозиції не стають канонічними без такого підтвердження.",
   },
   ProductFoodCharacteristic: {
     type: "object",

@@ -76,6 +76,8 @@ function product(overrides: Partial<ProductDetails> = {}): ProductDetails {
     ],
     portions: [],
     packages: [],
+    dietaryTags: [],
+    allergens: [],
     media: [],
     ...overrides,
   };
@@ -466,6 +468,35 @@ describe("product service", () => {
     expect(productRepository.update).toHaveBeenCalledWith(
       productId,
       expect.objectContaining({
+        verificationStatus: "UNVERIFIED",
+        verifiedByUserId: null,
+        verifiedAt: null,
+      }),
+    );
+  });
+
+  it("records the administrator and reopens verification when confirmed attributes change", async () => {
+    vi.mocked(productRepository.findById).mockResolvedValue(
+      product({
+        verificationStatus: "VERIFIED",
+        verifiedByUserId: actorUserId,
+        verifiedAt: "2026-10-19T10:00:00.000Z",
+      }),
+    );
+    const service = createProductService(productRepository, mediaStorage);
+    const dietaryTagId = "a5b79ffc-e6af-440c-ae38-8cd37c22be1c";
+
+    await service.update(
+      productId,
+      { dietaryTags: [{ dietaryTagId, evidenceNote: null }] },
+      actorUserId,
+    );
+
+    expect(productRepository.update).toHaveBeenCalledWith(
+      productId,
+      expect.objectContaining({
+        dietaryTags: [{ dietaryTagId, evidenceNote: null }],
+        attributeActorUserId: actorUserId,
         verificationStatus: "UNVERIFIED",
         verifiedByUserId: null,
         verifiedAt: null,

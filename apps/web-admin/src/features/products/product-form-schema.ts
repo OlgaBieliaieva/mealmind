@@ -142,6 +142,16 @@ export const productFormSchema = z
           }
         }),
     ),
+    dietaryTagIds: z.array(z.string().uuid()).max(100),
+    allergens: z.array(
+      z.object({
+        allergenId: z.string().uuid("Оберіть алерген"),
+        declaration: z.enum(["CONTAINS", "MAY_CONTAIN", "SHARED_FACILITY"]),
+        evidenceNote: z.string().trim().max(2_000),
+      }),
+    ),
+    dietaryTagSuggestions: z.array(z.object({ id: z.string(), name: z.string() })),
+    allergenSuggestions: z.array(z.object({ id: z.string(), name: z.string() })),
   })
   .superRefine((value, context) => {
     if (value.type === "BRANDED") {
@@ -171,6 +181,10 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   nutrients: [],
   portions: [],
   packages: [],
+  dietaryTagIds: [],
+  allergens: [],
+  dietaryTagSuggestions: [],
+  allergenSuggestions: [],
 };
 
 export function mapProductFormToCreate(values: ProductFormValues): ProductWrite {
@@ -215,6 +229,15 @@ export function mapProductFormToUpdate(values: ProductFormValues): ProductUpdate
             maxTemperatureC: rule.maxTemperatureC === "" ? null : rule.maxTemperatureC,
             sortOrder,
           })),
+        })),
+        dietaryTags: values.dietaryTagIds.map((dietaryTagId) => ({
+          dietaryTagId,
+          evidenceNote: null,
+        })),
+        allergens: values.allergens.map((item) => ({
+          allergenId: item.allergenId,
+          declaration: item.declaration,
+          evidenceNote: item.evidenceNote === "" ? null : item.evidenceNote,
         })),
       }
     : common;
@@ -274,6 +297,22 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
         .filter((rule) => rule.source === "SOURCE")
         .map(mapShelfLifeRuleToForm),
     })),
+    dietaryTagIds: product.dietaryTags
+      .filter((item) => item.status === "VERIFIED")
+      .map((item) => item.dietaryTagId),
+    allergens: product.allergens
+      .filter((item) => item.status === "VERIFIED")
+      .map((item) => ({
+        allergenId: item.allergenId,
+        declaration: item.declaration,
+        evidenceNote: item.evidenceNote ?? "",
+      })),
+    dietaryTagSuggestions: product.dietaryTags
+      .filter((item) => item.status === "PROPOSED")
+      .map((item) => ({ id: item.dietaryTagId, name: item.nameUa })),
+    allergenSuggestions: product.allergens
+      .filter((item) => item.status === "PROPOSED")
+      .map((item) => ({ id: item.allergenId, name: item.nameUa })),
   };
 }
 

@@ -53,6 +53,8 @@ export function ProductEditor({ productId }: ProductEditorProps) {
   const units = useReferenceOptions("measurement-units");
   const brands = useReferenceOptions("brands", true);
   const nutrients = useReferenceOptions("nutrients");
+  const dietaryTags = useReferenceOptions("dietary-tags");
+  const allergens = useReferenceOptions("allergens");
   const foodCharacteristics = useReferenceOptions("product-food-characteristics");
 
   const initialValues = useMemo(
@@ -139,12 +141,16 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     units.isPending ||
     brands.isPending ||
     nutrients.isPending ||
+    dietaryTags.isPending ||
+    allergens.isPending ||
     foodCharacteristics.isPending;
   const referencesError =
     categories.isError ||
     units.isError ||
     brands.isError ||
     nutrients.isError ||
+    dietaryTags.isError ||
+    allergens.isError ||
     foodCharacteristics.isError;
 
   if ((isEdit && productQuery.isPending) || referencesPending) {
@@ -212,6 +218,8 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         brands={brands.options}
         genericProducts={initialGenericOptions}
         nutrients={nutrients.options}
+        dietaryTags={dietaryTags.options}
+        allergens={allergens.options}
         foodCharacteristics={foodCharacteristics.options}
         isSubmitting={saveMutation.isPending}
         onSearchGenericProducts={searchGenericProducts}
@@ -241,7 +249,9 @@ function useReferenceOptions(
     | "product-food-characteristics"
     | "measurement-units"
     | "brands"
-    | "nutrients",
+    | "nutrients"
+    | "dietary-tags"
+    | "allergens",
   includeInactive = false,
 ) {
   const apiClient = getBrowserApiClient();

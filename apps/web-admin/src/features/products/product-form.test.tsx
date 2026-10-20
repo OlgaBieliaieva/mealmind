@@ -13,6 +13,8 @@ const baseProductId = "54b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const frozenId = "64b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const boiledId = "74b79ffc-e6af-440c-ae38-8cd37c22be1c";
 const fermentedId = "84b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const dietaryTagId = "94b79ffc-e6af-440c-ae38-8cd37c22be1c";
+const allergenId = "a4b79ffc-e6af-440c-ae38-8cd37c22be1c";
 
 const options = {
   categories: [{ value: categoryId, label: "Фрукти" }],
@@ -259,6 +261,51 @@ describe("ProductForm", () => {
                 { locale: "uk-UA", statement: "Какао, цукор, сухе молоко" },
               ],
             }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it("submits administrator-verified dietary tags and allergen declarations", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ProductForm
+        mode="edit"
+        {...options}
+        dietaryTags={[{ value: dietaryTagId, label: "Вегетаріанський" }]}
+        allergens={[{ value: allergenId, label: "Молоко" }]}
+        initialValues={{
+          ...EMPTY_PRODUCT_FORM,
+          nameEn: "Milk chocolate",
+          categoryId,
+          defaultMeasurementUnitId: unitId,
+          dietaryTagSuggestions: [{ id: dietaryTagId, name: "Вегетаріанський" }],
+          allergenSuggestions: [{ id: allergenId, name: "Молоко" }],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByText("Дієтичний тег: Вегетаріанський")).toBeVisible();
+    expect(screen.getByText("Алерген: Молоко")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Підтверджені дієтичні теги/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Вегетаріанський" }));
+    fireEvent.click(screen.getByRole("button", { name: "Додати алерген" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Алерген 1" }), {
+      target: { value: allergenId },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Декларація" }), {
+      target: { value: "MAY_CONTAIN" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dietaryTagIds: [dietaryTagId],
+          allergens: [
+            { allergenId, declaration: "MAY_CONTAIN", evidenceNote: "" },
           ],
         }),
       ),

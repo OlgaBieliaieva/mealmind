@@ -27,11 +27,13 @@ const adminSource = {
 } as const;
 
 try {
-  const [category, unit, nutrient, characteristic] = await Promise.all([
+  const [category, unit, nutrient, characteristic, dietaryTag, allergen] = await Promise.all([
     database.productCategory.findFirstOrThrow({ where: { isAssignable: true, isActive: true } }),
     database.measurementUnit.findFirstOrThrow({ where: { isActive: true } }),
     database.nutrient.findFirstOrThrow({ where: { isActive: true } }),
     database.productFoodCharacteristic.findFirstOrThrow({ where: { code: "frozen" } }),
+    database.dietaryTag.findFirstOrThrow({ where: { isActive: true } }),
+    database.allergen.findFirstOrThrow({ where: { isActive: true } }),
   ]);
   const brand = await database.brand.create({
     data: { name: `Integration Brand ${crypto.randomUUID()}`, status: "ACTIVE" },
@@ -183,6 +185,22 @@ try {
   assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.durationValue, "12");
   assert.equal(updatedPackageProduct?.packages[0]?.shelfLifeRules[0]?.source, "MANUAL");
   assert.equal(updatedPackageProduct?.gtin, gtin);
+
+  const productWithVerifiedAttributes = await repository.update(branded.id, {
+    dietaryTags: [{ dietaryTagId: dietaryTag.id, evidenceNote: "Перевірено за етикеткою" }],
+    allergens: [
+      {
+        allergenId: allergen.id,
+        declaration: "CONTAINS",
+        evidenceNote: "Вказано у складі",
+      },
+    ],
+    attributeActorUserId: verifier.id,
+  });
+  assert.equal(productWithVerifiedAttributes?.dietaryTags[0]?.status, "VERIFIED");
+  assert.equal(productWithVerifiedAttributes?.dietaryTags[0]?.method, "MANUAL_REVIEW");
+  assert.equal(productWithVerifiedAttributes?.allergens[0]?.declaration, "CONTAINS");
+  assert.equal(productWithVerifiedAttributes?.allergens[0]?.status, "VERIFIED");
 
   await assert.rejects(
     repository.create({

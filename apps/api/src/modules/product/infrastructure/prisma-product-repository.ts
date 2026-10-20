@@ -52,6 +52,14 @@ const productInclude = {
     include: { characteristic: true },
     orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
   },
+  dietaryTags: {
+    include: { dietaryTag: { select: { code: true, nameUa: true } } },
+    orderBy: [{ dietaryTag: { sortOrder: "asc" } }, { dietaryTagId: "asc" }],
+  },
+  allergens: {
+    include: { allergen: { select: { code: true, nameUa: true } } },
+    orderBy: { allergenId: "asc" },
+  },
   media: {
     where: { status: { not: "ARCHIVED" } },
     orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
@@ -170,6 +178,12 @@ export function createPrismaProductRepository(database: DatabaseClient): Product
 
           if (data.packages !== undefined) {
             await updateProductPackages(transaction, id, data.packages);
+          }
+          if (data.dietaryTags !== undefined || data.allergens !== undefined) {
+            if (data.attributeActorUserId === undefined) {
+              throw new ProductInvariantError("Для перевірки атрибутів потрібен адміністратор");
+            }
+            await updateVerifiedAttributes(transaction, id, data, data.attributeActorUserId);
           }
 
           return transaction.product.findUniqueOrThrow({
@@ -685,8 +699,117 @@ function mapProductDetails(row: ProductRow): ProductDetails {
         }),
       ),
     ),
+    dietaryTags: Object.freeze(
+      row.dietaryTags.map((item) =>
+        Object.freeze({
+          dietaryTagId: item.dietaryTagId,
+          code: item.dietaryTag.code,
+          nameUa: item.dietaryTag.nameUa,
+          status: item.status,
+          method: item.method,
+          evidenceNote: item.evidenceNote,
+          verifiedAt: item.verifiedAt?.toISOString() ?? null,
+        }),
+      ),
+    ),
+    allergens: Object.freeze(
+      row.allergens.map((item) =>
+        Object.freeze({
+          allergenId: item.allergenId,
+          code: item.allergen.code,
+          nameUa: item.allergen.nameUa,
+          declaration: item.declaration,
+          status: item.status,
+          method: item.method,
+          evidenceNote: item.evidenceNote,
+          verifiedAt: item.verifiedAt?.toISOString() ?? null,
+        }),
+      ),
+    ),
     media: Object.freeze(row.media.map(mapMedia)),
   });
+}
+
+async function updateVerifiedAttributes(
+  transaction: Prisma.TransactionClient,
+  productId: string,
+  data: ProductUpdate,
+  actorUserId: string,
+): Promise<void> {
+  const now = new Date();
+  if (data.dietaryTags !== undefined) {
+    const ids = [...new Set(data.dietaryTags.map((item) => item.dietaryTagId))];
+    const active = await transaction.dietaryTag.count({ where: { id: { in: ids }, isActive: true } });
+    if (active !== ids.length) throw new ProductInvariantError("Один або кілька dietary tags недоступні");
+    await transaction.productDietaryTag.deleteMany({
+      where: { productId, method: "MANUAL_REVIEW", dietaryTagId: { notIn: ids } },
+    });
+    for (const item of data.dietaryTags) {
+      await transaction.productDietaryTag.upsert({
+        where: { productId_dietaryTagId: { productId, dietaryTagId: item.dietaryTagId } },
+        create: {
+          productId,
+          dietaryTagId: item.dietaryTagId,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+          createdAt: now,
+        },
+        update: {
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          sourceReferenceId: null,
+          ruleCode: null,
+          ruleVersion: null,
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+        },
+      });
+    }
+  }
+
+  if (data.allergens !== undefined) {
+    const ids = [...new Set(data.allergens.map((item) => item.allergenId))];
+    const active = await transaction.allergen.count({ where: { id: { in: ids }, isActive: true } });
+    if (active !== ids.length) throw new ProductInvariantError("Один або кілька алергенів недоступні");
+    await transaction.productAllergen.deleteMany({
+      where: { productId, method: "MANUAL_REVIEW", allergenId: { notIn: ids } },
+    });
+    for (const item of data.allergens) {
+      await transaction.productAllergen.upsert({
+        where: { productId_allergenId: { productId, allergenId: item.allergenId } },
+        create: {
+          productId,
+          allergenId: item.allergenId,
+          declaration: item.declaration,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+          createdAt: now,
+        },
+        update: {
+          declaration: item.declaration,
+          status: "VERIFIED",
+          method: "MANUAL_REVIEW",
+          sourceReferenceId: null,
+          ruleCode: null,
+          ruleVersion: null,
+          evidenceNote: item.evidenceNote,
+          assignedByUserId: actorUserId,
+          verifiedByUserId: actorUserId,
+          verifiedAt: now,
+        },
+      });
+    }
+  }
 }
 
 async function updateProductPackages(

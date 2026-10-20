@@ -40,6 +40,8 @@ export interface ProductFormProps {
   readonly brands: readonly ProductOption[];
   readonly genericProducts: readonly ProductOption[];
   readonly nutrients: readonly ProductOption[];
+  readonly dietaryTags?: readonly ProductOption[];
+  readonly allergens?: readonly ProductOption[];
   readonly foodCharacteristics?: readonly ProductOption[];
   readonly isSubmitting?: boolean;
   readonly onSearchGenericProducts: (query: string) => Promise<readonly BaseProductOption[]>;
@@ -65,6 +67,8 @@ export function ProductForm({
   brands,
   genericProducts,
   nutrients,
+  dietaryTags = [],
+  allergens = [],
   foodCharacteristics = [],
   isSubmitting = false,
   onSearchGenericProducts,
@@ -86,9 +90,12 @@ export function ProductForm({
   const nutrientFields = useFieldArray({ control, name: "nutrients" });
   const portionFields = useFieldArray({ control, name: "portions" });
   const packageFields = useFieldArray({ control, name: "packages", keyName: "fieldKey" });
+  const allergenFields = useFieldArray({ control, name: "allergens" });
   const productType = useWatch({ control, name: "type" });
   const labelNutrients = useWatch({ control, name: "nutrients" });
   const packageValues = useWatch({ control, name: "packages" });
+  const dietaryTagSuggestions = useWatch({ control, name: "dietaryTagSuggestions" });
+  const allergenSuggestions = useWatch({ control, name: "allergenSuggestions" });
   const [basePreview, setBasePreview] = useState<ProductDetails | null>(null);
   const [baseStatus, setBaseStatus] = useState<"idle" | "loading" | "error">("idle");
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -392,6 +399,77 @@ export function ProductForm({
             )}
           </div>
         </fieldset>
+
+        {mode === "edit" ? (
+          <fieldset className="product-form__section">
+            <legend>Дієтичні теги та алергени</legend>
+            <p className="product-form__hint">
+              Тут зберігаються лише підтверджені адміністратором атрибути. Пропозиції з
+              майбутніх правил або джерел показуються окремо й не вважаються перевіреними.
+            </p>
+            {(dietaryTagSuggestions?.length ?? 0) > 0 ||
+            (allergenSuggestions?.length ?? 0) > 0 ? (
+              <section className="product-form__package-source">
+                <h3>Непідтверджені пропозиції</h3>
+                {dietaryTagSuggestions?.map((item) => (
+                  <p key={`dietary-suggestion-${item.id}`}>Дієтичний тег: {item.name}</p>
+                ))}
+                {allergenSuggestions?.map((item) => (
+                  <p key={`allergen-suggestion-${item.id}`}>Алерген: {item.name}</p>
+                ))}
+              </section>
+            ) : null}
+            <Controller
+              control={control}
+              name="dietaryTagIds"
+              render={({ field }) => (
+                <SearchableMultiSelect
+                  label="Підтверджені дієтичні теги"
+                  options={dietaryTags}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <div className="product-form__rows">
+              {allergenFields.fields.map((field, index) => (
+                <div className="product-form__repeat-row" key={field.id}>
+                  <SelectField
+                    label={`Алерген ${index + 1}`}
+                    placeholder="Оберіть алерген"
+                    options={allergens}
+                    error={errors.allergens?.[index]?.allergenId?.message}
+                    {...register(`allergens.${index}.allergenId`)}
+                  />
+                  <SelectField
+                    label="Декларація"
+                    options={ALLERGEN_DECLARATION_OPTIONS}
+                    {...register(`allergens.${index}.declaration`)}
+                  />
+                  <TextInput
+                    label="Підстава або примітка"
+                    {...register(`allergens.${index}.evidenceNote`)}
+                  />
+                  <Button variant="ghost" onClick={() => allergenFields.remove(index)}>
+                    Видалити алерген
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                allergenFields.append({
+                  allergenId: "",
+                  declaration: "CONTAINS",
+                  evidenceNote: "",
+                })
+              }
+            >
+              Додати алерген
+            </Button>
+          </fieldset>
+        ) : null}
 
         {mode === "edit" && productType === "BRANDED" ? (
           <fieldset className="product-form__section">
@@ -867,6 +945,12 @@ const SHELF_LIFE_UNIT_OPTIONS = [
   { value: "DAYS", label: "Дні" },
   { value: "MONTHS", label: "Місяці" },
   { value: "YEARS", label: "Роки" },
+] as const;
+
+const ALLERGEN_DECLARATION_OPTIONS = [
+  { value: "CONTAINS", label: "Містить" },
+  { value: "MAY_CONTAIN", label: "Може містити" },
+  { value: "SHARED_FACILITY", label: "Вироблено на спільному обладнанні" },
 ] as const;
 
 function emptyShelfLifeRule() {

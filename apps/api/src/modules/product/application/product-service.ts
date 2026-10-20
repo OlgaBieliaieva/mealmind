@@ -159,7 +159,18 @@ export function createProductService(
     async update(id, input, actorUserId) {
       const existing = await requireProduct(repository, id);
       validateProductUpdate(existing, input);
-      const normalized = await resolveVerificationUpdate(repository, existing, input, actorUserId);
+      const verificationUpdate = await resolveVerificationUpdate(
+        repository,
+        existing,
+        input,
+        actorUserId,
+      );
+      const normalized: ProductUpdate = {
+        ...verificationUpdate,
+        ...(input.dietaryTags !== undefined || input.allergens !== undefined
+          ? { attributeActorUserId: actorUserId }
+          : {}),
+      };
       const updated = await repository.update(id, normalized);
 
       if (updated === null) throw new ProductNotFoundError();
@@ -391,6 +402,18 @@ function validateProductUpdate(existing: ProductDetails, input: ProductUpdate): 
     }
     validatePackages(input.packages);
   }
+  if (
+    input.dietaryTags !== undefined &&
+    new Set(input.dietaryTags.map((item) => item.dietaryTagId)).size !== input.dietaryTags.length
+  ) {
+    throw new ProductInvariantError("Dietary tags дублюються");
+  }
+  if (
+    input.allergens !== undefined &&
+    new Set(input.allergens.map((item) => item.allergenId)).size !== input.allergens.length
+  ) {
+    throw new ProductInvariantError("Алергени дублюються");
+  }
 }
 
 function validatePackages(packages: NonNullable<ProductUpdate["packages"]>): void {
@@ -496,6 +519,8 @@ const MATERIAL_PRODUCT_FIELDS = [
   "nutrients",
   "portions",
   "packages",
+  "dietaryTags",
+  "allergens",
 ] as const satisfies readonly (keyof ProductUpdate)[];
 
 async function resolveVerificationUpdate(
@@ -569,6 +594,30 @@ async function applyProductUpdate(
       ? {}
       : {
           packages: mergeProspectivePackages(existing.packages, input.packages),
+        }),
+    ...(input.dietaryTags === undefined
+      ? {}
+      : {
+          dietaryTags: input.dietaryTags.map((item) => ({
+            ...item,
+            code: item.dietaryTagId,
+            nameUa: item.dietaryTagId,
+            status: "VERIFIED" as const,
+            method: "MANUAL_REVIEW" as const,
+            verifiedAt: new Date().toISOString(),
+          })),
+        }),
+    ...(input.allergens === undefined
+      ? {}
+      : {
+          allergens: input.allergens.map((item) => ({
+            ...item,
+            code: item.allergenId,
+            nameUa: item.allergenId,
+            status: "VERIFIED" as const,
+            method: "MANUAL_REVIEW" as const,
+            verifiedAt: new Date().toISOString(),
+          })),
         }),
     nutrients,
   };

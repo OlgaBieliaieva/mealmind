@@ -124,6 +124,36 @@ export interface ProductUpdate {
   readonly nutrients?: readonly ProductNutrientWrite[] | undefined;
   readonly portions?: readonly ProductPortionWrite[] | undefined;
   readonly packages?: readonly ProductPackageWrite[] | undefined;
+  readonly dietaryTags?: readonly ProductDietaryTagWrite[] | undefined;
+  readonly allergens?: readonly ProductAllergenWrite[] | undefined;
+  readonly attributeActorUserId?: string | undefined;
+}
+
+export interface ProductDietaryTagWrite {
+  readonly dietaryTagId: string;
+  readonly evidenceNote: string | null;
+}
+
+export interface ProductAllergenWrite {
+  readonly allergenId: string;
+  readonly declaration: "CONTAINS" | "MAY_CONTAIN" | "SHARED_FACILITY";
+  readonly evidenceNote: string | null;
+}
+
+export interface ProductDietaryTagRecord extends ProductDietaryTagWrite {
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductAllergenRecord extends ProductAllergenWrite {
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly verifiedAt: string | null;
 }
 
 export interface ProductPackageWrite {
@@ -244,6 +274,8 @@ export interface ProductDetails {
   readonly ownNutrients: readonly ProductNutrientRecord[];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
   readonly packages: readonly ProductPackageRecord[];
+  readonly dietaryTags: readonly ProductDietaryTagRecord[];
+  readonly allergens: readonly ProductAllergenRecord[];
   readonly media: readonly ProductMediaRecord[];
 }
 

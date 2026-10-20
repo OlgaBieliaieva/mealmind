@@ -84,6 +84,27 @@ export interface ProductShelfLifeRule {
   readonly source: "MANUAL" | "SOURCE";
 }
 
+export interface ProductDietaryTag {
+  readonly dietaryTagId: string;
+  readonly code: string;
+  readonly nameUa: string;
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly evidenceNote: string | null;
+  readonly verifiedAt: string | null;
+}
+
+export interface ProductAllergen {
+  readonly allergenId: string;
+  readonly code: string;
+  readonly nameUa: string;
+  readonly declaration: "CONTAINS" | "MAY_CONTAIN" | "SHARED_FACILITY";
+  readonly status: "PROPOSED" | "VERIFIED" | "STALE";
+  readonly method: "MANUAL_REVIEW" | "DETERMINISTIC_RULE" | "SOURCE_EVIDENCE";
+  readonly evidenceNote: string | null;
+  readonly verifiedAt: string | null;
+}
+
 export interface ProductPackageWrite {
   readonly id?: string;
   readonly gtin: string | null;
@@ -180,6 +201,8 @@ export interface ProductDetails extends Omit<ProductSummary, "primaryMedia"> {
   readonly ownNutrients: ProductDetails["nutrients"];
   readonly portions: readonly (ProductPortionWrite & { readonly id: string })[];
   readonly packages: readonly ProductPackage[];
+  readonly dietaryTags: readonly ProductDietaryTag[];
+  readonly allergens: readonly ProductAllergen[];
   readonly media: readonly ProductMedia[];
 }
 
@@ -203,6 +226,11 @@ export interface ProductWrite {
 
 export type ProductUpdate = Omit<Partial<ProductWrite>, "type" | "baseProductId"> & {
   readonly packages?: readonly ProductPackageWrite[];
+  readonly dietaryTags?: readonly Pick<ProductDietaryTag, "dietaryTagId" | "evidenceNote">[];
+  readonly allergens?: readonly Pick<
+    ProductAllergen,
+    "allergenId" | "declaration" | "evidenceNote"
+  >[];
 };
 
 export interface ProductListParameters {

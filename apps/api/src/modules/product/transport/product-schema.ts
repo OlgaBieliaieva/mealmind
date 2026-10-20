@@ -233,6 +233,25 @@ const updateProductBody = z.object({
   nutrients: productFields.nutrients,
   portions: productFields.portions,
   packages: z.array(productPackage).max(100).optional(),
+  dietaryTags: z
+    .array(
+      z.object({
+        dietaryTagId: uuid,
+        evidenceNote: requiredNullableText(2_000),
+      }),
+    )
+    .max(100)
+    .optional(),
+  allergens: z
+    .array(
+      z.object({
+        allergenId: uuid,
+        declaration: z.enum(["CONTAINS", "MAY_CONTAIN", "SHARED_FACILITY"]),
+        evidenceNote: requiredNullableText(2_000),
+      }),
+    )
+    .max(100)
+    .optional(),
 });
 
 export const listProductsSchema = z.object({
