@@ -78,6 +78,8 @@ describe("product verification readiness", () => {
               isDefault: true,
               status: "ACTIVE",
             archivedAt: null,
+            ingredientStatements: [],
+            shelfLifeRules: [],
             },
           ],
         }),

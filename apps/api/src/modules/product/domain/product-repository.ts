@@ -137,6 +137,23 @@ export interface ProductPackageWrite {
   readonly labelEn: string | null;
   readonly isDefault: boolean;
   readonly status: ProductPackageRecord["status"];
+  readonly ingredientStatements?: readonly ProductIngredientStatementWrite[] | undefined;
+  readonly shelfLifeRules?: readonly ProductShelfLifeRuleWrite[] | undefined;
+}
+
+export interface ProductIngredientStatementWrite {
+  readonly locale: string;
+  readonly statement: string;
+}
+
+export interface ProductShelfLifeRuleWrite {
+  readonly rawShelfLife: string | null;
+  readonly rawTemperatureRange: string | null;
+  readonly durationValue: string | null;
+  readonly durationUnit: "HOURS" | "DAYS" | "MONTHS" | "YEARS" | null;
+  readonly minTemperatureC: string | null;
+  readonly maxTemperatureC: string | null;
+  readonly sortOrder: number;
 }
 
 export interface ProductPackageRecord {
@@ -156,6 +173,15 @@ export interface ProductPackageRecord {
   readonly isDefault: boolean;
   readonly status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   readonly archivedAt: string | null;
+  readonly ingredientStatements: readonly (ProductIngredientStatementWrite & {
+    readonly id: string;
+    readonly isPrimary: boolean;
+    readonly source: "MANUAL" | "SOURCE";
+  })[];
+  readonly shelfLifeRules: readonly (ProductShelfLifeRuleWrite & {
+    readonly id: string;
+    readonly source: "MANUAL" | "SOURCE";
+  })[];
 }
 
 export interface ProductMediaRecord {

@@ -471,6 +471,211 @@ export function ProductForm({
                       </label>
                     )}
                   />
+                  {(packageValues?.[index]?.sourceIngredientStatements.length ?? 0) > 0 ||
+                  (packageValues?.[index]?.sourceShelfLifeRules.length ?? 0) > 0 ? (
+                    <section className="product-form__package-source">
+                      <h4>Дані джерела</h4>
+                      {(packageValues?.[index]?.sourceIngredientStatements ?? []).map(
+                        (statement, sourceIndex) => (
+                          <p key={`${statement.locale}-${sourceIndex}`}>
+                            <strong>Склад ({statement.locale}):</strong> {statement.statement}
+                          </p>
+                        ),
+                      )}
+                      {(packageValues?.[index]?.sourceShelfLifeRules ?? []).map(
+                        (rule, sourceIndex) => (
+                          <p key={`source-rule-${sourceIndex}`}>
+                            <strong>Зберігання:</strong> {formatShelfLifeRule(rule)}
+                          </p>
+                        ),
+                      )}
+                    </section>
+                  ) : null}
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.ingredientStatements`}
+                    render={({ field: statementsField }) => (
+                      <section className="product-form__package-details">
+                        <h4>Підтверджений склад</h4>
+                        {statementsField.value.map((statement, statementIndex) => (
+                          <div
+                            className="product-form__repeat-row"
+                            key={`${statement.locale}-${statementIndex}`}
+                          >
+                            <TextInput
+                              label="Локаль"
+                              value={statement.locale}
+                              error={
+                                errors.packages?.[index]?.ingredientStatements?.[statementIndex]
+                                  ?.locale?.message
+                              }
+                              onChange={(event) =>
+                                statementsField.onChange(
+                                  statementsField.value.map((item, currentIndex) =>
+                                    currentIndex === statementIndex
+                                      ? { ...item, locale: event.target.value }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                            <label className="ui-field">
+                              <span className="ui-field__label">Склад</span>
+                              <textarea
+                                className="ui-control product-form__textarea"
+                                value={statement.statement}
+                                onChange={(event) =>
+                                  statementsField.onChange(
+                                    statementsField.value.map((item, currentIndex) =>
+                                      currentIndex === statementIndex
+                                        ? { ...item, statement: event.target.value }
+                                        : item,
+                                    ),
+                                  )
+                                }
+                              />
+                            </label>
+                            <Button
+                              variant="ghost"
+                              onClick={() =>
+                                statementsField.onChange(
+                                  statementsField.value.filter(
+                                    (_, currentIndex) => currentIndex !== statementIndex,
+                                  ),
+                                )
+                              }
+                            >
+                              Видалити склад
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            statementsField.onChange([
+                              ...statementsField.value,
+                              { locale: "uk-UA", statement: "" },
+                            ])
+                          }
+                        >
+                          Додати склад
+                        </Button>
+                      </section>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`packages.${index}.shelfLifeRules`}
+                    render={({ field: shelfLifeField }) => (
+                      <section className="product-form__package-details">
+                        <h4>Підтверджені строки й температури</h4>
+                        {shelfLifeField.value.map((rule, ruleIndex) => (
+                          <div className="product-form__repeat-row" key={`rule-${ruleIndex}`}>
+                            <TextInput
+                              label="Строк придатності (текст)"
+                              value={rule.rawShelfLife}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    rawShelfLife: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Температурний діапазон (текст)"
+                              value={rule.rawTemperatureRange}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    rawTemperatureRange: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Тривалість"
+                              inputMode="decimal"
+                              value={rule.durationValue}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    durationValue: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <SelectField
+                              label="Одиниця тривалості"
+                              placeholder="Не визначено"
+                              options={SHELF_LIFE_UNIT_OPTIONS}
+                              value={rule.durationUnit}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    durationUnit: event.target.value as typeof rule.durationUnit,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Мінімальна температура, °C"
+                              inputMode="decimal"
+                              value={rule.minTemperatureC}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    minTemperatureC: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <TextInput
+                              label="Максимальна температура, °C"
+                              inputMode="decimal"
+                              value={rule.maxTemperatureC}
+                              onChange={(event) =>
+                                shelfLifeField.onChange(
+                                  replaceAt(shelfLifeField.value, ruleIndex, {
+                                    ...rule,
+                                    maxTemperatureC: event.target.value,
+                                  }),
+                                )
+                              }
+                            />
+                            <Button
+                              variant="ghost"
+                              onClick={() =>
+                                shelfLifeField.onChange(
+                                  shelfLifeField.value.filter(
+                                    (_, currentIndex) => currentIndex !== ruleIndex,
+                                  ),
+                                )
+                              }
+                            >
+                              Видалити правило
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            shelfLifeField.onChange([
+                              ...shelfLifeField.value,
+                              emptyShelfLifeRule(),
+                            ])
+                          }
+                        >
+                          Додати строк або температурний режим
+                        </Button>
+                      </section>
+                    )}
+                  />
                   {packageValues?.[index]?.id === "" ? (
                     <Button variant="ghost" onClick={() => packageFields.remove(index)}>
                       Видалити нове пакування
@@ -493,6 +698,10 @@ export function ProductForm({
                   labelEn: "",
                   isDefault: packageFields.fields.length === 0,
                   status: "DRAFT",
+                  ingredientStatements: [],
+                  shelfLifeRules: [],
+                  sourceIngredientStatements: [],
+                  sourceShelfLifeRules: [],
                 })
               }
             >
@@ -652,6 +861,45 @@ const PACKAGE_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Активне" },
   { value: "ARCHIVED", label: "Архівне" },
 ] as const;
+
+const SHELF_LIFE_UNIT_OPTIONS = [
+  { value: "HOURS", label: "Години" },
+  { value: "DAYS", label: "Дні" },
+  { value: "MONTHS", label: "Місяці" },
+  { value: "YEARS", label: "Роки" },
+] as const;
+
+function emptyShelfLifeRule() {
+  return {
+    rawShelfLife: "",
+    rawTemperatureRange: "",
+    durationValue: "",
+    durationUnit: "",
+    minTemperatureC: "",
+    maxTemperatureC: "",
+  } satisfies ShelfLifeFormRule;
+}
+
+type ShelfLifeFormRule = ProductFormValues["packages"][number]["shelfLifeRules"][number];
+
+function replaceAt<T>(values: readonly T[], index: number, next: T): readonly T[] {
+  return values.map((value, currentIndex) => (currentIndex === index ? next : value));
+}
+
+function formatShelfLifeRule(rule: ShelfLifeFormRule): string {
+  return [
+    rule.rawShelfLife,
+    rule.rawTemperatureRange,
+    rule.durationValue === ""
+      ? ""
+      : `${rule.durationValue} ${SHELF_LIFE_UNIT_OPTIONS.find((item) => item.value === rule.durationUnit)?.label ?? ""}`,
+    rule.minTemperatureC === "" && rule.maxTemperatureC === ""
+      ? ""
+      : `${rule.minTemperatureC || "…"}…${rule.maxTemperatureC || "…"} °C`,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
 
 function nutrientValueLabel(
   nutrientId: string | undefined,

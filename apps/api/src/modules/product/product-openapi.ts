@@ -359,6 +359,45 @@ export const productOpenApiSchemas = Object.freeze({
       labelEn: { type: ["string", "null"], maxLength: 200 },
       isDefault: { type: "boolean" },
       status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] },
+      ingredientStatements: {
+        type: "array",
+        maxItems: 10,
+        items: { $ref: "#/components/schemas/ProductIngredientStatementWrite" },
+      },
+      shelfLifeRules: {
+        type: "array",
+        maxItems: 20,
+        items: { $ref: "#/components/schemas/ProductShelfLifeRuleWrite" },
+      },
+    },
+  },
+  ProductIngredientStatementWrite: {
+    type: "object",
+    required: ["locale", "statement"],
+    properties: {
+      locale: { type: "string", minLength: 2, maxLength: 16 },
+      statement: { type: "string", minLength: 1, maxLength: 20_000 },
+    },
+  },
+  ProductShelfLifeRuleWrite: {
+    type: "object",
+    required: [
+      "rawShelfLife",
+      "rawTemperatureRange",
+      "durationValue",
+      "durationUnit",
+      "minTemperatureC",
+      "maxTemperatureC",
+      "sortOrder",
+    ],
+    properties: {
+      rawShelfLife: { type: ["string", "null"], maxLength: 2_000 },
+      rawTemperatureRange: { type: ["string", "null"], maxLength: 2_000 },
+      durationValue: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      durationUnit: { type: ["string", "null"], enum: ["HOURS", "DAYS", "MONTHS", "YEARS", null] },
+      minTemperatureC: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      maxTemperatureC: { oneOf: [{ type: "string" }, { type: "number" }, { type: "null" }] },
+      sortOrder: { type: "integer", minimum: 0, maximum: 32_767 },
     },
   },
   ProductCreate: {
@@ -410,7 +449,7 @@ export const productOpenApiSchemas = Object.freeze({
       },
     ],
     description:
-      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, а архівація виконується статусом ARCHIVED.",
+      "Partial update без полів type, baseProductId і status; verificationStatus дозволено змінювати адміністратору. packages оновлює передані пакування або створює нові, архівація виконується статусом ARCHIVED. ingredientStatements і shelfLifeRules замінюють лише canonical manual rows; source-backed записи залишаються незмінними.",
   },
   ProductFoodCharacteristic: {
     type: "object",

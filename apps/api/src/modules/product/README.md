@@ -33,6 +33,11 @@
 - застаріле пакування архівується, а не видаляється; зміна пакування повертає перевірений
   продукт у `UNVERIFIED`, а legacy `Product.gtin` тимчасово синхронізується з актуальним
   основним пакуванням до окремої migration його видалення;
+- imported ingredient statements і shelf-life rules залишаються незмінними source-backed
+  записами; admin-форма показує їх як джерело, а підтвердження або виправлення створює окремі
+  canonical manual rows без повторного введення чи втрати provenance;
+- для складу ручний запис відповідної локалі стає primary; після його очищення primary знову
+  призначається одному з наявних source-backed записів цієї локалі;
 - дозволені переходи status: `DRAFT → ACTIVE|ARCHIVED`, `ACTIVE → ARCHIVED`, `ARCHIVED → DRAFT`.
 
 Актуальна Prisma-схема не містить product-level cooking/retention factor. У продукті зберігаються

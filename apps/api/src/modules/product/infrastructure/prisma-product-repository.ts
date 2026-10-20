@@ -41,7 +41,13 @@ const productInclude = {
     orderBy: [{ nutrient: { sortOrder: "asc" } }, { nutrientId: "asc" }],
   },
   portions: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
-  packages: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }, { id: "asc" }] },
+  packages: {
+    include: {
+      ingredientTexts: { orderBy: [{ locale: "asc" }, { isPrimary: "desc" }, { id: "asc" }] },
+      shelfLifeRules: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
+    },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+  },
   foodCharacteristics: {
     include: { characteristic: true },
     orderBy: [{ sortOrder: "asc" }, { characteristic: { sortOrder: "asc" } }],
@@ -650,6 +656,32 @@ function mapProductDetails(row: ProductRow): ProductDetails {
           isDefault: item.isDefault,
           status: item.status,
           archivedAt: item.archivedAt?.toISOString() ?? null,
+          ingredientStatements: Object.freeze(
+            item.ingredientTexts.map((statement) =>
+              Object.freeze({
+                id: statement.id,
+                locale: statement.locale,
+                statement: statement.statement,
+                isPrimary: statement.isPrimary,
+                source: statement.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
+              }),
+            ),
+          ),
+          shelfLifeRules: Object.freeze(
+            item.shelfLifeRules.map((rule) =>
+              Object.freeze({
+                id: rule.id,
+                rawShelfLife: rule.rawShelfLife,
+                rawTemperatureRange: rule.rawTemperatureRange,
+                durationValue: rule.durationValue?.toString() ?? null,
+                durationUnit: rule.durationUnit,
+                minTemperatureC: rule.minTemperatureC?.toString() ?? null,
+                maxTemperatureC: rule.maxTemperatureC?.toString() ?? null,
+                sortOrder: rule.sortOrder,
+                source: rule.sourceReferenceId === null ? ("MANUAL" as const) : ("SOURCE" as const),
+              }),
+            ),
+          ),
         }),
       ),
     ),
@@ -691,10 +723,67 @@ async function updateProductPackages(
       archivedAt: item.status === "ARCHIVED" ? new Date() : null,
     } as const;
 
+    let packageId: string;
     if (item.id === undefined) {
-      await transaction.productPackage.create({ data: { ...data, productId } });
+      const created = await transaction.productPackage.create({ data: { ...data, productId } });
+      packageId = created.id;
     } else {
       await transaction.productPackage.update({ where: { id: item.id }, data });
+      packageId = item.id;
+    }
+
+    if (item.ingredientStatements !== undefined) {
+      await transaction.productIngredientStatement.deleteMany({
+        where: { productPackageId: packageId, sourceReferenceId: null },
+      });
+      for (const statement of item.ingredientStatements) {
+        await transaction.productIngredientStatement.create({
+          data: {
+            productPackageId: packageId,
+            locale: statement.locale,
+            statement: statement.statement,
+            isPrimary: false,
+          },
+        });
+      }
+      const statements = await transaction.productIngredientStatement.findMany({
+        where: { productPackageId: packageId },
+        orderBy: [{ sourceReferenceId: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
+        select: { id: true, locale: true },
+      });
+      for (const locale of new Set(statements.map((statement) => statement.locale))) {
+        await transaction.productIngredientStatement.updateMany({
+          where: { productPackageId: packageId, locale },
+          data: { isPrimary: false },
+        });
+        const primary = statements.find((statement) => statement.locale === locale);
+        if (primary !== undefined) {
+          await transaction.productIngredientStatement.update({
+            where: { id: primary.id },
+            data: { isPrimary: true },
+          });
+        }
+      }
+    }
+
+    if (item.shelfLifeRules !== undefined) {
+      await transaction.productPackageShelfLifeRule.deleteMany({
+        where: { productPackageId: packageId, sourceReferenceId: null },
+      });
+      if (item.shelfLifeRules.length > 0) {
+        await transaction.productPackageShelfLifeRule.createMany({
+          data: item.shelfLifeRules.map((rule) => ({
+            productPackageId: packageId,
+            rawShelfLife: rule.rawShelfLife,
+            rawTemperatureRange: rule.rawTemperatureRange,
+            durationValue: rule.durationValue,
+            durationUnit: rule.durationUnit,
+            minTemperatureC: rule.minTemperatureC,
+            maxTemperatureC: rule.maxTemperatureC,
+            sortOrder: rule.sortOrder,
+          })),
+        });
+      }
     }
   }
 

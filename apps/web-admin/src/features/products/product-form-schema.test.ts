@@ -112,6 +112,10 @@ describe("product form schema and mapper", () => {
           labelEn: "",
           isDefault: true,
           status: "ACTIVE",
+          ingredientStatements: [],
+          shelfLifeRules: [],
+          sourceIngredientStatements: [],
+          sourceShelfLifeRules: [],
         },
       ],
     });

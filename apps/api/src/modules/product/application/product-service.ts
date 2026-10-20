@@ -591,6 +591,23 @@ function mergeProspectivePackages(
           ...update,
           id: item.id,
           archivedAt: update.status === "ARCHIVED" ? new Date().toISOString() : null,
+          ingredientStatements:
+            update.ingredientStatements === undefined
+              ? item.ingredientStatements
+              : update.ingredientStatements.map((statement, index) => ({
+                  ...statement,
+                  id: `prospective-ingredient-${index}`,
+                  isPrimary: true,
+                  source: "MANUAL" as const,
+                })),
+          shelfLifeRules:
+            update.shelfLifeRules === undefined
+              ? item.shelfLifeRules
+              : update.shelfLifeRules.map((rule, index) => ({
+                  ...rule,
+                  id: `prospective-shelf-life-${index}`,
+                  source: "MANUAL" as const,
+                })),
         };
   });
   const created = updates
@@ -601,6 +618,17 @@ function mergeProspectivePackages(
         ...item,
         id,
         archivedAt: item.status === "ARCHIVED" ? new Date().toISOString() : null,
+        ingredientStatements: (item.ingredientStatements ?? []).map((statement, statementIndex) => ({
+          ...statement,
+          id: `prospective-ingredient-${statementIndex}`,
+          isPrimary: true,
+          source: "MANUAL" as const,
+        })),
+        shelfLifeRules: (item.shelfLifeRules ?? []).map((rule, ruleIndex) => ({
+          ...rule,
+          id: `prospective-shelf-life-${ruleIndex}`,
+          source: "MANUAL" as const,
+        })),
       };
     });
   return [...replaced, ...created];

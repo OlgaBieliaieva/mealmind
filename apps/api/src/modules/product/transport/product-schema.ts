@@ -37,6 +37,24 @@ const decimal = (minimum: number, maximum: number, scale: number) =>
     .refine((value) => (value.split(".")[1]?.length ?? 0) <= scale, {
       message: `Must have no more than ${scale} decimal places`,
     });
+const signedDecimal = (minimum: number, maximum: number, scale: number) =>
+  z
+    .union([z.string(), z.number()])
+    .transform(String)
+    .refine((value) => /^-?\d+(?:\.\d+)?$/.test(value), "Must be a decimal")
+    .refine((value) => Number(value) >= minimum && Number(value) <= maximum, {
+      message: `Must be between ${minimum} and ${maximum}`,
+    })
+    .refine((value) => (value.split(".")[1]?.length ?? 0) <= scale, {
+      message: `Must have no more than ${scale} decimal places`,
+    });
+const requiredNullableText = (maximum: number) =>
+  z
+    .string()
+    .trim()
+    .max(maximum)
+    .transform((value) => (value === "" ? null : value))
+    .nullable();
 
 const gtin = z
   .string()
@@ -85,8 +103,57 @@ const productPackage = z
     labelEn: z.string().trim().max(200).transform((value) => (value === "" ? null : value)).nullable(),
     isDefault: z.boolean(),
     status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+    ingredientStatements: z
+      .array(
+        z.object({
+          locale: z.string().trim().min(2).max(16),
+          statement: z.string().trim().min(1).max(20_000),
+        }),
+      )
+      .max(10)
+      .optional(),
+    shelfLifeRules: z
+      .array(
+        z
+          .object({
+            rawShelfLife: requiredNullableText(2_000),
+            rawTemperatureRange: requiredNullableText(2_000),
+            durationValue: decimal(0.0001, 1_000_000, 4).nullable(),
+            durationUnit: z.enum(["HOURS", "DAYS", "MONTHS", "YEARS"]).nullable(),
+            minTemperatureC: signedDecimal(-273.15, 1_000, 2).nullable(),
+            maxTemperatureC: signedDecimal(-273.15, 1_000, 2).nullable(),
+            sortOrder: z.number().int().min(0).max(32_767),
+          })
+          .superRefine((rule, context) => {
+            if ((rule.durationValue === null) !== (rule.durationUnit === null)) {
+              addIssue(context, "durationValue", "Duration value and unit must be set together");
+            }
+            if (
+              rule.minTemperatureC !== null &&
+              rule.maxTemperatureC !== null &&
+              Number(rule.minTemperatureC) > Number(rule.maxTemperatureC)
+            ) {
+              addIssue(context, "maxTemperatureC", "Maximum temperature must not be lower");
+            }
+            if (
+              rule.rawShelfLife === null &&
+              rule.rawTemperatureRange === null &&
+              rule.durationValue === null &&
+              rule.minTemperatureC === null &&
+              rule.maxTemperatureC === null
+            ) {
+              addIssue(context, "rawShelfLife", "At least one shelf-life value is required");
+            }
+          }),
+      )
+      .max(20)
+      .optional(),
   })
   .superRefine((value, context) => {
+    const locales = value.ingredientStatements?.map((item) => item.locale.toLowerCase()) ?? [];
+    if (new Set(locales).size !== locales.length) {
+      addIssue(context, "ingredientStatements", "Ingredient locales must be unique");
+    }
     if (
       (value.kind === "FIXED_MASS" || value.kind === "FIXED_MASS_AND_VOLUME") &&
       value.weightG === null

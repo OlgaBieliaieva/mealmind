@@ -11,6 +11,51 @@ const decimalText = (maximum: number) =>
       (value) => value === "" || Number(value) <= maximum,
       `Максимальне значення — ${maximum}`,
     );
+const signedDecimalText = (minimum: number, maximum: number) =>
+  z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^-?\d+(?:\.\d+)?$/.test(value), "Введіть число")
+    .refine(
+      (value) => value === "" || (Number(value) >= minimum && Number(value) <= maximum),
+      `Значення має бути від ${minimum} до ${maximum}`,
+    );
+
+const ingredientStatement = z.object({
+  locale: z.string().trim().min(2, "Вкажіть локаль").max(16),
+  statement: z.string().trim().min(1, "Вкажіть склад").max(20_000),
+});
+
+const shelfLifeRule = z
+  .object({
+    rawShelfLife: z.string().trim().max(2_000),
+    rawTemperatureRange: z.string().trim().max(2_000),
+    durationValue: decimalText(1_000_000),
+    durationUnit: z.enum(["", "HOURS", "DAYS", "MONTHS", "YEARS"]),
+    minTemperatureC: signedDecimalText(-273.15, 1_000),
+    maxTemperatureC: signedDecimalText(-273.15, 1_000),
+  })
+  .superRefine((value, context) => {
+    if ((value.durationValue === "") !== (value.durationUnit === "")) {
+      issue(context, "durationValue", "Тривалість і одиниця мають бути вказані разом");
+    }
+    if (
+      value.minTemperatureC !== "" &&
+      value.maxTemperatureC !== "" &&
+      Number(value.minTemperatureC) > Number(value.maxTemperatureC)
+    ) {
+      issue(context, "maxTemperatureC", "Максимальна температура не може бути нижчою");
+    }
+    if (
+      value.rawShelfLife === "" &&
+      value.rawTemperatureRange === "" &&
+      value.durationValue === "" &&
+      value.minTemperatureC === "" &&
+      value.maxTemperatureC === ""
+    ) {
+      issue(context, "rawShelfLife", "Заповніть хоча б одне значення");
+    }
+  });
 
 export const productFormSchema = z
   .object({
@@ -71,6 +116,10 @@ export const productFormSchema = z
           labelEn: z.string().trim().max(200),
           isDefault: z.boolean(),
           status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+          ingredientStatements: z.array(ingredientStatement).max(10),
+          shelfLifeRules: z.array(shelfLifeRule).max(20),
+          sourceIngredientStatements: z.array(ingredientStatement),
+          sourceShelfLifeRules: z.array(shelfLifeRule),
         })
         .superRefine((value, context) => {
           if (
@@ -155,6 +204,17 @@ export function mapProductFormToUpdate(values: ProductFormValues): ProductUpdate
           labelEn: item.labelEn === "" ? null : item.labelEn,
           isDefault: item.isDefault,
           status: item.status,
+          ingredientStatements: item.ingredientStatements,
+          shelfLifeRules: item.shelfLifeRules.map((rule, sortOrder) => ({
+            rawShelfLife: rule.rawShelfLife === "" ? null : rule.rawShelfLife,
+            rawTemperatureRange:
+              rule.rawTemperatureRange === "" ? null : rule.rawTemperatureRange,
+            durationValue: rule.durationValue === "" ? null : rule.durationValue,
+            durationUnit: rule.durationUnit === "" ? null : rule.durationUnit,
+            minTemperatureC: rule.minTemperatureC === "" ? null : rule.minTemperatureC,
+            maxTemperatureC: rule.maxTemperatureC === "" ? null : rule.maxTemperatureC,
+            sortOrder,
+          })),
         })),
       }
     : common;
@@ -201,8 +261,31 @@ export function mapProductToForm(product: ProductDetails): ProductFormValues {
       labelEn: item.labelEn ?? "",
       isDefault: item.isDefault,
       status: item.status,
+      ingredientStatements: item.ingredientStatements
+        .filter((statement) => statement.source === "MANUAL")
+        .map((statement) => ({ locale: statement.locale, statement: statement.statement })),
+      sourceIngredientStatements: item.ingredientStatements
+        .filter((statement) => statement.source === "SOURCE")
+        .map((statement) => ({ locale: statement.locale, statement: statement.statement })),
+      shelfLifeRules: item.shelfLifeRules
+        .filter((rule) => rule.source === "MANUAL")
+        .map(mapShelfLifeRuleToForm),
+      sourceShelfLifeRules: item.shelfLifeRules
+        .filter((rule) => rule.source === "SOURCE")
+        .map(mapShelfLifeRuleToForm),
     })),
   };
+}
+
+function mapShelfLifeRuleToForm(rule: ProductDetails["packages"][number]["shelfLifeRules"][number]) {
+  return {
+    rawShelfLife: rule.rawShelfLife ?? "",
+    rawTemperatureRange: rule.rawTemperatureRange ?? "",
+    durationValue: rule.durationValue ?? "",
+    durationUnit: rule.durationUnit ?? "",
+    minTemperatureC: rule.minTemperatureC ?? "",
+    maxTemperatureC: rule.maxTemperatureC ?? "",
+  } as const;
 }
 
 function mapCommon(values: ProductFormValues): Omit<ProductWrite, "type"> {

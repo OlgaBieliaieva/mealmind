@@ -434,6 +434,8 @@ describe("product service", () => {
             isDefault: true,
             status: "ACTIVE",
             archivedAt: null,
+            ingredientStatements: [],
+            shelfLifeRules: [],
           },
         ],
       }),

@@ -215,6 +215,21 @@ describe("ProductForm", () => {
               labelEn: "",
               isDefault: true,
               status: "ACTIVE",
+              ingredientStatements: [],
+              shelfLifeRules: [],
+              sourceIngredientStatements: [
+                { locale: "uk-UA", statement: "Какао, цукор, молоко" },
+              ],
+              sourceShelfLifeRules: [
+                {
+                  rawShelfLife: "12 місяців",
+                  rawTemperatureRange: "від 0 до 25 °C",
+                  durationValue: "12",
+                  durationUnit: "MONTHS",
+                  minTemperatureC: "0",
+                  maxTemperatureC: "25",
+                },
+              ],
             },
           ],
         }}
@@ -225,12 +240,26 @@ describe("ProductForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Вага, г" }), {
       target: { value: "55" },
     });
+    expect(screen.getByText(/Какао, цукор, молоко/)).toBeVisible();
+    expect(screen.getByText(/12 місяців/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Додати склад" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Склад" }), {
+      target: { value: "Какао, цукор, сухе молоко" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          packages: [expect.objectContaining({ id: packageId, weightG: "55" })],
+          packages: [
+            expect.objectContaining({
+              id: packageId,
+              weightG: "55",
+              ingredientStatements: [
+                { locale: "uk-UA", statement: "Какао, цукор, сухе молоко" },
+              ],
+            }),
+          ],
         }),
       ),
     );
